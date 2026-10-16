@@ -170,6 +170,7 @@ select { appearance: none; -webkit-appearance: none; background: var(--paper); b
 .tiles.out { padding: 10px; border-radius: 12px; border: 2px dashed var(--line); background: var(--paper); }
 .tile { border: 1.5px solid var(--line); border-bottom-width: 3px; background: var(--card); border-radius: 10px; padding: 10px 14px; min-height: 48px; font-size: 1.08rem; font-weight: 700; }
 .tile.used { visibility: hidden; }
+.tile.struck { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--muted); opacity: .55; cursor: default; }
 .sentence { display: flex; flex-wrap: wrap; gap: 6px; font-size: 1.25rem; }
 .word { border: 0; border-bottom: 2px dotted var(--muted); background: transparent; padding: 6px 6px; border-radius: 6px 6px 0 0; font-size: 1.25rem; min-height: 46px; }
 .word:hover:not([disabled]) { background: var(--paper); }
@@ -243,6 +244,33 @@ footer { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line);
 .foot-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .fb-ctx { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-style: italic; }
 .fb-ctx .say { width: 36px; height: 36px; font-size: .9rem; background: var(--card); font-style: normal; }
+/* Weiter-Knopf, Profilbild, Lernpakete-Klappe */
+.resume { text-align: left; justify-content: space-between; flex-wrap: wrap; row-gap: 2px; line-height: 1.25; padding-block: 16px; }
+.resume small { display: block; font-family: var(--f-body); font-weight: 400; font-size: .85rem; opacity: .85; }
+.resume .arrow { font-size: 1.5rem; flex: none; }
+.avatar-btn { border: 0; padding: 0; position: relative; flex: none; }
+.avatar-btn img, .top-ava img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+.avatar-btn .cam { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--line); font-size: .7rem; display: grid; place-items: center; }
+.top-ava { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-family: var(--f-display); font-weight: 800; font-size: .8rem; overflow: hidden; flex: none; }
+.pill.who { padding-left: 4px; }
+details.pack > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--f-display); font-weight: 700; font-size: 1.2rem; }
+details.pack > summary::-webkit-details-marker { display: none; }
+details.pack > summary::after { content: "▾"; color: var(--muted); transition: transform .2s; }
+details.pack:not([open]) > summary::after { transform: rotate(-90deg); }
+details.pack { display: block; }
+details.pack > * + * { margin-top: 14px; }
+.opt-tog { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.opt-tog input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+/* Überraschungen: über dem Inhalt, ohne Layout-Sprung */
+.fly { position: fixed; left: 50%; top: 38%; z-index: 55; pointer-events: none; font-size: clamp(72px, 16vw, 128px); line-height: 1; transform: translate(-50%, -50%); animation: fly .8s cubic-bezier(.3,1.4,.5,1) forwards; }
+@keyframes fly { 0% { transform: translate(-50%, 40%) scale(.3) rotate(-25deg); opacity: 0; } 35% { transform: translate(-50%, -50%) scale(1.1) rotate(6deg); opacity: 1; } 70% { transform: translate(-50%, -60%) scale(1) rotate(0); opacity: 1; } 100% { transform: translate(-50%, -140%) scale(.7); opacity: 0; } }
+.mini { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(70px + env(safe-area-inset-top, 0px)); z-index: 56; pointer-events: none; display: flex; align-items: center; gap: 12px; background: var(--card); border: 2px solid var(--star); border-radius: 16px; padding: 10px 18px 10px 12px; box-shadow: var(--shadow); font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; animation: mini 2s ease forwards; max-width: calc(100% - 32px); }
+.mini span:first-child { font-size: 2.6rem; line-height: 1; }
+@keyframes mini { 0% { transform: translateY(-14px) scale(.8); opacity: 0; } 12% { transform: none; opacity: 1; } 85% { transform: none; opacity: 1; } 100% { transform: translateY(-10px); opacity: 0; } }
+.collage { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 8px; }
+.collage div { background: var(--paper); border-radius: 12px; padding: 10px 6px; text-align: center; display: flex; flex-direction: column; gap: 2px; align-items: center; min-width: 0; }
+.collage b { font-size: 2.3rem; line-height: 1.1; font-weight: 400; }
+.collage span { font-size: .85rem; font-weight: 700; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -255,11 +283,13 @@ footer { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line);
 
   <!-- PROFILWAHL -->
   <main id="scrProfile">
-    <div style="display:flex;flex-direction:column;gap:18px">
-      <div><p class="eyebrow">Englisch und Französisch üben</p><h1>Wer übt heute?</h1></div>
+    <div style="display:flex;flex-direction:column;gap:18px" id="profileCol">
+      <button class="btn btn-primary btn-big resume" id="btnResume" hidden></button>
+      <div id="profileHead"><p class="eyebrow">Englisch und Französisch üben</p><h1>Wer übt heute?</h1></div>
       <div class="profiles" id="profiles"></div>
-      <section class="card pack" aria-labelledby="hPack">
-        <h2 id="hPack">Lernpakete</h2>
+      <input type="file" id="avatarIn" class="vh" accept="image/*" tabindex="-1" aria-hidden="true">
+      <details class="card pack" id="packDetails">
+        <summary id="hPack">Lernpakete verwalten</summary>
         <div class="drop" id="dropZone">
           <p><b>Lernpaket laden</b><br><span class="muted">JSON-Datei aus der Dateien-App oder iCloud Drive wählen. Am Computer kannst du sie auch hierher ziehen.</span></p>
           <label class="btn btn-ghost" for="fileIn">Datei wählen</label>
@@ -267,7 +297,7 @@ footer { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line);
         </div>
         <ul class="packs" id="packList"></ul>
         <p class="note" id="packMsg" role="status" aria-live="polite"></p>
-      </section>
+      </details>
       <p class="note" id="installHint" hidden>Auf dem iPad: Teilen → Zum Home-Bildschirm</p>
     </div>
   </main>
@@ -347,6 +377,7 @@ footer { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line);
     <span id="footNote">Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.</span>
     <span id="storeInfo"></span>
     <span id="voicePick"></span>
+    <span class="foot-tools" id="optTools"></span>
     <span class="foot-tools" id="verlaufTools"></span>
   </footer>
 </div>
@@ -1101,7 +1132,17 @@ const VOICE_PREF = {
   en: ["Daniel","Serena","Kate","Oliver","Arthur","Martha","Stephanie","Jamie","Moira","Tessa","Karen","Samantha","Ava","Allison","Zoe","Evan","Nathan","Google UK English Female","Google UK English Male","Google US English","Microsoft Sonia","Microsoft Ryan","Microsoft Libby","Microsoft Aria","Microsoft Jenny","Microsoft Guy"],
   fr: ["Thomas","Amélie","Audrey","Aurélie","Marie","Virginie","Google français","Microsoft Denise","Microsoft Henri","Microsoft Eloise","Microsoft Julie","Microsoft Paul","Microsoft Hortense"]
 };
-const VOICE_BAD = /eloquence|compact|novelty|albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|kathy|ralph|shelley|sandy|rocko|reed|grandma|grandpa|flo|eddy|jacques/i;
+// Ausschlussliste: Apple-Spaß- und Roboterstimmen (englische und deutsche Anzeigenamen), Eloquence-Stimmen,
+// dazu ausdrücklich Rishi und Katrin (Wunsch JB). Verglichen wird ganzwortig auf dem Namen ohne Akzente,
+// zusätzlich die voiceURI (com.apple.speech.synthesis.voice.Bells, com.apple.eloquence.*, *.novelty.*).
+const VOICE_BAD_NAMES = ["albert","bad news","schlechte nachrichten","bahh","bells","glocken","boing","bubbles","seifenblasen","blasen",
+  "cellos","cello","celli","deranged","good news","gute nachrichten","jester","narr","hofnarr","organ","orgel","superstar","trinoids","whisper","flustern",
+  "wobble","wackeln","zarvox","fred","junior","kathy","ralph","shelley","sandy","rocko","reed","grandma","grandpa","oma","opa","grossmutter","grossvater",
+  "grand-pere","grand-mere","grand pere","grand mere","cloches","bulles","orgue","chuchotement","bonnes nouvelles","mauvaises nouvelles",
+  "flo","eddy","hysterical","pipe organ","princess","jacques","rishi","katrin"];
+const VOICE_BAD = new RegExp("(^|[^a-z])(" + VOICE_BAD_NAMES.join("|") + ")(?![a-z])|eloquence|compact|novelty", "i");
+const VOICE_BAD_URI = /eloquence|novelty|speech\.synthesis\.voice\.(albert|bad|bahh|bells|boing|bubbles|cellos|deranged|good|hysterical|organ|pipe|princess|ralph|trinoids|whisper|zarvox|fred|junior|kathy)/i;
+const voiceBad = v => { const n = fold(String(v.name || "")).toLowerCase().replace(/ß/g, "ss"); return VOICE_BAD.test(n) || VOICE_BAD_URI.test(String(v.voiceURI || "")); };
 const VKEY = l => l === "fr" ? "kk.v1.voice.fr" : "kk.v1.voice"; // Englisch behält den bisherigen Schlüssel
 const VTEST = {en: ["Hello! This is how I sound.", "Hello! Take good care of yourself."], fr: ["Bonjour ! Voilà ma voix.", "Salut ! On va au cinéma ce soir ?"]};
 let voices = [];
@@ -1109,7 +1150,7 @@ function curLang() { try { return CUR && !CUR.sample && CUR.K ? CUR.K.lang : "en
 function loadVoices() { try { voices = window.speechSynthesis ? speechSynthesis.getVoices() : []; } catch (e) { voices = []; } renderVoicePicker(); }
 function voicesFor(lang) {
   const re = lang === "fr" ? /^fr[-_]/i : /^en[-_]/i, pref = VOICE_PREF[lang] || VOICE_PREF.en;
-  const list = voices.filter(v => re.test(v.lang) && !VOICE_BAD.test(v.name));
+  const list = voices.filter(v => re.test(v.lang) && !voiceBad(v));
   const score = v => {
     let p = 0;
     const i = pref.findIndex(n => v.name.startsWith(n)); if (i >= 0) p += 100 - i;
@@ -1155,6 +1196,377 @@ function renderVoicePicker() {
 }
 const sayBtn = (text, label, lang) => `<button class="say" data-say="${esc(text)}" data-lang="${esc(lang || "en")}" aria-label="${esc(label || "Vorlesen")}">🔊</button>`;
 document.addEventListener("click", e => { const b = e.target.closest("[data-say]"); if (b) speak(b.dataset.say, b.dataset.lang); });
+
+/* ---------- Schalter in der Fußzeile (Standard an, je Gerät gespeichert) ---------- */
+const OPT = {
+  get(k) { const v = store.get("kk.v1.opt." + k); return v == null ? true : !!v; },
+  set(k, v) { store.set("kk.v1.opt." + k, !!v); }
+};
+function renderOptTools() {
+  const host = $("optTools"); if (!host) return;
+  host.innerHTML = `<label class="opt-tog"><input type="checkbox" id="optSay"${OPT.get("autosay") ? " checked" : ""}> Antworten vorlesen</label>
+    <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>`;
+  $("optSay").onchange = e => OPT.set("autosay", e.target.checked);
+  $("optFun").onchange = e => { OPT.set("fun", e.target.checked); if (e.target.checked) Fun.unlock(); };
+}
+
+/* ---------- Überraschungen (E7: nur App-intern, sparsam, zufällig, nie als Strafe) ----------
+   a) Emoji fliegt 0,8 s durchs Bild (ca. 15 % nach richtig, Auswahl nach Serie 3/5/10)
+   b) Töne per WebAudio, synthetisiert: Pling bei richtig, Dreiklang bei Serie 5, Fanfare am Ende
+   c) Bilder-Überraschung: Vokabel aus dem Emoji-Wörterbuch als Mini-Karte (ca. 25 %), am Ende Collage
+   Nie zwei Aufgaben hintereinander. Fun.rng ist austauschbar (Tests mit festem Zufall). */
+// Emoji | englische Schlüssel | französische Schlüssel (ohne Artikel, ohne "to")
+const EMOJI_LISTE = `🐶|dog,puppy|chien,chiot
+🐱|cat,kitten|chat,chaton
+🐭|mouse|souris
+🐹|hamster,guinea pig|hamster,cochon d'inde
+🐰|rabbit,bunny|lapin
+🐴|horse,pony|cheval,poney
+🐮|cow|vache
+🐷|pig|cochon
+🐑|sheep|mouton
+🐔|chicken,hen|poule,poulet
+🐦|bird|oiseau
+🐟|fish|poisson
+🐢|tortoise,turtle|tortue
+🐍|snake|serpent
+🐸|frog|grenouille
+🦁|lion|lion
+🐯|tiger|tigre
+🐘|elephant|éléphant
+🐒|monkey|singe
+🐻|bear|ours
+🦊|fox|renard
+🐺|wolf|loup
+🦒|giraffe|girafe
+🐧|penguin|pingouin,manchot
+🐬|dolphin|dauphin
+🐳|whale|baleine
+🦈|shark|requin
+🐝|bee|abeille
+🦋|butterfly|papillon
+🕷️|spider|araignée
+🐜|ant|fourmi
+🦆|duck|canard
+🦉|owl|hibou,chouette
+🐊|crocodile,alligator|crocodile
+🦖|dinosaur|dinosaure
+🐾|pet,animal,animals|animal,animaux,animal domestique
+🦄|unicorn|licorne
+🐐|goat|chèvre
+🐿️|squirrel|écureuil
+🦌|deer|cerf
+🐉|dragon|dragon
+🍎|apple|pomme
+🍌|banana|banane
+🍊|orange|orange
+🍓|strawberry|fraise
+🍇|grapes,grape|raisin
+🍋|lemon|citron
+🍐|pear|poire
+🍒|cherry,cherries|cerise
+🍑|peach|pêche
+🍉|watermelon|pastèque
+🥕|carrot|carotte
+🥔|potato|pomme de terre
+🍅|tomato|tomate
+🥒|cucumber|concombre
+🥗|salad|salade
+🍞|bread|pain
+🥖|baguette|baguette
+🥐|croissant|croissant
+🧀|cheese|fromage
+🥚|egg|œuf
+🥛|milk|lait
+🧈|butter|beurre
+🍯|honey|miel
+🍫|chocolate|chocolat
+🍰|cake|gâteau
+🍪|biscuit,cookie|biscuit
+🍦|ice cream|glace
+🍬|sweets,candy|bonbon,bonbons
+🍕|pizza|pizza
+🍔|burger,hamburger|hamburger
+🍟|chips,fries,french fries|frites
+🌭|hot dog|hot-dog
+🥪|sandwich|sandwich
+🍝|pasta,spaghetti|pâtes,spaghettis
+🍚|rice|riz
+🥩|meat|viande
+🥣|cereal,cornflakes,muesli|céréales
+🥞|pancake,pancakes|crêpe,crêpes
+🍲|soup|soupe
+🍽️|meal,dinner,lunch,plate|repas,dîner,déjeuner,assiette
+🍳|breakfast,kitchen|petit-déjeuner,petit déjeuner,cuisine
+☕|coffee|café
+🍵|tea|thé
+🧃|juice,orange juice|jus,jus d'orange
+💧|water|eau
+🥤|lemonade,cola,drink|limonade,coca,boisson
+🍿|popcorn|pop-corn
+🧂|salt|sel
+🥨|pretzel|bretzel
+🍴|fork|fourchette
+🔪|knife|couteau
+🥄|spoon|cuillère
+🏫|school|école,collège
+📚|book,books|livre,livres
+📓|exercise book|cahier
+✏️|pencil|crayon
+🖊️|pen,biro|stylo
+📏|ruler|règle
+✂️|scissors|ciseaux
+🎒|schoolbag,school bag,bag,rucksack,backpack|sac,sac à dos,cartable
+🧑‍🏫|teacher|professeur,prof
+🧑‍🎓|pupil,student|élève
+🧮|maths,math|maths,mathématiques
+🔬|science|sciences
+🎨|art,paint,painting|arts plastiques,peindre,peinture
+🎵|music|musique
+🗺️|map,geography|carte,géographie
+📝|homework,test|devoirs,contrôle,interro
+🖥️|computer|ordinateur
+💻|laptop|ordinateur portable
+📱|phone,mobile,mobile phone,smartphone|portable,téléphone,smartphone
+📅|calendar,timetable|calendrier,emploi du temps
+⏰|alarm clock|réveil
+🕐|clock,watch|horloge,montre
+🗑️|bin,rubbish bin|poubelle
+✉️|letter|lettre
+📧|email,e-mail|e-mail,mail
+📷|camera,photo|appareil photo,photo
+🎁|present,gift|cadeau
+🎈|balloon|ballon de baudruche
+🎉|party|fête,boum
+🎂|birthday,birthday cake|anniversaire,gâteau d'anniversaire
+🏠|house,home|maison
+🏢|flat,block of flats|appartement,immeuble
+🛏️|bed,bedroom|lit,chambre
+🛋️|sofa,couch,living room|canapé,salon
+🪑|chair|chaise
+🚪|door|porte
+🪟|window|fenêtre
+🚿|shower|douche
+🛁|bath,bathroom|bain,salle de bains,baignoire
+🚽|toilet|toilettes
+🔑|key|clé,clef
+💡|lamp,light|lampe
+📺|television,tv,telly|télé,télévision
+🧸|teddy,teddy bear,toy|jouet,nounours
+🏡|garden|jardin
+🌳|tree|arbre
+👨‍👩‍👧|family|famille
+👩|mother,mum,mom|mère,maman
+👨|father,dad|père,papa
+👧|sister,girl|sœur,fille
+👦|brother,boy|frère,garçon
+👵|grandmother,grandma,granny,gran|grand-mère,mamie
+👴|grandfather,grandpa,grandad|grand-père,papi
+👶|baby|bébé
+🤝|friend,friends|ami,amie,copain,copine
+👮|police officer,policeman,policewoman|policier,policière
+🧑‍⚕️|doctor|médecin,docteur
+👑|king,queen|roi,reine
+🚗|car|voiture
+🚌|bus|bus
+🚲|bike,bicycle|vélo
+🚆|train|train
+🚇|underground,tube,subway|métro
+✈️|plane,aeroplane,airplane,airport|avion,aéroport
+⛵|boat,ship|bateau
+🚕|taxi|taxi
+🛴|scooter|trottinette
+🏙️|city,town|ville
+🏥|hospital|hôpital
+🏪|shop|magasin
+🛒|supermarket|supermarché
+🏛️|museum|musée
+🎬|cinema,film,movie|cinéma,film
+⛪|church|église
+🏰|castle|château
+🏟️|stadium|stade
+🌉|bridge|pont
+🚉|station|gare
+🛣️|street,road|rue,route
+🏖️|beach|plage
+🏝️|island|île
+⛰️|mountain,mountains|montagne
+🌊|sea,ocean|mer,océan
+🌲|forest,wood|forêt,bois
+🚜|farm,tractor|ferme,tracteur
+🏕️|tent,campsite|tente,camping
+🗼|eiffel tower|tour eiffel
+☀️|sun|soleil
+🌧️|rain|pluie
+❄️|snow|neige
+☁️|cloud|nuage
+🌈|rainbow|arc-en-ciel
+⛈️|storm,thunderstorm|orage
+💨|wind|vent
+🌙|moon|lune
+⭐|star|étoile
+🌍|world,earth|monde,terre
+🌸|flower|fleur
+🍂|autumn,leaf|automne,feuille
+🌷|spring|printemps
+🌞|summer|été
+⛄|winter,snowman|hiver,bonhomme de neige
+🔥|fire|feu
+👕|t-shirt,shirt|t-shirt,tee-shirt,chemise
+👖|jeans,trousers|jean,pantalon
+👗|dress|robe
+👟|trainers,sneakers|baskets
+👞|shoes,shoe|chaussures,chaussure
+🧢|cap|casquette
+🎩|hat|chapeau
+🧣|scarf|écharpe
+🧤|gloves|gants
+🧥|jacket,coat|veste,manteau,blouson
+👓|glasses|lunettes
+🧦|socks|chaussettes
+☂️|umbrella|parapluie
+🩳|shorts|short
+🧶|jumper,pullover,sweater|pull
+⚽|football,ball,soccer|football,foot,ballon
+🏀|basketball|basket
+🎾|tennis|tennis
+🏊|swim,swimming,swimming pool|nager,natation,piscine
+🏃|run,running|courir,course
+🛹|skateboard,skateboarding|skate,skateboard
+🎮|computer game,video game,games console|jeu vidéo,console
+🎸|guitar|guitare
+🎹|piano|piano
+🥁|drums|batterie
+🎻|violin|violon
+🎤|sing,singer,song|chanter,chanteur,chanteuse,chanson
+💃|dance,dancing|danser,danse
+📖|read,reading,story|lire,lecture,histoire
+🏇|riding|équitation
+🧗|climbing|escalade
+⛷️|skiing,ski|ski
+🏐|volleyball|volley
+🏓|table tennis|ping-pong,tennis de table
+🎲|game,dice|jeu,dé
+🃏|cards|cartes
+🎧|headphones|écouteurs,casque
+❤️|heart,love|cœur,amour
+😊|happy|content,contente,heureux,heureuse
+😢|sad|triste
+😠|angry|en colère,fâché
+😴|tired,sleep|fatigué,fatiguée,dormir
+😱|scared,afraid|peur
+🤒|ill,sick|malade
+👀|eye,eyes|œil,yeux
+👂|ear|oreille
+👃|nose|nez
+👄|mouth|bouche
+✋|hand|main
+🦶|foot|pied
+🦷|tooth,teeth|dent,dents
+💇|hair|cheveux
+😂|funny|drôle,marrant
+😋|delicious,yummy|délicieux,délicieuse
+💰|money|argent
+🎄|christmas|noël
+🐣|easter|pâques
+🎃|halloween|halloween
+🎫|ticket|billet,ticket
+📰|newspaper|journal
+🪁|kite|cerf-volant
+🚀|rocket|fusée
+👻|ghost|fantôme
+🤖|robot|robot
+🧙|wizard,witch|sorcier,sorcière
+🏴‍☠️|pirate|pirate
+👋|hello,hi,bye,goodbye|bonjour,salut,au revoir
+🙏|thank you,thanks,please|merci,s'il te plaît,s'il vous plaît`;
+const EMOJI = {en: {}, fr: {}};
+EMOJI_LISTE.split("\n").forEach(z => { const [e, en, fr] = z.split("|"); en.split(",").forEach(k => { EMOJI.en[k.trim()] = e; }); fr.split(",").forEach(k => { EMOJI.fr[k.trim().normalize("NFC")] = e; }); });
+const Fun = (function () {
+  let ac = null, seq = 0, lastAt = -9;
+  const TIER = [["👍", "✨", "😄", "👌", "🙌"], ["🔥", "⚡", "🚀", "😎"], ["🌟", "🎯", "💪", "🤩"], ["🏆", "👑", "🦄", "🎉"]];
+  const api = {rng: Math.random, on: () => OPT.get("fun"), shown: []};
+  const rpick = a => a[Math.floor(api.rng() * a.length) % a.length];
+  // iOS: AudioContext nur in einer Nutzergeste anlegen bzw. fortsetzen
+  function ctx() {
+    try {
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+      if (!ac) ac = new C();
+      if (ac.state === "suspended" && ac.resume) { const r = ac.resume(); if (r && r.catch) r.catch(() => {}); }
+      return ac;
+    } catch (e) { return null; }
+  }
+  function tone(f, at, dur, vol, type) {
+    const c = ctx(); if (!c) return;
+    try {
+      const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + at;
+      o.type = type || "sine"; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+    } catch (e) {}
+  }
+  api.unlock = () => {
+    const c = ctx(); if (!c) return;
+    try { const b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); } catch (e) {}
+  };
+  api.pling = () => { tone(1318.5, 0, 0.22, 0.05); tone(2637, 0, 0.12, 0.012); };
+  api.triad = () => [523.25, 659.25, 783.99].forEach((f, i) => tone(f, i * 0.09, 0.3, 0.045, "triangle"));
+  api.fanfare = () => [392, 523.25, 659.25, 783.99].forEach((f, i) => tone(f, i * 0.14, i === 3 ? 0.7 : 0.18, 0.05, "triangle"));
+  api.key = (w, lang) => {
+    let k = String(w).toLowerCase().normalize("NFC").replace(/[’‘`´]/g, "'").replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim();
+    k = lang === "fr" ? k.replace(/^(de la |de l'|le |la |les |l'|un |une |des |du )/, "") : k.replace(/^(a |an |the |to )/, "");
+    return k.trim();
+  };
+  // Emoji zur Vokabel der Aufgabe (Paketkarte oder Beispielkarte), sonst null
+  api.emojiFor = it => {
+    if (!it) return null;
+    const c = it.cardRef, lang = it.lang || "en";
+    let en;
+    if (c) { if (c.kind === "verb") return null; en = c.en; }
+    else if (it.t === "mc" || it.t === "type") en = it.en;
+    if (!en) return null;
+    const word = LK.cleanEn(en, lang).split(/\s*[;,/]\s*/)[0].replace(/\s*(\.\.\.|…)+$/, "").trim();
+    const e = (EMOJI[lang === "fr" ? "fr" : "en"] || {})[api.key(word, lang)];
+    return e ? {e, w: word, lang} : null;
+  };
+  api.reset = () => { seq = 0; lastAt = -9; api.shown = []; };
+  function overlay(cls, html, ms) {
+    try {
+      const d = document.createElement("div"); d.className = cls; d.setAttribute("aria-hidden", "true"); d.innerHTML = html;
+      document.body.appendChild(d); setTimeout(() => { try { d.remove(); } catch (e) {} }, ms);
+    } catch (e) {}
+  }
+  // nach dem Auflösen: Ton, dann höchstens eine Überraschung; liefert, was gezeigt wurde
+  api.afterReveal = (it, res, streak) => {
+    seq++;
+    if (!api.on()) return null;
+    if (res === "ok") { if (streak > 0 && streak % 5 === 0) api.triad(); else api.pling(); }
+    if (res === "bad" || seq - lastAt < 2) return null;
+    const em = api.emojiFor(it);
+    if (em && api.rng() < 0.25) {
+      lastAt = seq; api.shown.push({kind: "bild", e: em.e});
+      overlay("mini", `<span>${em.e}</span><span lang="${em.lang}">${esc(em.w)}</span>`, 2000);
+      return {kind: "bild", e: em.e, w: em.w};
+    }
+    if (res === "ok" && api.rng() < 0.15) {
+      const e = rpick(TIER[streak >= 10 ? 3 : streak >= 5 ? 2 : streak >= 3 ? 1 : 0]);
+      lastAt = seq; api.shown.push({kind: "emoji", e});
+      overlay("fly", e, 850);
+      return {kind: "emoji", e};
+    }
+    return null;
+  };
+  // Collage am Ende: geübte Wörter mit Emoji (doppelte nur einmal)
+  api.collage = items => {
+    const seen = new Set(), out = [];
+    items.forEach(it => { const em = api.emojiFor(it); if (!em) return; const k = em.e + "|" + em.w.toLowerCase(); if (seen.has(k)) return; seen.add(k); out.push(em); });
+    return out.slice(0, 24);
+  };
+  // erste Berührung entsperrt den Ton (iOS)
+  const first = () => { if (api.on()) api.unlock(); if (ac && ac.state === "running") { document.removeEventListener("touchend", first); document.removeEventListener("click", first); } };
+  try { document.addEventListener("touchend", first, {passive: true}); document.addEventListener("click", first); } catch (e) {}
+  return api;
+})();
 
 function markDiff(input, target) {
   // markiert in der Lösung die Stelle, an der sich die Eingabe unterscheidet (für "fast richtig")
@@ -1345,7 +1757,7 @@ function logEvent(it, res, info) {
       profil: pr ? pr.id : "kindB", profil_name: pr ? pr.name : PROFILES[1].name,
       buch: it.buch || (CUR && CUR.sample ? SAMPLE_ID : CUR ? CUR.book : SAMPLE_ID), sprache: it.lang || "en",
       item: it.id, aufgabe: it.gen || it.t, richtung: it.dir || "", phase: S.phase === "retry" ? "fehlerrunde" : "haupt",
-      ergebnis: res, abweichung: (info && info.why) || "", eingabe: String(info && info.input != null ? info.input : (info && info.yours) || ""),
+      ergebnis: res, abweichung: (info && info.why) || "", hilfe: !!(info && info.hilfe), eingabe: String(info && info.input != null ? info.input : (info && info.yours) || ""),
       dauer_ms: Math.max(0, Date.now() - (S.t0 || Date.now())), zeit: new Date().toISOString()
     }).then(renderVerlaufTools, () => {});
   } catch (e) {}
@@ -1406,6 +1818,150 @@ const KIDX = {};     // Index je Paket
 let CUR = null;      // {pr, book, sample, K, meta, key}
 const fmt = n => Number(n).toLocaleString("de-DE");
 
+/* ---------- Profilbilder: 256 × 256 JPEG, nur auf diesem Gerät (IndexedDB kk-bilder, sonst localStorage, sonst Speicher) ---------- */
+const AvatarDB = (function () {
+  let dbp = null; const mem = {}, LS = "kk.v1.avatar.";
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise(res => {
+      let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+      try {
+        if (!window.indexedDB) return fin(null);
+        const rq = indexedDB.open("kk-bilder", 1);
+        rq.onupgradeneeded = () => { const db = rq.result; if (!db.objectStoreNames.contains("avatare")) db.createObjectStore("avatare", {keyPath: "id"}); };
+        rq.onsuccess = () => fin(rq.result);
+        rq.onerror = () => fin(null);
+        rq.onblocked = () => fin(null);
+        setTimeout(() => fin(null), 4000);
+      } catch (e) { fin(null); }
+    });
+    return dbp;
+  }
+  function req(db, mode, fn) {
+    return new Promise((res, rej) => {
+      try {
+        const t = db.transaction("avatare", mode), st = t.objectStore("avatare"); let r;
+        t.oncomplete = () => res(r && "result" in r ? r.result : undefined);
+        t.onerror = t.onabort = () => rej(t.error || new Error("IndexedDB"));
+        r = fn(st);
+      } catch (e) { rej(e); }
+    });
+  }
+  return {
+    async all() {
+      const out = Object.assign({}, mem), db = await open();
+      PROFILES.forEach(p => { try { const v = localStorage.getItem(LS + p.id); if (v) out[p.id] = v; } catch (e) {} });
+      if (db) { try { ((await req(db, "readonly", st => st.getAll())) || []).forEach(r => { if (r && r.bild) out[r.id] = r.bild; }); } catch (e) {} }
+      return out;
+    },
+    async put(id, bild) {
+      mem[id] = bild; const db = await open();
+      if (db) { try { await req(db, "readwrite", st => st.put({id, bild})); return "idb"; } catch (e) {} }
+      try { localStorage.setItem(LS + id, bild); return "ls"; } catch (e) { return "mem"; }
+    },
+    async del(id) {
+      delete mem[id]; const db = await open();
+      if (db) { try { await req(db, "readwrite", st => st.delete(id)); } catch (e) {} }
+      try { localStorage.removeItem(LS + id); } catch (e) {}
+    }
+  };
+})();
+let AVATARS = {};
+let avatarFor = null;
+const avatarInner = pr => AVATARS[pr.id] ? `<img src="${esc(AVATARS[pr.id])}" alt="">` : esc(pr.name.slice(0, 1));
+/* Foto quadratisch aus der Mitte schneiden, auf 256 × 256 verkleinern, JPEG 0,85. Alles im Gerät. */
+function shrinkImage(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error("Datei nicht lesbar"));
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, s = Math.min(w, h);
+          if (!s) return rej(new Error("leeres Bild"));
+          const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+          const c = cv.getContext("2d"); c.fillStyle = "#ffffff"; c.fillRect(0, 0, 256, 256);
+          try { c.imageSmoothingQuality = "high"; } catch (e) {}
+          c.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, 256, 256);
+          res(cv.toDataURL("image/jpeg", 0.85));
+        } catch (e) { rej(e); }
+      };
+      img.onerror = () => rej(new Error("Bildformat nicht lesbar"));
+      img.src = String(fr.result);
+    };
+    fr.readAsDataURL(file);
+  });
+}
+$("avatarIn").onchange = async e => {
+  const f = e.target.files && e.target.files[0], id = avatarFor; e.target.value = ""; avatarFor = null;
+  if (!f || !id) return;
+  if (!/^image\//.test(f.type || "image/")) { toast("Das ist kein Bild."); return; }
+  try {
+    const bild = await shrinkImage(f);
+    AVATARS[id] = bild; const wo = await AvatarDB.put(id, bild);
+    toast(wo === "mem" ? "Profilbild gilt nur bis zum Neuladen (Speicher gesperrt)." : "Profilbild gespeichert. Es bleibt auf diesem Gerät.");
+  } catch (err) { toast("Das Bild ließ sich nicht verwenden. Anderes Foto probieren?"); }
+  renderProfiles(); renderTop(curScreen());
+};
+function wireAvatars() {
+  document.querySelectorAll("[data-ava]").forEach(b => b.onclick = () => { avatarFor = b.dataset.ava; const inp = $("avatarIn"); inp.value = ""; inp.click(); });
+  document.querySelectorAll("[data-ava-del]").forEach(b => b.onclick = async () => {
+    const id = b.dataset.avaDel; delete AVATARS[id]; await AvatarDB.del(id); toast("Profilbild entfernt."); renderProfiles();
+  });
+}
+
+/* ---------- Weiter beim letzten Stand (Profil, Buch, Einheit, Station) ---------- */
+const LKEY = "kk.v1.last";
+function saveLast() {
+  if (!CUR || !P) return;
+  store.set(LKEY, {pid: CUR.pr.id, book: CUR.book, unit: CUR.sample ? P.unit : P.einheit, station: P.station == null ? null : P.station, zeit: Date.now()});
+}
+const bookShort = t => String(t).replace(/\s*Bayern\b/g, "").replace(/\bBand\s+/, "").trim();
+const unitShort = t => { const m = String(t).match(/^(Pick-up [AB]|Unit\s+\d+|Unité\s+\d+|Revision\s+[A-C]|Across cultures\s+\d|Focus\s+\d|Plateau\s+\S+|Text smart\s+\d|Au début)/); return m ? m[1].replace(/\s+/g, " ") : String(t); };
+function lastStand() {
+  const l = store.get(LKEY); if (!l || typeof l !== "object") return null;
+  const pr = PROFILES.find(p => p.id === l.pid); if (!pr) return null;
+  if (l.book === SAMPLE_ID) {
+    if (!pr.sample) return null;
+    const u = UNITS[l.unit] ? +l.unit : 1, st = UNITS[u].stations[l.station] ? +l.station : 1;
+    return {l, pr, book: SAMPLE_ID, titel: "Green Line 3 (Beispielkarten)", unit: "Unit " + u, station: "Station " + st, u, st};
+  }
+  const meta = METAS.find(m => m.id === l.book);
+  if (!meta || !booksFor(pr).some(b => b.id === l.book)) return null;
+  const e = meta.einheiten.find(x => x.id === l.unit) || meta.einheiten[0];
+  const st = e.stations.find(s => s.id === l.station);
+  return {l, pr, meta, book: meta.id, titel: bookShort(meta.titel), unit: unitShort(e.titel), station: st ? LK.stShort(st) : "", u: e.id, st: st ? st.id : null};
+}
+function renderResume() {
+  const b = $("btnResume"); if (!b) return;
+  const r = lastStand();
+  if (!r) { b.hidden = true; b.onclick = null; return; }
+  b.hidden = false; b.disabled = false;
+  b.innerHTML = `<span>Weiter: ${esc(r.pr.name)} · ${esc(r.titel)}, ${esc(r.unit)}<small>${r.station ? esc(r.station) + " · " : ""}genau da, wo du aufgehört hast</small></span><span class="arrow" aria-hidden="true">→</span>`;
+  b.onclick = () => resumeLast(r);
+}
+const curScreen = () => ["scrProfile", "scrHome", "scrSession", "scrEnd"].find(id => !$(id).hidden) || "scrProfile";
+async function resumeLast(r) {
+  r = r || lastStand(); if (!r) return;
+  const b = $("btnResume"); if (b) b.disabled = true;
+  store.set("kk.v1.sel." + r.pr.id, {book: r.book});
+  if (r.book === SAMPLE_ID) { loadProfile(); P.unit = r.u; P.station = r.st; store.set(PKEY, P); }
+  else { const prog = loadPackProgress(r.pr.id, r.meta); prog.einheit = r.u; prog.station = r.st; store.set(packKey(r.pr.id, r.book), prog); }
+  await enterProfile(r.pr, r.book);
+  if (b) b.disabled = false;
+}
+
+/* ---------- Lernpakete-Klappe: ohne Paket aufgeklappt oben, sonst zugeklappt am Ende ---------- */
+let metasReady = false;
+function placePacks(boot) {
+  const d = $("packDetails"), col = $("profileCol"); if (!d || !col || !metasReady) return;
+  const empty = !METAS.length;
+  if (empty) { col.insertBefore(d, $("profiles")); d.open = true; }
+  else if (boot) { col.insertBefore(d, $("installHint")); d.open = false; }
+  const h = $("hPack"); if (h) h.textContent = empty ? "Lernpakete verwalten · noch keins geladen" : `Lernpakete verwalten · ${METAS.length} geladen`;
+}
+
 function prevTitles(id) { return LK.vorgaenger(METAS, id).map(x => (METAS.find(m => m.id === x) || {titel: x}).titel); }
 function booksFor(pr) {
   // Hauptbände des Profils (fehlende werden übergangen), dazu Pakete, die keinem Profil zugeordnet sind
@@ -1448,7 +2004,8 @@ function renderProfiles() {
   $("profiles").innerHTML = PROFILES.map(pr => {
     const book = chosenBook(pr), books = booksFor(pr);
     const meta = METAS.find(m => m.id === book);
-    const head = t => `<div class="row"><div class="avatar">${esc(pr.name.slice(0, 1))}</div><div><h2 id="h-${pr.id}">${esc(pr.name)}</h2><p class="muted">Jgst. ${pr.jgst} · ${esc(t)}</p></div></div>`;
+    const has = !!AVATARS[pr.id];
+    const head = t => `<div class="row"><button type="button" class="avatar avatar-btn" data-ava="${pr.id}" aria-label="Profilbild für ${esc(pr.name)} ${has ? "ändern" : "wählen"}">${avatarInner(pr)}<span class="cam" aria-hidden="true">📷</span></button><div><h2 id="h-${pr.id}">${esc(pr.name)}</h2><p class="muted">Jgst. ${pr.jgst} · ${esc(t)}</p>${has ? `<button type="button" class="link" data-ava-del="${pr.id}" style="font-size:.85rem">Foto entfernen</button>` : ""}</div></div>`;
     if (!book) return `<section class="card profile soon" aria-labelledby="h-${pr.id}">${head(pr.wantsTitel)}
       <p>Noch kein Lernpaket. Lade unten die Datei für ${esc(pr.wantsTitel)} (${pr.books.map(b => esc(b) + ".json").join(" oder ")}), dann geht's los.</p>
       <button class="btn btn-ghost" disabled>Wartet auf Lernpaket</button></section>`;
@@ -1463,6 +2020,8 @@ function renderProfiles() {
       <button class="btn btn-primary" id="btnPick-${pr.id}">Weiter als ${esc(pr.name)}</button></section>`;
   }).join("");
   PROFILES.forEach(wireProfile);
+  wireAvatars();
+  renderResume();
 }
 function wireProfile(pr) {
   const book = chosenBook(pr); if (!book) return;
@@ -1510,7 +2069,7 @@ async function getPaket(id) {
 async function enterProfile(pr, book) {
   if (book === SAMPLE_ID) {
     loadProfile(); CUR = {pr, book, sample: true};
-    saveProfile(); renderHome(); show("scrHome"); return;
+    saveProfile(); saveLast(); renderHome(); show("scrHome"); return;
   }
   const btn = $("btnPick-" + pr.id); if (btn) { btn.disabled = true; btn.textContent = "Lade Karten …"; }
   const meta = METAS.find(m => m.id === book), p = await getPaket(book);
@@ -1522,12 +2081,13 @@ async function enterProfile(pr, book) {
   }
   P = loadPackProgress(pr.id, meta);
   CUR = {pr, book, sample: false, K, meta, prev, key: packKey(pr.id, book)};
-  saveProfile(); renderHome(); show("scrHome");
+  saveProfile(); saveLast(); renderHome(); show("scrHome");
 }
 
 /* ---------- Paket-Import ---------- */
 function renderPacks() {
   const ul = $("packList");
+  placePacks(false);
   if (!METAS.length) { ul.innerHTML = `<li class="muted">Noch kein Paket geladen. Maximilian übt so lange mit den Beispielkarten.</li>`; return; }
   ul.innerHTML = METAS.map(m => `<li class="pack-row"><div><b>Paket ${esc(m.id)} geladen: ${fmt(m.count)} Karten</b>
       <span class="muted">${esc(m.titel)}${m.version ? " · Stand " + esc(m.version) : ""} · ${m.persist === "mem" ? "nur bis zum Neuladen (Speicher voll oder gesperrt)" : "auf diesem Gerät gespeichert"}</span></div>
@@ -1583,7 +2143,7 @@ $("fileIn").onchange = e => { importFile(e.target.files && e.target.files[0]); e
 (function dragDrop() {
   const z = $("dropZone"); let depth = 0;
   const onProfile = () => !$("scrProfile").hidden;
-  document.addEventListener("dragenter", e => { if (!onProfile()) return; e.preventDefault(); depth++; z.classList.add("over"); });
+  document.addEventListener("dragenter", e => { if (!onProfile()) return; e.preventDefault(); depth++; z.classList.add("over"); const d = $("packDetails"); if (d) d.open = true; });
   document.addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (!depth) z.classList.remove("over"); });
   document.addEventListener("dragover", e => { if (onProfile()) e.preventDefault(); });
   document.addEventListener("drop", e => {
@@ -1597,7 +2157,7 @@ $("fileIn").onchange = e => { importFile(e.target.files && e.target.files[0]); e
 /* ---------- Home ---------- */
 function renderTop(screen) {
   const r = $("topRight");
-  if (screen === "scrHome" && CUR) r.innerHTML = `<span class="pill">${esc(CUR.pr.name)} · Jgst. ${CUR.pr.jgst}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
+  if (screen === "scrHome" && CUR) r.innerHTML = `<span class="pill who"><span class="top-ava" aria-hidden="true">${avatarInner(CUR.pr)}</span>${esc(CUR.pr.name)} · Jgst. ${CUR.pr.jgst}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
   else r.innerHTML = "";
   const l = $("lnkSwitch"); if (l) l.onclick = () => { CUR = null; renderProfiles(); show("scrProfile"); };
   document.title = CUR && screen !== "scrProfile" ? "Karteikasten " + sprache(curLang()).name : "Karteikasten";
@@ -1676,12 +2236,31 @@ function startSession() {
     queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev);
   } else queue = buildSession();
   if (!queue.length) { toast("Für diese Einheit gibt es noch keine Karten."); return; }
-  S = {queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0};
+  S = {queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: ""};
+  Fun.reset();
   show("scrSession");
   $("quitConfirm").hidden = true;
   renderTask();
 }
 function totalSteps() { return S.queue.length; }
+/* Satzbau: Kachel-Indizes, die nicht zum Mustersatz gehören (Wörter des Mustersatzes werden der Reihe nach verbraucht) */
+function buildDistractors(it) {
+  const need = {}; String(it.ans[0] || "").split(/\s+/).filter(Boolean).forEach(w => { const k = normL(w, it.lang || "en"); need[k] = (need[k] || 0) + 1; });
+  const out = [];
+  it.tiles.forEach((w, k) => { const n = normL(w, it.lang || "en"); if (need[n] > 0) need[n]--; else out.push(k); });
+  return out;
+}
+/* eine Aufgabe ans Ende der Session hängen (Preis der Hilfe) */
+function addExtraTask() {
+  const have = new Set(S.queue.map(t => t.id));
+  let cand = [];
+  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev) : buildSession(); } catch (e) { cand = []; }
+  const t = cand.find(x => !have.has(x.id)) || Object.assign({}, S.current);
+  S.queue.push(t); S.extraTasks = (S.extraTasks || 0) + 1;
+  const n = S.i + 1, tot = totalSteps();
+  $("progBar").style.width = (100 * S.i / tot) + "%";
+  $("progText").textContent = S.phase === "retry" ? `Fehlerrunde ${n - S.mainLen}/${tot - S.mainLen}` : `${n}/${tot}`;
+}
 function renderTask() {
   const it = S.queue[S.i]; S.current = it; S.tries = 0; S.t0 = Date.now();
   const L = it.lang || "en", SL = sprache(L);
@@ -1752,23 +2331,34 @@ function renderTask() {
       <div class="prompt">${esc(it.de)}</div>
       <div class="tiles out" id="out" aria-label="Dein Satz"></div>
       <div class="tiles" id="bank">${tiles.map(t => `<button class="tile" lang="${L}" data-k="${t.k}">${esc(t.w)}</button>`).join("")}</div>
-      <div class="row" style="justify-content:space-between"><button class="link" id="btnReset">Alles zurück</button><button class="btn btn-primary" id="btnCheck" disabled>Prüfen</button></div>`;
-    const chosen = [];
+      <div class="row" style="justify-content:space-between"><span class="row" style="gap:6px 14px"><button class="link" id="btnUndo" disabled>Letztes Wort zurück</button><button class="link" id="btnReset">Alles zurück</button><button class="link" id="btnStrike">Falsche Wörter wegstreichen</button></span><button class="btn btn-primary" id="btnCheck" disabled>Prüfen</button></div>`;
+    const chosen = [], struck = new Set(), dis = buildDistractors(it);
+    S.helpUsed = false;
+    if (!dis.length) $("btnStrike").hidden = true;
     const draw = () => {
       $("out").innerHTML = chosen.map((k, idx) => `<button class="tile" lang="${L}" data-idx="${idx}">${esc(it.tiles[k])}</button>`).join("");
-      el.querySelectorAll("#bank .tile").forEach(b => b.classList.toggle("used", chosen.includes(+b.dataset.k)));
-      $("btnCheck").disabled = !chosen.length;
+      el.querySelectorAll("#bank .tile").forEach(b => { const k = +b.dataset.k; b.classList.toggle("used", chosen.includes(k)); b.classList.toggle("struck", struck.has(k)); b.disabled = struck.has(k); });
+      $("btnCheck").disabled = !chosen.length; $("btnUndo").disabled = !chosen.length;
       $("out").querySelectorAll(".tile").forEach(b => b.onclick = () => { if (S.locked) return; chosen.splice(+b.dataset.idx, 1); draw(); });
     };
-    el.querySelectorAll("#bank .tile").forEach(b => b.onclick = () => { if (S.locked) return; const k = +b.dataset.k; if (!chosen.includes(k)) { chosen.push(k); draw(); } });
+    el.querySelectorAll("#bank .tile").forEach(b => b.onclick = () => { if (S.locked) return; const k = +b.dataset.k; if (!chosen.includes(k) && !struck.has(k)) { chosen.push(k); draw(); } });
     $("btnReset").onclick = () => { if (S.locked) return; chosen.length = 0; draw(); };
+    $("btnUndo").onclick = () => { if (S.locked || !chosen.length) return; chosen.pop(); draw(); };
+    // Hilfe: Ablenker durchstreichen; kostet eine zusätzliche Aufgabe (einmal je Satzbau-Aufgabe)
+    $("btnStrike").onclick = () => {
+      if (S.locked || S.helpUsed) return;
+      S.helpUsed = true; dis.forEach(k => struck.add(k));
+      for (let j = chosen.length - 1; j >= 0; j--) if (struck.has(chosen[j])) chosen.splice(j, 1);
+      $("btnStrike").hidden = true; addExtraTask(); draw();
+      toast("Hilfe genutzt: eine Aufgabe mehr");
+    };
     $("btnCheck").onclick = () => {
       if (S.locked) return;
       const said = chosen.map(k => it.tiles[k]).join(" ");
       // E9: jede erlaubte Reihenfolge zählt, das Buch bleibt das Muster
       const hit = it.ans.findIndex(a => normL(a, L) === normL(said, L)), ok = hit >= 0;
-      S.locked = true; $("btnCheck").disabled = true; $("btnReset").hidden = true;
-      finishTask(ok ? "ok" : "bad", {sol: esc(it.solText || it.ans[0]), solHtml: true, speak: it.speak || it.ans[0], yours: ok ? "" : said, input: said,
+      S.locked = true; $("btnCheck").disabled = true; $("btnReset").hidden = true; $("btnUndo").hidden = true; $("btnStrike").hidden = true;
+      finishTask(ok ? "ok" : "bad", {sol: esc(it.solText || it.ans[0]), solHtml: true, speak: it.speak || it.ans[0], yours: ok ? "" : said, input: said, hilfe: S.helpUsed,
         why: hit > 0 ? "variante" : "", note: hit > 0 ? "Deine Reihenfolge geht auch. So steht der Satz im Buch:" : ""});
     };
     draw();
@@ -1849,6 +2439,12 @@ function finishTask(res, info) {
     <div class="row"><button class="btn btn-primary" id="btnNext">Weiter</button></div></section>`;
   S.fbAt = Date.now();
   $("btnNext").onclick = nextTask;
+  // Das Auflösen ist eine Nutzergeste (Tipp auf Antwort/Prüfen/Enter): direkt hier sprechen, sonst schweigt iOS.
+  // Genau einmal je Aufgabe; „Weiter“ spricht nicht erneut.
+  const sayKey = S.phase + ":" + S.i;
+  if (OPT.get("autosay") && info.speak && S.saidFor !== sayKey) { S.saidFor = sayKey; speak(String(info.speak), L); }
+  S.streak = res === "ok" ? (S.streak || 0) + 1 : 0;
+  try { Fun.afterReveal(it, res, S.streak); } catch (e) {}
   setTimeout(() => { const n = $("btnNext"); if (n) { n.focus({preventScroll: true}); n.scrollIntoView({block: "nearest", behavior: "smooth"}); } }, 80);
 }
 document.addEventListener("keydown", e => {
@@ -1895,6 +2491,9 @@ function endSession() {
   const star = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="${on ? "s-on" : "s-off"}" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/></svg>`;
   const moveRow = (m) => `<div class="move"><span lang="${m.it.lang || "en"}">${esc(cardName(m.it))}</span><span class="${m.to > m.from ? "up" : m.to < m.from ? "down" : "stay"}">${m.from ? "Fach " + m.from : "neu"} → Fach ${m.to}</span></div>`;
   const bp = bossPercent();
+  saveLast();
+  const fun = Fun.on(), pics = fun ? Fun.collage(S.moves.map(m => m.it)) : [];
+  const collage = pics.length ? `<div><h3>Bild deiner Wörter</h3><div class="collage">${pics.map(p => `<div><b aria-hidden="true">${p.e}</b><span lang="${p.lang}">${esc(p.w)}</span></div>`).join("")}</div></div>` : "";
   $("endCard").innerHTML = `
     <div style="text-align:center;display:flex;flex-direction:column;gap:8px">
       <p class="eyebrow">Fertig für heute</p>
@@ -1908,6 +2507,7 @@ function endSession() {
       <div class="stat"><b>${Math.min(P.sessions, 99)}/${GOAL}</b>Wochenziel (+1)</div>
       <div class="stat"><b>${bp} %</b>Bosskampf ${esc(bossName())}</div>
     </div>
+    ${collage}
     <div>
       <h3>Karteikasten</h3>
       <p class="muted" style="margin-block:4px 8px">${fresh.length ? fresh.length + " neue Karten im Kasten, " : ""}${up.length} Karten rauf, ${stay.length} bleiben, ${down.length} zurück in Fach 1.</p>
@@ -1920,6 +2520,7 @@ function endSession() {
   $("btnHome").onclick = () => { renderHome(); show("scrHome"); };
   $("btnAgain").onclick = startSession;
   show("scrEnd");
+  if (fun) Fun.fanfare();
   confetti(stars);
 }
 
@@ -2015,7 +2616,8 @@ $("btnStart").onclick = startSession;
   renderStoreInfo();
   renderProfiles(); renderPacks();
   show("scrProfile");
-  renderVerlaufTools();
+  renderVerlaufTools(); renderOptTools();
+  try { AVATARS = await AvatarDB.all(); } catch (e) { AVATARS = {}; }
   try { METAS = await PaketDB.list(); } catch (e) { METAS = []; }
   // lokale Testfassung: eingebettete Pakete beim Start übernehmen (Liste EMBEDDED_PAKETE oder Einzelobjekt EMBEDDED_PAKET)
   const embs = Array.isArray(window.EMBEDDED_PAKETE) ? window.EMBEDDED_PAKETE : (window.EMBEDDED_PAKET ? [window.EMBEDDED_PAKET] : []);
@@ -2026,6 +2628,7 @@ $("btnStart").onclick = startSession;
     else PAK[m.id] = emb;
   }
   METAS.sort((a, b) => a.id.localeCompare(b.id, "de", {numeric: true}));
+  metasReady = true; placePacks(true);
   renderProfiles(); renderPacks();
 })();
 </script>
