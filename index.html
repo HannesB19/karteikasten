@@ -373,12 +373,24 @@ details.pack > * + * { margin-top: 14px; }
     <section class="card end" id="endCard"></section>
   </main>
 
+  <!-- SPRECHTEST (versteckt, nur per Link/#sprechtest) -->
+  <main id="scrSprech" hidden>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Sprechtest</h2><button class="btn btn-ghost btn-small" id="stBack">Zurück</button></div>
+      <section class="card"><p class="muted" style="margin:0">Machbarkeitstest für Spracherkennung. Datenschutz: Die Erkennung wird je nach Gerät von Apple oder Google verarbeitet (Audio verlässt ggf. das Gerät). Nur auf dieser Testseite; es wird nichts gespeichert oder protokolliert.</p></section>
+      <section class="card"><h3 style="margin-top:0">Umgebung</h3><div id="stEnv"></div></section>
+      <div id="stBlocks"></div>
+      <section class="card"><button class="btn btn-primary" id="stCopy">Ergebnis kopieren</button> <textarea id="stFallback" rows="10" style="width:100%;margin-top:10px" hidden readonly></textarea></section>
+    </div>
+  </main>
+
   <footer>
     <span id="footNote">Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.</span>
     <span id="storeInfo"></span>
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
     <span class="foot-tools" id="verlaufTools"></span>
+    <a class="link" href="#sprechtest" style="font-size:.8rem;font-weight:400">Sprechtest</a>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -1118,7 +1130,7 @@ function toast(msg) {
   document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
 }
 function show(id) {
-  ["scrProfile","scrHome","scrSession","scrEnd"].forEach(s => $(s).hidden = s !== id);
+  ["scrProfile","scrHome","scrSession","scrEnd","scrSprech"].forEach(s => $(s).hidden = s !== id);
   window.scrollTo(0, 0);
   renderTop(id);
 }
@@ -2611,11 +2623,129 @@ $("btnStart").onclick = startSession;
   } catch (e) {}
 })();
 
+/* ---------- Sprechtest (Machbarkeit Spracherkennung, versteckt; nichts wird gespeichert) ---------- */
+const ST = {
+  tests: [
+    {key: "en", lang: "en-GB", app: "en", name: "Englisch (en-GB)", items: [{label: "Zielwort", target: "strawberry"}, {label: "Zielsatz", target: "I like strawberries."}]},
+    {key: "fr", lang: "fr-FR", app: "fr", name: "Französisch (fr-FR)", items: [{label: "Zielwort", target: "la fraise"}, {label: "Zielsatz", target: "J'aime les fraises."}]}
+  ],
+  res: {}, rec: null
+};
+function stSR() { try { return window.SpeechRecognition || window.webkitSpeechRecognition || null; } catch (e) { return null; } }
+function stEnv() {
+  let standalone = false, inFrame = "?", md = false;
+  try { standalone = !!(navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches)); } catch (e) {}
+  try { inFrame = window.top !== window; } catch (e) { inFrame = true; }
+  try { md = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); } catch (e) {}
+  const ua = String(navigator.userAgent || "");
+  return [
+    ["SpeechRecognition verfügbar", stSR() ? "ja" : "nein"],
+    ["Standalone-Modus (PWA)", standalone ? "ja" : "nein"],
+    ["Im Frame", inFrame === "?" ? "unbekannt" : inFrame ? "ja" : "nein"],
+    ["isSecureContext", window.isSecureContext ? "ja" : "nein"],
+    ["mediaDevices vorhanden", md ? "ja" : "nein"],
+    ["Browser", ua.length > 110 ? ua.slice(0, 110) + "…" : ua],
+    ["Online", navigator.onLine ? "online" : "offline"]
+  ];
+}
+const ST_ERR = {
+  "not-allowed": "Mikrofon verweigert (not-allowed)", "service-not-allowed": "Spracherkennung vom System nicht erlaubt (service-not-allowed)",
+  "no-speech": "Nichts gehört (no-speech)", "network": "Netzwerkfehler (network)", "audio-capture": "Kein Mikrofon erreichbar (audio-capture)",
+  "aborted": "Abgebrochen (aborted)", "language-not-supported": "Sprache nicht unterstützt (language-not-supported)"
+};
+function stScore(text, target, lang) {
+  if (!text) return "–";
+  try {
+    const r = checkTyped(text, [target], [], lang), d = lev(normL(text, lang), normL(target, lang));
+    if (r.res === "ok") return "richtig";
+    if (r.res === "half" || d <= 2) return "fast (Abstand " + d + ")";
+    return "falsch (Abstand " + d + ")";
+  } catch (e) { return "Wertung nicht möglich"; }
+}
+function stRender() {
+  $("stEnv").innerHTML = stEnv().map(([k, v]) => `<div class="row" style="gap:8px;justify-content:space-between;border-bottom:1px solid var(--rule);padding:4px 0"><span>${esc(k)}</span><b style="text-align:right;word-break:break-word">${esc(v)}</b></div>`).join("")
+    + (stSR() ? "" : `<p class="fb bad" style="margin:10px 0 0">Spracherkennung in diesem Browser/Modus nicht verfügbar.</p>`);
+  $("stBlocks").innerHTML = ST.tests.map(t => `<section class="card"><h3 style="margin-top:0">${esc(t.name)}</h3>${t.items.map((it, i) => {
+    const id = t.key + i;
+    return `<div id="st-${id}" style="border-top:1px solid var(--rule);padding:10px 0"><p style="margin:0 0 6px"><b>${esc(it.label)}:</b> <span lang="${t.app}">${esc(it.target)}</span></p>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-small" data-st-say="${id}">Vorsprechen</button><button class="btn btn-primary btn-small" data-st-rec="${id}">Aufnehmen</button></div>
+      <p class="muted" style="margin:8px 0 0">Status: <span data-f="status">noch nichts</span></p>
+      <p style="margin:4px 0 0">Erkannt: <span data-f="text"></span></p>
+      <div data-f="alts" class="muted" style="font-size:.85rem"></div>
+      <p class="muted" style="margin:4px 0 0">Dauer: <span data-f="dur">–</span> · Wertung: <b data-f="score">–</b></p></div>`;
+  }).join("")}</section>`).join("");
+}
+function stFind(id) { const t = ST.tests.find(x => id.startsWith(x.key)); return {t, it: t.items[+id.slice(t.key.length)]}; }
+function stSet(id, f, v, html) { const e = document.querySelector(`#st-${id} [data-f="${f}"]`); if (e) { if (html) e.innerHTML = v; else e.textContent = v; } }
+function stStop() { try { if (ST.rec) ST.rec.abort(); } catch (e) {} ST.rec = null; }
+function stRecord(id) {
+  const {t, it} = stFind(id), SR = stSR();
+  const R = ST.res[id] = {lang: t.lang, target: it.target, status: "", text: "", final: false, alts: [], ms: null, score: "–"};
+  if (!SR) { R.status = "nicht verfügbar"; stSet(id, "status", "Spracherkennung in diesem Browser/Modus nicht verfügbar."); return; }
+  stStop();
+  let rec, t0 = Date.now(), got = false;
+  try {
+    rec = new SR(); ST.rec = rec;
+    rec.lang = t.lang; rec.interimResults = true; rec.maxAlternatives = 3; rec.continuous = false;
+    rec.onstart = () => { t0 = Date.now(); R.status = "hört zu"; stSet(id, "status", "hört zu …"); };
+    rec.onresult = ev => {
+      let fin = "", interim = "", alts = [];
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const r = ev.results[i];
+        if (r.isFinal) { fin += r[0].transcript; alts = Array.from(r).map(a => ({text: a.transcript, conf: a.confidence})); }
+        else interim += r[0].transcript;
+      }
+      if (!got) { got = true; R.ms = Date.now() - t0; stSet(id, "dur", R.ms + " ms"); }
+      stSet(id, "text", "", false);
+      stSet(id, "text", (fin ? `<span style="color:#000">${esc(fin)}</span>` : "") + (interim ? ` <span style="color:#888">${esc(interim)}</span>` : ""), true);
+      if (fin) {
+        R.final = true; R.text = fin.trim(); R.alts = alts;
+        stSet(id, "alts", alts.map((a, k) => `${k + 1}. ${esc(a.text)} (${(a.conf * 100).toFixed(0)} %)`).join("<br>"), true);
+        const sc = alts.map(a => stScore(a.text, it.target, t.app));
+        const rank = s => s.startsWith("richtig") ? 0 : s.startsWith("fast") ? 1 : 2;
+        R.score = sc.reduce((b, s) => rank(s) < rank(b) ? s : b, sc[0] || "–");
+        stSet(id, "score", R.score);
+      } else R.text = interim;
+    };
+    rec.onerror = ev => { const c = ev && ev.error || "unbekannt"; R.status = "Fehler: " + c; stSet(id, "status", "Fehler: " + (ST_ERR[c] || c)); };
+    rec.onend = () => { if (!/^Fehler/.test(R.status)) { R.status = "fertig"; stSet(id, "status", got ? "fertig" : "fertig (kein Ergebnis)"); } if (ST.rec === rec) ST.rec = null; };
+    stSet(id, "status", "starte …"); stSet(id, "text", ""); stSet(id, "alts", ""); stSet(id, "dur", "–"); stSet(id, "score", "–");
+    rec.start();
+  } catch (e) { R.status = "Fehler: " + (e && e.name || "start"); stSet(id, "status", "Fehler beim Start: " + (e && e.message || e)); }
+}
+function stSummary() {
+  const L = ["Sprechtest Karteikasten", new Date().toISOString(), "", "Umgebung:"];
+  stEnv().forEach(([k, v]) => L.push("- " + k + ": " + v));
+  L.push("", "Ergebnisse:");
+  const ids = Object.keys(ST.res);
+  if (!ids.length) L.push("(noch kein Test gelaufen)");
+  ids.forEach(id => { const r = ST.res[id];
+    L.push(`- ${r.lang} Ziel "${r.target}": Status ${r.status || "–"}; erkannt "${r.text}"${r.final ? "" : " (nicht final)"}; Wertung ${r.score}; Dauer ${r.ms == null ? "–" : r.ms + " ms"}`);
+    r.alts.forEach((a, k) => L.push(`    Alt ${k + 1}: "${a.text}" (${(a.conf * 100).toFixed(0)} %)`)); });
+  return L.join("\n");
+}
+function stCopy() {
+  const txt = stSummary(), fb = () => { const ta = $("stFallback"); ta.hidden = false; ta.value = txt; ta.focus(); ta.select(); toast("Bitte Text markieren und kopieren."); };
+  try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(() => toast("Ergebnis kopiert."), fb); return; } } catch (e) {}
+  fb();
+}
+function openSprech() { stStop(); ST.res = {}; stRender(); $("stFallback").hidden = true; show("scrSprech"); }
+function closeSprech() { stStop(); if (location.hash === "#sprechtest") { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; } } show(CUR ? "scrHome" : "scrProfile"); }
+$("stBack").onclick = closeSprech;
+$("stCopy").onclick = stCopy;
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-st-say]"), b = e.target.closest("[data-st-rec]");
+  if (a) { const {t, it} = stFind(a.dataset.stSay); speak(it.target, t.app); }
+  if (b) stRecord(b.dataset.stRec);
+});
+window.addEventListener("hashchange", () => { if (location.hash === "#sprechtest") openSprech(); });
+
 (async function boot() {
   loadProfile();
   renderStoreInfo();
   renderProfiles(); renderPacks();
   show("scrProfile");
+  if (location.hash === "#sprechtest") openSprech();
   renderVerlaufTools(); renderOptTools();
   try { AVATARS = await AvatarDB.all(); } catch (e) { AVATARS = {}; }
   try { METAS = await PaketDB.list(); } catch (e) { METAS = []; }
