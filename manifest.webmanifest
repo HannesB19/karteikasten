@@ -1,7 +1,8 @@
 {
-  "name": "Karteikasten",
-  "short_name": "Karteikasten",
+  "name": "Lern!",
+  "short_name": "Lern!",
   "lang": "de",
+  "description": "Lern-App für Englisch und Französisch: Sprechen, Schreiben, Mix",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

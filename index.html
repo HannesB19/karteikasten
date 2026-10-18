@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Karteikasten">
+<meta name="apple-mobile-web-app-title" content="Lern!">
 <meta name="theme-color" content="#1E2532">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/favicon-32.png">
-<title>Karteikasten</title>
+<title>Lern!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -20,7 +20,7 @@
 /* Layout: eine Spalte wie ein Stapel Karteikarten (blau liniert, roter Kopfstrich); im Querformat Home zweispaltig. */
 :root {
   /* Farbschema v10: augenschonend dunkles Blaugrau, Karten etwas heller, Pastell-Akzente mit dunkler Schrift.
-     Akzent je Kind: Lavendel (Standard, Maximilian), Mint (Valentin), gesetzt über data-kind am <html>.
+     Akzent je Profil aus der Pastellpalette (FARBEN im Skript), gesetzt als CSS-Variablen am <html> bzw. an der Profilkarte.
      Kontraste rechnerisch geprüft (WCAG), siehe Chronik. */
   --paper: #1E2532;
   --card: #283142;
@@ -49,8 +49,6 @@
   --r: 14px;
   color-scheme: dark;
 }
-:root[data-kind="kindA"], [data-kind="kindA"] { --accent: #9FE0CB; --accent-ink: #0F2A22; --accent-text: #A8E6D2; }
-:root[data-kind="kindB"], [data-kind="kindB"] { --accent: #C4B8F2; --accent-ink: #1C1A33; --accent-text: #CEC4F7; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -109,7 +107,7 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .profile.soon .avatar { background: var(--line); color: var(--muted); }
 .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 140px; min-width: 0; }
-.field label { font-size: .82rem; color: var(--muted); font-weight: 700; }
+.field label, .field .lbl { font-size: .82rem; color: var(--muted); font-weight: 700; }
 select { appearance: none; -webkit-appearance: none; background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 36px 12px 12px; min-height: 48px; width: 100%;
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 18px) 21px, calc(100% - 12px) 21px; background-size: 6px 6px; background-repeat: no-repeat; }
@@ -294,21 +292,42 @@ details.pack > * + * { margin-top: 14px; }
 .sp-sol { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; font-size: 1.3rem; font-weight: 700; }
 .sp-end { text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; padding-block: 24px; }
 .sp-end .big { font-size: 3.4rem; line-height: 1; }
+/* v11: Übungsart-Knöpfe, Vorlese-Knopf an Auswahlantworten, Profil bearbeiten, Frage–Antwort */
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mode { flex-direction: column; gap: 2px; min-height: 76px; padding: 10px 8px; font-family: var(--f-display); font-size: 1.08rem; line-height: 1.15; text-align: center; }
+.mode .ic { font-size: 1.5rem; line-height: 1; }
+.mode small { font-family: var(--f-body); font-weight: 400; font-size: .78rem; opacity: .9; }
+.mode.btn-ghost.is-last { border-color: var(--accent); }
+.stand { font-weight: 700; }
+.stand small { display: block; font-weight: 400; color: var(--muted); font-size: .85rem; }
+.opt-wrap { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+.opt-wrap .opt { flex: 1 1 auto; min-width: 0; }
+.opt-wrap .say { align-self: center; width: 46px; height: 46px; }
+.add-card { border: 2px dashed var(--line); background: transparent; color: var(--ink); border-radius: var(--r); min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; padding: 20px; }
+.add-card:hover { border-color: var(--muted); }
+.add-card .plus { font-size: 2rem; line-height: 1; color: var(--accent-text); }
+.edit { display: flex; flex-direction: column; gap: 16px; }
+.edit input[type="text"] { font-size: 1.15rem; padding: 12px 14px; min-height: 52px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--paper); width: 100%; }
+.edit input[type="text"]:focus { border-color: var(--accent); outline: none; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { width: 48px; height: 48px; border-radius: 50%; border: 3px solid transparent; box-shadow: inset 0 0 0 2px rgba(0,0,0,.25); }
+.swatch[aria-checked="true"] { border-color: var(--ink); }
+.danger { color: var(--bad); border-color: var(--bad); }
+.qa-q { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.2; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Karteikasten</div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Lern!</div>
     <div class="row" id="topRight"></div>
   </header>
 
   <!-- PROFILWAHL -->
   <main id="scrProfile">
     <div style="display:flex;flex-direction:column;gap:18px" id="profileCol">
-      <button class="btn btn-primary btn-big resume" id="btnResume" hidden></button>
-      <div id="profileHead"><p class="eyebrow">Englisch und Französisch üben</p><h1>Wer übt heute?</h1></div>
+      <div id="profileHead"><p class="eyebrow">Englisch und Französisch üben</p><h1 id="profileH1">Wer lernt heute?</h1></div>
       <div class="profiles" id="profiles"></div>
       <input type="file" id="avatarIn" class="vh" accept="image/*" tabindex="-1" aria-hidden="true">
       <details class="card pack" id="packDetails">
@@ -350,7 +369,7 @@ details.pack > * + * { margin-top: 14px; }
               </div>
             </div>
           </section>
-          <button class="btn btn-primary btn-big" id="btnStart">Session starten (ca. 8 min)</button>
+          <div><p class="note" style="margin-bottom:8px">Neue Session (ca. 8 min):</p><div class="modes" id="homeModes"></div></div>
           <p class="note" id="mixNote">10 Aufgaben: 6 × Unit 1, 2 × Band 3, 2 × Wiederholung Band 1–2.</p>
         </div>
         <div class="stack-col">
@@ -396,13 +415,9 @@ details.pack > * + * { margin-top: 14px; }
     <section class="card end" id="endCard"></section>
   </main>
 
-  <!-- SPRECHEN ÜBEN (Fußzeile/#sprechen): 8 Karten der aktuellen Einheit, ohne Wertung im Karteikasten -->
-  <main id="scrSprech" hidden>
-    <div class="sp-page">
-      <div class="row" style="justify-content:space-between"><h1>Sprechen üben</h1><button class="btn btn-ghost btn-small" id="stBack">Zurück</button></div>
-      <section class="card index-card sp-card" id="spCard" aria-live="polite"></section>
-      <p class="note">Die Spracherkennung läuft bei Apple/Google; gespeichert wird nichts.</p>
-    </div>
+  <!-- PROFIL BEARBEITEN / ANLEGEN -->
+  <main id="scrEdit" hidden>
+    <section class="card edit" id="editCard" aria-labelledby="editH"></section>
   </main>
 
   <footer>
@@ -411,7 +426,7 @@ details.pack > * + * { margin-top: 14px; }
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
     <span class="foot-tools" id="verlaufTools"></span>
-    <a class="link" href="#sprechen">Sprechen üben</a>
+    <span id="appVersion">Lern! v11</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -609,6 +624,238 @@ function checkSpoken(alts, accepted, lang) {
   if (best.res === "bad") best.heard = String(list[0]).trim();
   delete best.d;
   return best;
+}
+
+/* ---------- Frage und Antwort (v11): App fragt, Kind antwortet frei ----------
+   Fragebank selbst formuliert (Alltagsfragen, keine Buchsätze). ab = "buch:einheit[:station]" = frühester Stand, ab dem die
+   nötige Grammatik dran war (Orientierung an den Inhaltsverzeichnissen). Frühere Bände der Reihe gelten immer (Wiederholung).
+   Muster-Syntax: {name} {zahl} {zeit} {ort} {x} {kurz} {farbe} {tag} = Platzhalter, (a|b) = optional, [a|b] = eins davon.
+   ok = ganze Antwort (✅), halb = Kurzantwort (🟡, „sag es im ganzen Satz“). Kurzformen gelten wie Langformen (norm/CONTRACT). */
+const FRAGEN = [
+  // ---- Englisch: Green Line 1 ----
+  {id: "qa-en-name", ab: "gl1:pua", frage: "What's your name?", ok: ["my name is {name}", "i am {name}", "{name} is my name", "it is {name}", "(you can) call me {name}"], halb: ["{name}"], muster: "My name is Sam."},
+  {id: "qa-en-age", ab: "gl1:pua", frage: "How old are you?", ok: ["i am {zahl}", "{zahl} years old", "i will be {zahl}"], halb: ["{zahl}", "{zahl} years"], muster: "I'm eleven years old."},
+  {id: "qa-en-from", ab: "gl1:pua", frage: "Where are you from?", ok: ["i am from {ort}", "i come from {ort}", "i live in {ort}", "i was born in {ort}"], halb: ["from {ort}", "{kurz}"], muster: "I'm from Germany."},
+  {id: "qa-en-colour", ab: "gl1:pua", frage: "What's your favourite colour?", ok: ["my favourite colour is {x}", "{farbe} is my favourite (colour)", "i like {x}", "i love {x}", "it is {x}"], halb: ["{farbe}", "{farbe} and {farbe}"], muster: "My favourite colour is green."},
+  {id: "qa-en-howareyou", ab: "gl1:pua", frage: "How are you today?", ok: ["(i am) (very|really|so) [fine|good|great|ok|okay|well|happy|tired|sad|not bad|not so good|not very good|super|excellent|bored|hungry]", "i am {x}", "i feel {x}", "so so"], halb: [], muster: "I'm fine, thanks. And you?"},
+  {id: "qa-en-hobby", ab: "gl1:pub", frage: "What are your hobbies?", ok: ["my hobby is {x}", "my hobbies are {x}", "i like {x}", "i love {x}", "i am into {x}", "i (often) play {x}", "i enjoy {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "My hobbies are football and reading."},
+  {id: "qa-en-room", ab: "gl1:u1:u1-st2", frage: "What is there in your room?", ok: ["there is {x}", "there are {x}", "in my room there (is|are) {x}", "i have (got) {x}", "my room has (got) {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "There's a bed, a desk and a big window."},
+  {id: "qa-en-family", ab: "gl1:u1:u1-st2", frage: "How many people are there in your family?", ok: ["there are {zahl}", "we are {zahl}", "{zahl} people", "my family has {zahl}"], halb: ["{zahl}"], muster: "There are four people in my family."},
+  {id: "qa-en-bestfriend", ab: "gl1:u1", frage: "Who is your best friend?", ok: ["my best friend is {name}", "{name} is my best friend", "it is {name}", "my best friend's name is {name}", "my best friend is called {name}"], halb: ["{name}"], muster: "My best friend is Lena."},
+  {id: "qa-en-pet", ab: "gl1:u2", frage: "Have you got a pet?", ok: ["yes i have", "no i have not", "yes i have (got) {x}", "i have (got) {x}", "no i have not (got) {x}", "no i do not have {x}", "yes i do", "no i do not"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I have. I've got a cat."},
+  {id: "qa-en-siblings", ab: "gl1:u2", frage: "Have you got any brothers or sisters?", ok: ["yes i have", "no i have not", "i have (got) {x}", "yes i have (got) {x}", "no i have not (got) {x}", "i am an only child", "yes i do", "no i do not", "no i am an only child"], halb: ["yes", "no", "yeah", "nope", "{zahl} brothers", "{zahl} sisters", "a [brother|sister]", "{zahl} [brother|sister]"], janein: true, muster: "Yes, I have. I've got one sister."},
+  {id: "qa-en-subject", ab: "gl1:u2", frage: "What's your favourite subject at school?", ok: ["my favourite subject is {x}", "{kurz} is my favourite (subject)", "i like {x}", "i love {x}", "it is {x}"], halb: ["{kurz}"], muster: "My favourite subject is art."},
+  {id: "qa-en-swim", ab: "gl1:u2:u2-st2", frage: "Can you swim?", ok: ["yes i can", "no i cannot", "yes i can swim {x}", "i can swim (very well|well|a bit|a little)", "no i cannot swim", "not very well", "yes of course"], halb: ["yes", "no", "yeah", "nope", "a bit", "a little"], janein: true, muster: "Yes, I can. I can swim very well."},
+  {id: "qa-en-cando", ab: "gl1:u2:u2-st2", frage: "What can you do really well?", ok: ["i can {x}", "i am good at {x}", "i am very good at {x}", "i am great at {x}"], halb: ["{kurz}"], muster: "I can play the guitar really well."},
+  {id: "qa-en-time", ab: "gl1:u3", frage: "What time is it now?", ok: ["it is {zeit}", "now it is {zeit}", "{zeit}"], halb: [], muster: "It's half past four."},
+  {id: "qa-en-getup", ab: "gl1:u3", frage: "When do you get up in the morning?", ok: ["i (usually|always|normally|often|sometimes) get up at {zeit}", "i get up at {zeit}", "at {zeit}", "i wake up at {zeit}"], halb: ["{zeit}"], muster: "I usually get up at seven o'clock."},
+  {id: "qa-en-afterschool", ab: "gl1:u3", frage: "What do you do after school?", ok: ["after school i {x}", "i (usually|always|often|sometimes|normally) {x}", "first i {x}", "i {x}"], halb: ["{kurz}"], muster: "After school I do my homework and then I meet my friends."},
+  {id: "qa-en-weekend", ab: "gl1:u3", frage: "What do you usually do at the weekend?", ok: ["at the weekend i {x}", "on saturdays i {x}", "on sundays i {x}", "i (usually|always|often|sometimes|normally) {x}", "we {x}", "i {x}"], halb: ["{kurz}"], muster: "At the weekend I often play football with my friends."},
+  {id: "qa-en-breakfast", ab: "gl1:u3", frage: "What do you have for breakfast?", ok: ["i (usually|always|often|normally) [have|eat|drink] {x}", "for breakfast i [have|eat|drink] {x}", "i [have|eat|drink] {x}", "i do not [have|eat] {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "I usually have cereal and orange juice."},
+  {id: "qa-en-school", ab: "gl1:u3", frage: "How do you get to school?", ok: ["i (usually|always|often) [go|come|get] to school by {x}", "i [go|come|get] (there|to school) by {x}", "i walk (to school)", "i go (to school) on foot", "i take the {x}", "my [mum|dad|mother|father|parents] [take|takes|drive|drives] me {x}", "i [ride|cycle] {x}"], halb: ["by {x}", "on foot", "{kurz}"], muster: "I go to school by bus."},
+  {id: "qa-en-day", ab: "gl1:u3", frage: "What's your favourite day of the week?", ok: ["my favourite day is {tag}", "{tag} is my favourite (day)", "i like {tag}", "i love {tag}", "it is {tag}"], halb: ["{tag}"], muster: "My favourite day is Saturday because I can sleep long."},
+  {id: "qa-en-friendlike", ab: "gl1:u4:u4-st2", frage: "Does your best friend like sport?", ok: ["yes [he|she] does", "no [he|she] does not", "[he|she] likes {x}", "[he|she] loves {x}", "[he|she] does not like {x}", "yes [he|she] likes {x}", "no [he|she] does not like {x}", "yes [he|she] loves {x}"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, she does. She loves tennis."},
+  {id: "qa-en-likefootball", ab: "gl1:u4", frage: "Do you like football?", ok: ["yes i do", "no i do not", "yes i like (it|football) {x}", "i like (it|football)", "i love (it|football)", "yes i love (it|football)", "no i do not like (it|football)", "i do not like (it|football)", "not really", "it is ok", "yes very much", "i hate (it|football)"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I do. I play it every week."},
+  {id: "qa-en-food", ab: "gl1:u5", frage: "What's your favourite food?", ok: ["my favourite food is {x}", "{kurz} is my favourite (food)", "i like {x}", "i love {x}", "it is {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "My favourite food is pizza."},
+  {id: "qa-en-shop", ab: "gl1:u5", frage: "Hello, can I help you?", ok: ["yes please", "i would like {x}", "can i have {x}", "i am looking for {x}", "no thanks", "no thank you", "i am just looking", "i need {x}", "how much is {x}", "how much are {x}", "yes i need {x}", "yes i would like {x}"], halb: ["yes", "no", "{kurz} please"], muster: "Yes, please. Can I have two apples, please?"},
+  {id: "qa-en-now", ab: "gl1:u5:u5-st1", frage: "What are you doing at the moment?", ok: ["i am {x}", "at the moment i am {x}", "right now i am {x}", "i am just {x}"], halb: ["{kurz}"], muster: "I'm learning English with this app."},
+  {id: "qa-en-birthday", ab: "gl1:u6", frage: "When is your birthday?", ok: ["my birthday is {x}", "it is (on|in) {x}", "it is the {x}"], halb: ["(on|in) {x}", "{kurz}"], muster: "My birthday is on the third of May."},
+  {id: "qa-en-yesterday", ab: "gl1:u6:u6-st2", frage: "What did you do yesterday?", ok: ["yesterday i {x}", "i {x}", "we {x}", "first i {x}", "in the afternoon i {x}"], halb: ["{kurz}"], muster: "Yesterday I played football and watched a film."},
+  {id: "qa-en-lastweekend", ab: "gl1:u6:u6-st2", frage: "What did you do last weekend?", ok: ["last weekend i {x}", "on saturday i {x}", "on sunday i {x}", "i {x}", "we {x}"], halb: ["{kurz}"], muster: "Last weekend I visited my grandma."},
+  {id: "qa-en-goodweekend", ab: "gl1:u6:u6-st3", frage: "Did you have a good weekend?", ok: ["yes i did", "no i did not", "yes it was {x}", "it was {x}", "no it was {x}", "yes thank you", "not really"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I did. It was great."},
+  {id: "qa-en-party", ab: "gl1:u6:u6-st1", frage: "What do you need for a good party?", ok: ["you need {x}", "we need {x}", "i need {x}", "for a good party you need {x}", "a good party needs {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "You need music, snacks and good friends."},
+  // ---- Englisch: Green Line 2 ----
+  {id: "qa-en-weather", ab: "gl2:u1", frage: "What's the weather like today?", ok: ["it is {x}", "the weather is {x}", "today it is {x}", "it is raining", "it is snowing", "the sun is shining"], halb: ["{kurz}"], muster: "It's sunny and warm today."},
+  {id: "qa-en-holiday", ab: "gl2:u1", frage: "Where did you go on holiday last year?", ok: ["i went to {x}", "we went to {x}", "last year i went to {x}", "last year we went to {x}", "we stayed (at home|in {x})", "i stayed {x}", "we [visited|travelled to] {x}"], halb: ["{kurz}"], muster: "We went to Italy. It was great."},
+  {id: "qa-en-evening", ab: "gl2:u1", frage: "What were you doing yesterday at eight in the evening?", ok: ["i was {x}", "yesterday at eight i was {x}", "at eight (o'clock) i was {x}", "we were {x}"], halb: ["{kurz}"], muster: "I was watching a film with my family."},
+  {id: "qa-en-been", ab: "gl2:u2", frage: "Have you ever been to London?", ok: ["yes i have", "no i have not", "yes i have been (there|to london) {x}", "no i have never been (there|to london)", "i have never been (there|to london)", "not yet", "no never"], halb: ["yes", "no", "yeah", "nope", "never"], janein: true, muster: "No, I haven't. But I'd like to go there one day."},
+  {id: "qa-en-livedhere", ab: "gl2:u2", frage: "How long have you lived in your town?", ok: ["i have lived (here|there|in {x}) [for|since] {x}", "[for|since] {x}", "all my life", "i have always lived (here|there|in {x})", "my whole life"], halb: ["{zahl} years", "{kurz}"], muster: "I've lived here for eight years."},
+  {id: "qa-en-goingto", ab: "gl2:u3", frage: "What are you going to do next weekend?", ok: ["i am going to {x}", "next weekend i am going to {x}", "we are going to {x}", "i will {x}", "i want to {x}", "i would like to {x}"], halb: ["{kurz}"], muster: "I'm going to visit my cousins."},
+  {id: "qa-en-summer", ab: "gl2:u3", frage: "What will you do in the summer holidays?", ok: ["i will {x}", "we will {x}", "in the summer holidays i will {x}", "i am going to {x}", "we are going to {x}", "i want to {x}", "i would like to {x}", "maybe i will {x}"], halb: ["{kurz}"], muster: "I'll go swimming every day."},
+  {id: "qa-en-sport", ab: "gl2:u4", frage: "Which sport do you think is the most exciting?", ok: ["i think {x}", "{kurz} is the most exciting (sport)", "the most exciting sport is {x}", "i like {x}", "it is {x}"], halb: ["{kurz}"], muster: "I think basketball is the most exciting sport."},
+  {id: "qa-en-film", ab: "gl2:u4", frage: "What's the best film you have ever seen?", ok: ["the best film (i have ever seen) is {x}", "my favourite film is {x}", "i think {x}", "it is {x}", "i liked {x}"], halb: ["{kurz}"], muster: "The best film I've ever seen is about a dragon."},
+  {id: "qa-en-rain", ab: "gl2:u5", frage: "What will you do if it rains tomorrow?", ok: ["if it rains (tomorrow) i will {x}", "i will {x}", "we will {x}", "i am going to {x}", "then i will {x}"], halb: ["{kurz}"], muster: "If it rains, I'll stay at home and read a book."},
+  {id: "qa-en-travel", ab: "gl2:u5", frage: "Where would you like to travel one day?", ok: ["i would like to [go|travel|fly] to {x}", "i want to [go|travel|fly] to {x}", "one day i would like to {x}", "i would love to [go|travel|fly] to {x}"], halb: ["{kurz}"], muster: "I'd like to travel to Canada."},
+  {id: "qa-en-phone", ab: "gl2:u5", frage: "How do you stay in touch with your friends?", ok: ["i [send|write|call|text|phone|meet|chat] {x}", "we [send|write|call|text|phone|meet|chat] {x}", "by {x}", "with {x}", "i use {x}"], halb: ["{kurz}"], muster: "We send messages and meet after school."},
+  // ---- Englisch: Green Line 3 ----
+  {id: "qa-en-person", ab: "gl3:u1", frage: "What kind of person are you?", ok: ["i am {x}", "i think i am {x}", "my friends say (that) i am {x}", "people say (that) i am {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "I think I'm friendly and a bit shy."},
+  {id: "qa-en-enjoy", ab: "gl3:u1", frage: "What do you enjoy doing with your friends?", ok: ["i enjoy {x}", "we enjoy {x}", "i like {x}", "we like {x}", "we often {x}", "we {x}"], halb: ["{kurz}"], muster: "We enjoy playing games and having fun together."},
+  {id: "qa-en-eachother", ab: "gl3:u1", frage: "Do you and your best friend help each other?", ok: ["yes we do", "no we do not", "yes we help each other {x}", "we help each other {x}", "yes (we do) {x}", "sometimes", "yes of course", "yes always"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, we do. We help each other with homework."},
+  {id: "qa-en-learning", ab: "gl3:u2:u2-st1", frage: "How long have you been learning English?", ok: ["i have been learning (english|it) [for|since] {x}", "[for|since] {x}", "i have learned (english|it) [for|since] {x}", "i have been learning (english|it) {x}"], halb: ["{zahl} years", "{kurz}"], muster: "I've been learning English for three years."},
+  {id: "qa-en-million", ab: "gl3:u2:u2-st2", frage: "What would you do if you had a million euros?", ok: ["i would {x}", "if i had a million euros i would {x}", "first i would {x}", "i would buy {x}"], halb: ["{kurz}"], muster: "I would buy a house by the sea and give some money to my family."},
+  {id: "qa-en-famous", ab: "gl3:u2:u2-st2", frage: "If you could meet a famous person, who would it be?", ok: ["i would meet {x}", "it would be {x}", "i would like to meet {x}", "i would choose {x}"], halb: ["{kurz}"], muster: "I would meet a famous football player."},
+  {id: "qa-en-change", ab: "gl3:u2:u2-st2", frage: "What would you change at your school?", ok: ["i would {x}", "if i could i would {x}", "i would like to {x}", "i would change {x}"], halb: ["{kurz}"], muster: "I would start school later in the morning."},
+  {id: "qa-en-lastholiday", ab: "gl3:u3", frage: "What was your last holiday like?", ok: ["it was {x}", "my last holiday was {x}", "we {x}", "i {x}"], halb: ["{kurz}"], muster: "It was great. We went to the mountains."},
+  {id: "qa-en-wish", ab: "gl3:u4", frage: "What do you wish you could do?", ok: ["i wish i could {x}", "i wish {x}", "if only i could {x}"], halb: ["{kurz}"], muster: "I wish I could fly."},
+  {id: "qa-en-teacher", ab: "gl3:u4", frage: "What did your teacher tell you yesterday?", ok: ["[he|she|my teacher] (told us|said) (that) {x}", "[he|she|my teacher] told [us|me] to {x}", "[he|she|my teacher] asked [us|me] {x}"], halb: [], muster: "She told us that we would write a test next week."},
+  // ---- Französisch: Découvertes 1 ----
+  {id: "qa-fr-nom", ab: "dec1:ad", frage: "Comment tu t'appelles ?", ok: ["je m'appelle {name}", "moi c'est {name}", "c'est {name}", "je suis {name}", "mon nom est {name}"], halb: ["{name}"], muster: "Je m'appelle Lucas."},
+  {id: "qa-fr-cava", ab: "dec1:ad", frage: "Salut ! Ça va ?", ok: ["(oui) ça va (bien|très bien|super|merci)", "(très) bien (merci)", "pas mal", "super", "ça ne va pas", "ça va pas", "bof", "pas très bien", "ça va (et toi)", "je vais bien"], halb: ["oui", "non"], muster: "Ça va bien, merci. Et toi ?"},
+  {id: "qa-fr-habite", ab: "dec1:u1", frage: "Tu habites où ?", ok: ["j'habite [à|en|au|dans] {ort}", "moi j'habite [à|en|au|dans] {ort}", "je vis [à|en|au|dans] {ort}"], halb: ["[à|en|au|dans] {ort}", "{kurz}"], muster: "J'habite à Munich."},
+  {id: "qa-fr-ami", ab: "dec1:u1", frage: "Qui est ton meilleur ami ou ta meilleure amie ?", ok: ["mon meilleur ami [c'est|s'appelle|est] {name}", "ma meilleure amie [c'est|s'appelle|est] {name}", "c'est {name}", "[il|elle] s'appelle {name}", "{name} est mon meilleur ami", "{name} est ma meilleure amie"], halb: ["{name}"], muster: "Ma meilleure amie, c'est Emma."},
+  {id: "qa-fr-copain", ab: "dec1:u2", frage: "Comment s'appelle ton copain ou ta copine ?", ok: ["[il|elle] s'appelle {name}", "mon copain s'appelle {name}", "ma copine s'appelle {name}", "c'est {name}"], halb: ["{name}"], muster: "Il s'appelle Tom."},
+  {id: "qa-fr-aimes", ab: "dec1:u2", frage: "Qu'est-ce que tu aimes ?", ok: ["j'aime {x}", "j'adore {x}", "moi j'aime {x}", "j'aime bien {x}"], halb: ["{kurz}"], muster: "J'aime la musique et le foot."},
+  {id: "qa-fr-age", ab: "dec1:u3", frage: "Tu as quel âge ?", ok: ["j'ai {zahl} ans", "moi j'ai {zahl} ans"], halb: ["{zahl} ans", "{zahl}"], muster: "J'ai douze ans."},
+  {id: "qa-fr-anniv", ab: "dec1:u3", frage: "C'est quand, ton anniversaire ?", ok: ["mon anniversaire c'est le {x}", "mon anniversaire est le {x}", "c'est le {x}", "c'est en {x}", "mon anniversaire est en {x}"], halb: ["le {x}", "en {x}", "{kurz}"], muster: "Mon anniversaire, c'est le cinq mai."},
+  {id: "qa-fr-freres", ab: "dec1:u3", frage: "Tu as des frères et sœurs ?", ok: ["oui j'ai {x}", "j'ai {x}", "non je n'ai pas (de frères et sœurs)", "non j'ai pas (de frères et sœurs)", "je suis [fils|fille] unique", "non je suis [fils|fille] unique"], halb: ["oui", "non", "{zahl} [frère|frères|sœur|sœurs]", "un frère", "une sœur"], janein: true, muster: "Oui, j'ai une sœur."},
+  {id: "qa-fr-animal", ab: "dec1:u3", frage: "Tu as un animal ?", ok: ["oui j'ai {x}", "j'ai {x}", "non je n'ai pas d'animal", "non j'ai pas d'animal", "non je n'ai pas {x}"], halb: ["oui", "non", "un {kurz}", "une {kurz}"], janein: true, muster: "Oui, j'ai un chat."},
+  {id: "qa-fr-musique", ab: "dec1:u3", frage: "Tu aimes la musique ?", ok: ["oui j'aime (bien) (la musique|ça)", "j'adore (la musique|ça)", "oui j'adore (la musique|ça)", "non je n'aime pas (la musique|ça)", "non j'aime pas (la musique|ça)", "oui beaucoup", "oui j'aime {x}", "j'aime {x}"], halb: ["oui", "non"], janein: true, muster: "Oui, j'adore la musique."},
+  {id: "qa-fr-heure", ab: "dec1:u4", frage: "Il est quelle heure ?", ok: ["il est {zeit}", "{zeit}"], halb: [], muster: "Il est huit heures et demie."},
+  {id: "qa-fr-matiere", ab: "dec1:u4", frage: "Quelle est ta matière préférée ?", ok: ["ma matière préférée [c'est|est] {x}", "c'est {x}", "j'aime {x}", "j'adore {x}", "je préfère {x}"], halb: ["{kurz}", "le {kurz}", "la {kurz}", "les {kurz}"], muster: "Ma matière préférée, c'est le sport."},
+  {id: "qa-fr-cours", ab: "dec1:u4", frage: "Les cours commencent à quelle heure ?", ok: ["les cours commencent à {zeit}", "l'école commence à {zeit}", "[ils|elles] commencent à {zeit}", "on commence à {zeit}", "à {zeit}"], halb: ["{zeit}"], muster: "Les cours commencent à huit heures."},
+  {id: "qa-fr-classe", ab: "dec1:u4", frage: "Tu es en quelle classe ?", ok: ["je suis en {x}", "je suis dans la classe {x}"], halb: ["en {x}", "{kurz}"], muster: "Je suis en cinquième."},
+  {id: "qa-fr-samedi", ab: "dec1:u5", frage: "Qu'est-ce que tu fais le samedi ?", ok: ["le samedi je {x}", "le samedi j'{x}", "je {x}", "j'{x}", "on {x}", "d'abord je {x}"], halb: ["{kurz}"], muster: "Le samedi, je fais du sport avec mes copains."},
+  {id: "qa-fr-sport", ab: "dec1:u5", frage: "Tu fais du sport ?", ok: ["oui je fais (du|de la|de l') {x}", "je fais (du|de la|de l') {x}", "oui je joue au {x}", "je joue au {x}", "non je ne fais pas de sport", "non je fais pas de sport", "oui beaucoup", "non pas beaucoup"], halb: ["oui", "non", "(du|de la) {kurz}"], janein: true, muster: "Oui, je fais du judo."},
+  {id: "qa-fr-vas", ab: "dec1:u5", frage: "Où est-ce que tu vas après l'école ?", ok: ["je vais [à|au|aux|chez|en|dans] {x}", "après l'école je vais [à|au|aux|chez|en|dans] {x}", "je rentre {x}", "je reste {x}"], halb: ["[à|au|aux|chez|en|dans] {x}", "{kurz}"], muster: "Je vais à la maison."},
+  {id: "qa-fr-veux", ab: "dec1:u6", frage: "Qu'est-ce que tu veux faire ce week-end ?", ok: ["je veux {x}", "ce week-end je veux {x}", "je voudrais {x}", "je vais {x}", "j'ai envie de {x}"], halb: ["{kurz}"], muster: "Je veux aller au cinéma."},
+  {id: "qa-fr-fete", ab: "dec1:u6", frage: "Tu peux venir à ma fête samedi ?", ok: ["oui je peux (venir)", "non je ne peux pas", "non je peux pas", "oui avec plaisir", "oui bien sûr", "désolé je ne peux pas", "désolée je ne peux pas", "oui je viens", "oui super", "bien sûr"], halb: ["oui", "non"], janein: true, muster: "Oui, je peux venir. Merci !"},
+  {id: "qa-fr-demain", ab: "dec1:u6", frage: "Qu'est-ce que tu vas faire demain ?", ok: ["demain je vais {x}", "je vais {x}", "on va {x}", "nous allons {x}"], halb: ["{kurz}"], muster: "Demain, je vais jouer au foot."},
+  {id: "qa-fr-allezvous", ab: "dec1:u7", frage: "Bonjour, comment allez-vous ?", ok: ["je vais (très) bien (merci)", "(très) bien (merci)", "ça va (bien) (merci)", "pas mal", "ça va (et vous)", "je vais {x}"], halb: ["oui"], muster: "Je vais bien, merci. Et vous ?"},
+  {id: "qa-fr-paris", ab: "dec1:u7", frage: "Qu'est-ce qu'on peut faire à Paris ?", ok: ["on peut {x}", "à paris on peut {x}", "il y a {x}", "tu peux {x}", "vous pouvez {x}"], halb: ["{kurz}"], muster: "On peut visiter la tour Eiffel."},
+  // ---- Französisch: Découvertes 2 ----
+  {id: "qa-fr-vacances", ab: "dec2:plr", frage: "Qu'est-ce que tu as fait pendant les vacances ?", ok: ["j'ai {x}", "pendant les vacances j'ai {x}", "je suis (allé|allée) {x}", "nous avons {x}", "on a {x}", "je {x}"], halb: ["{kurz}"], muster: "Pendant les vacances, j'ai nagé dans la mer."},
+  {id: "qa-fr-connais", ab: "dec2:u1", frage: "Tu connais Paris ?", ok: ["oui je connais (paris) {x}", "non je ne connais pas (paris)", "non je connais pas (paris)", "oui je connais", "oui un peu", "pas encore", "non pas encore"], halb: ["oui", "non"], janein: true, muster: "Non, je ne connais pas Paris. Mais je voudrais y aller."},
+  {id: "qa-fr-nager", ab: "dec2:u1", frage: "Tu sais nager ?", ok: ["oui je sais (nager)", "oui je sais (nager) {x}", "non je ne sais pas (nager)", "non je sais pas (nager)", "oui bien sûr", "oui très bien", "un peu"], halb: ["oui", "non"], janein: true, muster: "Oui, je sais nager."},
+  {id: "qa-fr-decris", ab: "dec2:u1:u1-atb", frage: "Comment est ton meilleur ami ou ta meilleure amie ?", ok: ["[il|elle] est {x}", "mon meilleur ami est {x}", "ma meilleure amie est {x}", "[il|elle] a {x}", "c'est {x}"], halb: ["{kurz}"], muster: "Elle est grande et très sympa."},
+  {id: "qa-fr-hier", ab: "dec2:u2", frage: "Qu'est-ce que tu as fait hier ?", ok: ["hier j'ai {x}", "j'ai {x}", "hier je suis (allé|allée) {x}", "je suis (allé|allée) {x}", "je n'ai rien fait", "j'ai rien fait", "on a {x}"], halb: ["rien", "{kurz}"], muster: "Hier, j'ai regardé un film."},
+  {id: "qa-fr-film", ab: "dec2:u2", frage: "Tu as vu un bon film récemment ?", ok: ["oui j'ai vu {x}", "j'ai vu {x}", "non je n'ai pas vu {x}", "non j'ai pas vu {x}", "non pas récemment"], halb: ["oui", "non"], janein: true, muster: "Oui, j'ai vu un film drôle."},
+  {id: "qa-fr-midi", ab: "dec2:u2", frage: "Qu'est-ce que tu as mangé à midi ?", ok: ["à midi j'ai mangé {x}", "j'ai mangé {x}", "je n'ai rien mangé", "j'ai rien mangé"], halb: ["{kurz}", "des {kurz}", "une {kurz}", "un {kurz}", "du {kurz}"], muster: "À midi, j'ai mangé des pâtes."},
+  {id: "qa-fr-leve", ab: "dec2:u3", frage: "À quelle heure est-ce que tu te lèves ?", ok: ["je me lève à {zeit}", "je me lève vers {zeit}", "le matin je me lève à {zeit}", "à {zeit}", "vers {zeit}"], halb: ["{zeit}"], muster: "Je me lève à sept heures."},
+  {id: "qa-fr-mets", ab: "dec2:u3", frage: "Qu'est-ce que tu mets pour aller à l'école ?", ok: ["je mets {x}", "pour aller à l'école je mets {x}", "je porte {x}"], halb: ["{kurz}", "un {kurz}", "une {kurz}", "des {kurz}", "mon {kurz}", "ma {kurz}", "mes {kurz}"], muster: "Je mets un jean et un pull."},
+  {id: "qa-fr-weekend", ab: "dec2:u3:u3-atb", frage: "Où est-ce que tu es allé le week-end dernier ?", ok: ["je suis (allé|allée) {x}", "le week-end dernier je suis (allé|allée) {x}", "je suis (resté|restée) {x}", "nous sommes (allés|allées) {x}", "on est (allé|allés) {x}"], halb: ["[à|au|aux|chez|en|dans] {x}", "{kurz}"], muster: "Je suis allée chez ma grand-mère."},
+  {id: "qa-fr-temps", ab: "dec2:u4", frage: "Quel temps fait-il aujourd'hui ?", ok: ["il fait {x}", "aujourd'hui il fait {x}", "il pleut", "il neige", "il y a {x}", "le temps est {x}", "aujourd'hui il [pleut|neige] {x}"], halb: ["{kurz}"], muster: "Aujourd'hui, il fait beau et chaud."},
+  {id: "qa-fr-petit", ab: "dec2:u4:u4-atc", frage: "Qu'est-ce que tu faisais quand tu étais petit ou petite ?", ok: ["quand j'étais (petit|petite) je {x}", "quand j'étais (petit|petite) j'{x}", "je {x}", "j'{x}"], halb: ["{kurz}"], muster: "Quand j'étais petit, je jouais beaucoup avec mes Lego."},
+  {id: "qa-fr-passes", ab: "dec2:u4", frage: "Où est-ce que tu passes tes vacances ?", ok: ["je passe mes vacances [à|en|au|aux|chez|dans] {x}", "nous passons nos vacances {x}", "on passe nos vacances {x}", "je vais [à|en|au|aux|chez|dans] {x}"], halb: ["[à|en|au|aux|chez|dans] {x}", "{kurz}"], muster: "Je passe mes vacances à la mer."},
+  {id: "qa-fr-sportpref", ab: "dec2:u5", frage: "Quel sport est-ce que tu préfères ?", ok: ["je préfère {x}", "mon sport préféré [c'est|est] {x}", "c'est {x}", "j'aime {x}", "j'adore {x}"], halb: ["{kurz}", "le {kurz}", "la {kurz}"], muster: "Je préfère le basket."},
+  {id: "qa-fr-sportif", ab: "dec2:u5", frage: "Qui est le plus sportif de ta famille ?", ok: ["le plus sportif c'est {x}", "la plus sportive c'est {x}", "c'est {x}", "{x} est (le|la) plus (sportif|sportive)", "mon {x}", "ma {x}", "moi"], halb: ["{kurz}"], muster: "Le plus sportif, c'est mon frère."},
+  {id: "qa-fr-petitdej", ab: "dec2:u6", frage: "Qu'est-ce que tu manges au petit-déjeuner ?", ok: ["je mange {x}", "au petit-déjeuner je mange {x}", "je bois {x}", "je prends {x}", "je ne mange rien", "je mange rien"], halb: ["{kurz}", "du {kurz}", "de la {kurz}", "des {kurz}", "un {kurz}", "une {kurz}"], muster: "Je mange du pain avec de la confiture."},
+  {id: "qa-fr-lait", ab: "dec2:u6:u6-atb", frage: "Tu bois du lait le matin ?", ok: ["oui j'en bois {x}", "oui j'en bois", "non je n'en bois pas", "non j'en bois pas", "oui je bois du lait", "non je ne bois pas de lait", "non je bois pas de lait", "je bois {x}"], halb: ["oui", "non"], janein: true, muster: "Oui, j'en bois un verre."},
+  {id: "qa-fr-gateau", ab: "dec2:u6", frage: "Qu'est-ce qu'il faut pour faire un gâteau ?", ok: ["il faut {x}", "pour faire un gâteau il faut {x}", "on a besoin de {x}", "tu as besoin de {x}"], halb: ["{kurz}", "de la {kurz}", "du {kurz}", "des {kurz}"], muster: "Il faut de la farine, du sucre et des œufs."},
+  {id: "qa-fr-ville", ab: "dec2:u7", frage: "Qu'est-ce qu'on peut visiter dans ta ville ?", ok: ["on peut visiter {x}", "dans ma ville on peut visiter {x}", "il y a {x}", "on peut {x}", "tu peux visiter {x}"], halb: ["{kurz}"], muster: "On peut visiter le château et le musée."},
+  {id: "qa-fr-vacaimes", ab: "dec2:u4", frage: "Qu'est-ce que tu aimes faire en vacances ?", ok: ["en vacances j'aime {x}", "j'aime {x}", "j'adore {x}", "je préfère {x}"], halb: ["{kurz}"], muster: "En vacances, j'aime nager et dormir longtemps."}
+];
+FRAGEN.forEach(f => {
+  const [buch, einheit, st] = f.ab.split(":");
+  f.lang = /^dec/.test(buch) ? "fr" : "en"; f.buch = buch; f.einheit = einheit; f.st = st || null;
+});
+/* Normalform für freie Antworten: wie beim Sprechen (Zahlen ausgeschrieben, Füllwörter weg), en Kurzformen aufgelöst, fr ohne Akzente */
+function qaNorm(s, lang) {
+  if (lang === "fr") return fold(normFr(spBase(s, "fr"))).replace(/\s+/g, " ").trim();
+  return norm(spBase(s, "en"));
+}
+const QA_W = (list, lang) => Array.from(new Set(list.map(w => qaNorm(w, lang)).filter(Boolean))).sort((a, b) => b.length - a.length).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+const QA_STOP = {
+  en: "i you he she it we they me my your his her our their is am are was were be like likes love have has got do does did not no yes yeah nope the a an and or but what name years old to in from at on of cannot can will would this that there here hello hi because very really please thanks thank so well",
+  fr: "je j'ai j'aime j'adore tu il elle on nous vous ils elles moi toi mon ma mes ton ta tes est suis es ai as a c'est oui non ne n'ai pas le la les l' un une des de du et ou mais m'appelle s'appelle appelle aime adore ans à au en avec qui que quoi très bien merci salut bonjour"
+};
+const QA_NUM = {
+  en: NUM_EN.concat(TENS_EN.filter(Boolean), ["hundred", "and", "a", "half", "nearly", "almost"]),
+  fr: NUM_FR.concat(TENS_FR.filter(Boolean), ["vingts", "cent", "et", "demi", "presque", "bientôt"])
+};
+const QA_TIME = {
+  en: ["o'clock", "oclock", "clock", "half", "past", "quarter", "to", "am", "pm", "a", "m", "p", "in", "the", "morning", "afternoon", "evening", "at", "about", "around", "noon", "midnight", "after", "before"],
+  fr: ["heure", "heures", "h", "et", "demie", "demi", "quart", "moins", "le", "midi", "minuit", "du", "matin", "soir", "de", "l'après-midi", "après", "vers", "à", "environ"]
+};
+const QA_FARBE = ["red", "blue", "green", "yellow", "black", "white", "pink", "purple", "orange", "brown", "grey", "gray", "light", "dark", "gold", "silver", "turquoise"];
+const QA_TAG = {en: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"], fr: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]};
+const QA_CLS = {};
+function qaCls(lang) {
+  if (QA_CLS[lang]) return QA_CLS[lang];
+  const stop = QA_W(QA_STOP[lang].split(" "), lang), num = QA_W(QA_NUM[lang], lang), time = QA_W(QA_NUM[lang].concat(QA_TIME[lang]), lang);
+  const free = `(?:(?!(?:${stop})(?: |$))[^ ]+)`;
+  return (QA_CLS[lang] = {
+    x: "[^ ]+(?: [^ ]+){0,9}", ort: "[^ ]+(?: [^ ]+){0,4}",
+    name: `${free}(?: ${free}){0,2}`, kurz: `${free}(?: ${free}){0,2}`,
+    zahl: `(?:${num})(?: (?:${num})){0,4}`, zeit: `(?:${time})(?: (?:${time})){0,7}`,
+    farbe: `(?:${QA_W(QA_FARBE, "en")})`, tag: `(?:${QA_W(QA_TAG[lang], lang)})`
+  });
+}
+/* "(a|b)" optional, "[a|b]" Pflicht-Alternative -> alle Varianten (höchstens 400) */
+function qaExpand(p) {
+  const m = p.match(/[([]([^()[\]]*)[)\]]/);
+  if (!m) return [p.replace(/\s+/g, " ").trim()];
+  const alts = m[1].split("|").map(x => x.trim()), opt = m[0][0] === "(";
+  const pre = p.slice(0, m.index), post = p.slice(m.index + m[0].length);
+  const out = [];
+  (opt ? alts.concat([""]) : alts).forEach(a => qaExpand(pre + " " + a + " " + post).forEach(v => { if (out.length < 400) out.push(v); }));
+  return out;
+}
+function qaRegexe(list, lang) {
+  const C = qaCls(lang), out = [];
+  (list || []).forEach(p => qaExpand(p).forEach(v => {
+    const n = qaNorm(v.replace(/\{([a-z]+)\}/g, " qq$1 ").replace(/' qq/g, "'qq"), lang);
+    if (!n) return;
+    const toks = n.split(" ");
+    const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Platzhalter als ganzes Wort oder direkt nach Elision („j'{x}“ -> „j'aime …“)
+    const body = toks.map(t => { const m = t.match(/^(.*?)qq([a-z]+)$/); return m && C[m[2]] ? esc(m[1]) + `(?:${C[m[2]]})` : esc(t); }).join(" ");
+    // 1 Wort: ganze Antwort; 2 Wörter: am Anfang, Rest erlaubt; ab 3 Wörtern: irgendwo in der Antwort
+    out.push(new RegExp(toks.length === 1 ? `^(?:${body})$` : toks.length === 2 ? `^(?:${body})(?: |$)` : `(?:^| )(?:${body})(?: |$)`));
+  }));
+  return out;
+}
+function qaCompiled(f) {
+  if (!f._re) Object.defineProperty(f, "_re", {value: {ok: qaRegexe(f.ok, f.lang), halb: qaRegexe(f.halb, f.lang), frage: qaNorm(f.frage, f.lang)}});
+  return f._re;
+}
+const QA_VORN = {en: /^(?:(?:hello|hi|hey|well|um|uh|erm|er|oh|so|ok|okay|yes|yeah|no|sure|and|hmm|mm) )+/, fr: /^(?:(?:bonjour|salut|euh|ben|bah|alors|eh|ah|oh|oui|non|bon|hum|moi) )+/};
+const QA_HINTEN = {en: /(?: (?:thanks|thank you|and you|please|sir|miss))+$/, fr: /(?: (?:merci|et toi|et vous|s'il te plait|s'il vous plait|voila))+$/};
+/* Wertung einer freien Antwort: {res: ok|half|bad, why: ""|kurz|echo|fremd|nothing, heard} */
+function checkAnswer(alts, f, lang) {
+  lang = lang === "fr" ? "fr" : (f && f.lang) || "en";
+  const list = (alts || []).map(a => typeof a === "string" ? a : a && a.transcript).filter(x => x && String(x).trim());
+  if (!list.length) return {res: "bad", why: "nothing", heard: ""};
+  const R = qaCompiled(f), rank = {ok: 0, half: 1, bad: 2};
+  let best = null;
+  list.forEach(a => {
+    const n = qaNorm(a, lang); let r;
+    const v1 = n.replace(QA_VORN[lang], ""), v2 = v1.replace(QA_HINTEN[lang], ""), v3 = n.replace(QA_HINTEN[lang], "");
+    const cands = Array.from(new Set([n, v1, v2, v3].map(x => x.trim()).filter(Boolean)));
+    if (!n) r = {res: "bad", why: "nothing"};
+    else if (cands.some(c => R.ok.some(re => re.test(c)))) r = {res: "ok", why: ""};
+    else if (lev(n, R.frage) <= Math.max(2, Math.floor(0.25 * R.frage.length)) || (n.length > 8 && R.frage.includes(n))) r = {res: "bad", why: "echo"};
+    else if (cands.some(c => R.halb.some(re => re.test(c)))) r = {res: "half", why: "kurz"};
+    else r = {res: "bad", why: "fremd"};
+    r.heard = String(a).trim();
+    if (!best || rank[r.res] < rank[best.res]) best = r;
+  });
+  if (best.res === "bad" && best.why !== "echo") best.heard = String(list[0]).trim();
+  return best;
+}
+
+/* ---------- Profile (v11): frei anlegbar; Altbestand v10 (zwei feste Profile) wird beim ersten Start übernommen ----------
+   Im Code stehen nur Kennungen und Bücher der beiden Altprofile, keine Namen: Die Namen kommen aus dem gespeicherten
+   Lernverlauf (Feld profil_name). Fehlt der Verlauf, bekommt das Profil einen Platzhalter und die App bittet ums Eintragen. */
+const BEKANNTE_BUECHER = [
+  {id: "gl1", titel: "Green Line 1", sprache: "en", jgst: 5}, {id: "gl2", titel: "Green Line 2", sprache: "en", jgst: 6},
+  {id: "gl3", titel: "Green Line 3", sprache: "en", jgst: 7}, {id: "dec1", titel: "Découvertes 1", sprache: "fr", jgst: 6},
+  {id: "dec2", titel: "Découvertes 2", sprache: "fr", jgst: 7}
+];
+const ALT_PROFILE = [
+  {id: "kindA", farbe: "mint", books: ["gl1", "gl2"]},
+  {id: "kindB", farbe: "lavendel", books: ["gl3", "dec2"], sample: true}
+];
+/* keys: alle localStorage-Schlüssel; get(k): gespeicherter Wert; namen: {profil-id: Name aus dem Lernverlauf}; bilder: Profil-ids mit Foto.
+   Liefert die Profilliste (leer = frische Installation). */
+function migriereProfile(keys, get, namen, bilder) {
+  keys = keys || []; get = get || (() => null); namen = namen || {}; bilder = bilder || [];
+  const g = get("kk.v1.last");
+  const out = [];
+  ALT_PROFILE.forEach((a, i) => {
+    const id = a.id;
+    const spur = keys.some(k => k === "kk.v1." + id || k.startsWith("kk.v1." + id + ".") || k === "kk.v1.sel." + id || k === "kk.v1.last." + id || k.startsWith("kk.v1.recent." + id + "."))
+      || !!namen[id] || bilder.includes(id) || !!(g && g.pid === id);
+    if (!spur) return;
+    const lang = b => (BEKANNTE_BUECHER.find(x => x.id === b) || {}).sprache;
+    const sel = get("kk.v1.sel." + id), last = get("kk.v1.last." + id) || (g && g.pid === id ? g : null);
+    const gew = [sel && sel.book, last && last.book].filter(b => b && a.books.includes(b));
+    const en = gew.find(b => lang(b) === "en") || a.books.find(b => lang(b) === "en") || null;
+    const fr = gew.find(b => lang(b) === "fr") || a.books.find(b => lang(b) === "fr") || null;
+    const name = String(namen[id] || "").trim();
+    out.push({id, name: name || "Kind " + (i + 1), nameFehlt: !name, farbe: a.farbe, jgst: (BEKANNTE_BUECHER.find(x => x.id === en) || {}).jgst || null,
+      en, fr, sample: !!a.sample, migriert: true});
+  });
+  return out;
 }
 
 /* ---------- Lernpakete (Format lernpaket/1) ---------- */
@@ -902,12 +1149,30 @@ const LK = (function () {
     K.sent[c.id] = res;
     return res;
   }
-  function wordPool(K, ei) {
-    if (K.words[ei]) return K.words[ei];
+  /* Erlaubter Stoff (v11): gewählte Einheit bis zur gewählten Station, frühere Einheiten, Vorgängerbände; nie spätere Units.
+     Gilt für Ablenker (Auswahl) und Zusatzkacheln (Satzbau). Ohne Session-Stand gilt die Position der Karte selbst. */
+  function allowFn(K, pos, prev) {
+    const e = K.E[pos.ei] || K.E[0], umf = e.umfasst ? new Set(e.umfasst) : null;
+    const prevB = (prev || []).filter(B => B && B !== K && B.lang === K.lang);
+    const pick0 = pos.ei === 0 && e.typ === "pickup" && !prevB.length;
+    const own = o => o.ei >= 0 && (pick0 ? o.ei === 0 : (umf && umf.has(o.einheit)) || o.ei < pos.ei || (o.ei === pos.ei && o.si <= pos.si));
+    const pv = new Set(prevB);
+    return {fn: o => o.K === K ? own(o) : pv.has(o.K), books: [K].concat(prevB), key: K.id + ":" + pos.ei + ":" + pos.si + ":" + prevB.map(B => B.id).join(",")};
+  }
+  const allowOfCard = c => allowFn(c.K, {ei: Math.max(0, c.ei), si: c.si}, []);
+  /* Karte aus einem Vorgängerband: Ablenker/Kacheln nur aus diesem Band und seinen eigenen Vorgängern, nicht aus dem späteren Session-Band */
+  function ownBooks(A, K) {
+    const s = seriesOf(K.id);
+    return A.books.filter(B => B.lang === K.lang && (B === K || (s && seriesOf(B.id) && seriesOf(B.id).reihe === s.reihe && seriesOf(B.id).band < s.band)));
+  }
+  function wordPool(K, c, A) {
+    const key = c.ei + "|" + A.key;
+    if (K.words[key]) return K.words[key];
     const set = new Set(), low = /^\p{Ll}[\p{Ll}'’\-]{2,}$/u;
-    (K.byEinheit[ei] || []).forEach(c => { const s = sentence(K, c); if (s) s.words.forEach(w => { if (low.test(w)) set.add(w); }); });
-    if (set.size < 6) K.cards.forEach(c => { const s = sentence(K, c); if (s) s.words.forEach(w => { if (low.test(w)) set.add(w); }); });
-    return (K.words[ei] = Array.from(set));
+    const add = list => list.forEach(o => { if (!A.fn(o)) return; const s = sentence(o.K || K, o); if (s) s.words.forEach(w => { if (low.test(w)) set.add(w); }); });
+    add(K.byEinheit[c.ei] || []);
+    if (set.size < 6) ownBooks(A, K).forEach(B => add(B.cards));
+    return (K.words[key] = Array.from(set));
   }
 
   /* ---------- Satzbau-Varianten (E9) ----------
@@ -962,21 +1227,28 @@ const LK = (function () {
     return out;
   }
   /* 3 Ablenker: erst dieselbe Einheit, dann das Buch (also immer dieselbe Sprache); nie mit gleicher Bedeutung oder gleichem Wort */
-  function distractors(K, c, field) {
+  /* Rückfall: gleiche Einheit -> erlaubte frühere Einheiten/Vorgängerbände (gleiche Art satz) -> Art lockern (ähnliche Länge, erlaubte Units).
+     Nie spätere Units; reicht es nicht für 3, liefert die Funktion weniger und makeTask nimmt einen anderen Aufgabentyp. */
+  function distractors(K, c, field, A) {
+    A = A || allowOfCard(c);
     const L = K.lang, nrm = K.nrm, ce = x => cleanEn(x, L);
     const tEn = nrm(ce(c.en)), len = wc(c.en, L), tKeys = K.enMk[tEn] || new Set(c.mk);
     const clash = o => { const ok2 = K.enMk[nrm(ce(o.en))]; return o.mk.some(k => tKeys.has(k)) || (ok2 && c.mk.some(k => ok2.has(k))); };
-    const ok = o => o !== c && !clash(o) && o.satz === c.satz && nrm(ce(o.en)) !== tEn && normDe(o.de) !== normDe(c.de);
+    const base = o => o !== c && A.fn(o) && !clash(o) && nrm(ce(o.en)) !== tEn && normDe(o.de) !== normDe(c.de);
+    const ok = o => base(o) && o.satz === c.satz;
+    const books = ownBooks(A, K);
     let pool = (K.byEinheit[c.ei] || []).filter(ok);
-    if (pool.length < 6) pool = pool.concat(K.cards.filter(o => o.ei !== c.ei && ok(o)));
-    pool = shuffle(pool).sort((a, b) => Math.abs(wc(a.en, L) - len) - Math.abs(wc(b.en, L) - len)).slice(0, 14);
+    if (pool.length < 6) books.forEach(B => B.cards.forEach(o => { if ((B !== K || o.ei !== c.ei) && ok(o)) pool.push(o); }));
+    const byLen = list => shuffle(list).sort((a, b) => Math.abs(wc(a.en, L) - len) - Math.abs(wc(b.en, L) - len));
     const out = [], seen = new Set([field === "de" ? normDe(c.de) : tEn]);
-    for (const o of shuffle(pool)) {
+    const fill = list => { for (const o of list) {
+      if (out.length === 3) break;
       const v = field === "de" ? o.de : ce(o.en), k = field === "de" ? normDe(v) : nrm(v);
       if (seen.has(k)) continue;
       seen.add(k); out.push(v);
-      if (out.length === 3) break;
-    }
+    } };
+    fill(shuffle(byLen(pool).slice(0, 14)));
+    if (out.length < 3) { const rel = []; books.forEach(B => B.cards.forEach(o => { if (base(o) && o.satz !== c.satz) rel.push(o); })); fill(byLen(rel).slice(0, 20)); }
     return out;
   }
   function regularPast(base) {
@@ -990,8 +1262,9 @@ const LK = (function () {
     return short(e) + (st ? " · " + stShort(st) : "");
   }
   /* K = Buch der Session; Karten aus Vorgängerbänden werden mit ihrem eigenen Buch (c.K) gebaut (Ablenker, Bedeutungen) */
-  function makeTask(K, c, type, role) {
+  function makeTask(K, c, type, role, A) {
     const main = K; K = c.K || K;
+    A = A || allowOfCard(c);
     const L = K.lang, SL = sprache(L), ce = x => cleanEn(x, L);
     const base = {
       id: c.id, role: role || "cur", label: (K !== main ? K.kurz + " · " : "") + labelFor(K, c), pillCls: role === "earlier" ? "rev" : role === "extra" ? "" : "u1",
@@ -1001,11 +1274,11 @@ const LK = (function () {
     };
     const en = ce(c.en);
     if (type === "mcEn") {
-      const opts = distractors(K, c, "de"); if (opts.length < 3) return null;
+      const opts = distractors(K, c, "de", A); if (opts.length < 3) return null;
       return Object.assign(base, {t: "mc", dir: SL.kurz + " → D", ask: "Was heißt das?", q: en, qLang: L, right: c.de, opts, optLang: "de", sol: en + " = " + c.de, speak: en});
     }
     if (type === "mcDe") {
-      const opts = distractors(K, c, "en"); if (opts.length < 3) return null;
+      const opts = distractors(K, c, "en", A); if (opts.length < 3) return null;
       return Object.assign(base, {t: "mc", dir: "D → " + SL.kurz, ask: "Wie heißt das " + SL.adv + "?", q: c.de, qLang: "de", right: en, opts, optLang: L, sol: en + " = " + c.de, speak: en});
     }
     if (type === "type") {
@@ -1020,7 +1293,7 @@ const LK = (function () {
     if (type === "build") {
       const s = sentence(K, c); if (!s) return null;
       const low = new Set(s.words.map(w => w.toLowerCase()));
-      const extra = shuffle(wordPool(K, c.ei)).filter(w => !low.has(w.toLowerCase())).slice(0, s.words.length >= 7 ? 2 : 1);
+      const extra = shuffle(wordPool(K, c, A)).filter(w => !low.has(w.toLowerCase())).slice(0, s.words.length >= 7 ? 2 : 1);
       if (!extra.length) return null;
       return Object.assign(base, {t: "build", dir: "Satzbau", ask: "Bau den Beispielsatz. Tipp die Kacheln an, nicht alle gehören rein.", de: "Satz mit „" + en + "“ (" + c.de + ")", tiles: s.words.concat(extra), ans: satzVarianten(K, s), solText: s.text, speak: s.text, ctx: ""});
     }
@@ -1052,13 +1325,13 @@ const LK = (function () {
     {mcEn: 1, mcDe: 2, build: 2, type: 2},  // Fach 2
     {mcEn: 0, mcDe: 1, build: 2, type: 3}   // ab Fach 3
   ];
-  function makeTaskAuto(K, c, box, role) {
+  function makeTaskAuto(K, c, box, role, A) {
     if (c.kind === "verb") return (box >= 2 && makeTask(K, c, "vtype", role)) || makeTask(K, c, "vmc", role) || makeTask(K, c, "vtype", role);
     const w = WEIGHTS[Math.min(3, Math.max(0, box))];
     const types = Object.keys(w).filter(t => w[t] > 0);
     const bag = []; types.forEach(t => { for (let i = 0; i < w[t]; i++) bag.push(t); });
     const order = shuffle(bag).filter((t, i, a) => a.indexOf(t) === i).concat(["mcEn", "mcDe", "type"]);
-    for (const t of order) { const task = makeTask(K, c, t, role); if (task) return task; }
+    for (const t of order) { const task = makeTask(K, c, t, role, A); if (task) return task; }
     return null;
   }
   function arrange(list) {
@@ -1079,18 +1352,80 @@ const LK = (function () {
   }
   /* Session: 10 Aufgaben, 60 % aktuell, Rest 25:15 auf früher und Zusatz/Verben; höchstens 6 neue Karten */
   /* prev (optional): Vorgängerbände derselben Sprache, siehe pools(); boxes enthält die Fächer aller beteiligten Bände */
-  /* opts.speakAvailable: Spracherkennung vorhanden und Schalter an -> ca. 15 % Sprechaufgaben (ersetzen Auswahl/Tippen) */
-  const SPEAK_SHARE = 0.15;
+  /* Übungsart je Session (v11), opts.modus:
+     "schreiben" = Auswahl, Tippen, Satzbau, Verbformen (keine Sprechaufgaben)
+     "mix"       = wie schreiben, davon ca. 30 % Sprechaufgaben (MIX_SPEAK_SHARE); 30 % dieser Sprechaufgaben sind Frage–Antwort
+     "sprechen"  = nur Sprechaufgaben: Vokabeln nachsprechen + ca. 30 % Frage–Antwort (QA_SHARE)
+     Ohne opts.modus gilt: speakAvailable -> "mix", sonst "schreiben" (alte Aufrufe). Sprech- und Frageaufgaben tragen
+     fallback (Auswahl/Tippen derselben Karte) für „Ohne Mikro weiter“; Fragen im Modus „sprechen“ haben keinen. */
+  const MIX_SPEAK_SHARE = 0.30, QA_SHARE = 0.30, SPEAK_SHARE = MIX_SPEAK_SHARE;
+  const rndCount = x => Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0);
+  /* ---------- Frage–Antwort: welche Fragen kennt das Kind schon? ----------
+     Reihen gl1 < gl2 < gl3 und dec1 < dec2. Frühere Bände: alle Fragen. Aktueller Band: Fragen bis zur aktuellen Unit
+     (Rang: Pick-up A/Au début/Plateau Rentrée = 0, Unit n = n, Pick-up B = 1,5; Revision, Focus usw. zählen wie die Unit davor),
+     in der aktuellen Unit nur ab der genannten Station. Unbekanntes Buch: nur Fragen des ersten Bands bis Unit 2. */
+  const QA_SERIEN = {en: ["gl1", "gl2", "gl3"], fr: ["dec1", "dec2"]};
+  const qaRank = id => { const m = String(id).match(/^u(\d+)$/); return m ? +m[1] : id === "pub" ? 1.5 : /^(pua|ad|plr)$/.test(id) ? 0 : null; };
+  function qaStand(K, pos) {
+    let r = 0;
+    for (let i = pos.ei; i >= 0; i--) { const q = qaRank(K.E[i].id); if (q != null) { r = q; break; } }
+    const e = K.E[pos.ei];
+    return {lang: K.lang, buch: K.id, rank: r, einheit: e.id, si: pos.si, sIdx: e.sIdx || {}};
+  }
+  function qaPool(st) {
+    const ser = QA_SERIEN[st.lang] || [];
+    let bi = ser.indexOf(st.buch), rank = st.rank;
+    if (bi < 0) { bi = 0; rank = 2; st = Object.assign({}, st, {einheit: null}); }
+    return FRAGEN.filter(f => {
+      if (f.lang !== st.lang) return false;
+      const fb = ser.indexOf(f.buch);
+      if (fb < 0 || fb > bi) return false;
+      if (fb < bi) return true;
+      const fr = qaRank(f.einheit);
+      if (fr == null || fr > rank) return false;
+      if (fr < rank || !f.st || f.einheit !== st.einheit) return true;
+      const k = st.sIdx[f.st];
+      return k == null || k <= st.si;
+    });
+  }
+  /* Stand ohne Paket (Beispielkarten): Buch und Einheit direkt */
+  const qaPoolFor = (lang, buch, einheit) => qaPool({lang, buch, rank: qaRank(einheit) || 0, einheit, si: 99, sIdx: {}});
+  function makeQaTask(f, buchId, role) {
+    const SL = sprache(f.lang);
+    return {t: "qa", gen: "qa", id: f.id, role: role || "cur", lang: f.lang, buch: buchId, label: "Frage und Antwort", pillCls: "",
+      dir: "Sprechen", topic: "frei antworten", ask: "Hör zu und antworte " + SL.adv + "!", frage: f.frage, muster: f.muster,
+      card: f.frage, speak: f.muster, qa: f, noBox: true, ctx: "", tip: ""};
+  }
+  /* k Fragen ohne Wiederholung in der Session; erst ungesehene der Kette (opts.seen) */
+  function pickQa(pool, k, seen, used) {
+    const sn = f => (seen && seen[f.id]) || 0;
+    const out = [];
+    for (const f of shuffle(pool).sort((a, b) => Math.min(2, sn(a)) - Math.min(2, sn(b)))) {
+      if (out.length >= k) break;
+      if (used && used.has(f.id)) continue;
+      out.push(f); if (used) used.add(f.id);
+    }
+    return out;
+  }
+  /* Ersatzaufgabe für eine Sprechkarte, wenn das Mikro nicht geht */
+  function speakFallback(K, c, box, role, A) {
+    return (box >= 2 && makeTask(K, c, "type", role, A)) || makeTask(K, c, "mcEn", role, A) || makeTask(K, c, "mcDe", role, A) || makeTask(K, c, "type", role, A);
+  }
   function buildSession(K, boxes, pos, n, prev, opts) {
     n = n || 10;
-    const pl = pools(K, pos, prev), used = new Set(), usedTxt = new Set(), ordered = {}, NEWCAP = 6;
+    opts = opts || {};
+    const modus = opts.modus || (opts.speakAvailable ? "mix" : "schreiben");
+    const A = allowFn(K, pos, prev);   // erlaubter Stoff für Ablenker und Zusatzkacheln
+    const pl0 = pools(K, pos, prev), used = new Set(), usedTxt = new Set(), ordered = {}, NEWCAP = 6;
+    // Sprechen: nur Karten, die man sprechen kann (keine Verbformen, keine Auslassungen, höchstens 12 Wörter)
+    const pl = modus === "sprechen" ? {cur: pl0.cur.filter(speakOk), earlier: pl0.earlier.filter(speakOk), extra: pl0.extra.filter(speakOk), onlyCur: pl0.onlyCur} : pl0;
     const txt = c => c.kind === "verb" ? "verb:" + c.en : (c.K || K).nrm(cleanEn(c.en, (c.K || K).lang));
     let newCount = 0;
     const bx = c => boxes[c.id] || 0;
     const rank = b => b === 1 ? 0 : b === 0 ? 1 : b;
     // opts.seen: {id: Anzahl} aus den letzten Sessions (Kette, z. B. 60 min). Eine Karte höchstens 2× je Kette:
     // erst ungesehene, dann einmal gesehene Karten; zweimal gesehene nur, wenn sonst nichts mehr da ist (pass 2).
-    const seen = (opts && opts.seen) || {}, sn = c => seen[c.id] || 0;
+    const seen = opts.seen || {}, sn = c => seen[c.id] || 0;
     // pass 0: Obergrenze für neue Karten gilt; pass 1: auffüllen (ohne Obergrenze); pass 2: auch zweimal gesehene
     const take = (name, pass) => {
       const list = pl[name]; if (!list || !list.length) return null;
@@ -1102,35 +1437,50 @@ const LK = (function () {
       }
       return null;
     };
+    const qaAll = modus === "schreiben" ? [] : qaPool(qaStand(K, pos)), qaUsed = new Set();
+    // Sprechen: Anzahl Fragen vorab, Rest Vokabeln nachsprechen; fehlen Karten, füllen weitere Fragen auf
+    const nQa = modus === "sprechen" ? Math.min(qaAll.length, rndCount(n * QA_SHARE)) : 0;
+    const nCards = n - nQa;
     const plan = [];
-    const nCur = pl.onlyCur ? n : Math.round(n * 0.6);
+    const nCur = pl.onlyCur ? nCards : Math.round(nCards * 0.6);
     for (let i = 0; i < nCur; i++) plan.push("cur");
-    while (plan.length < n) plan.push(Math.random() < 0.25 / 0.40 ? "earlier" : "extra");
+    while (plan.length < nCards) plan.push(Math.random() < 0.25 / 0.40 ? "earlier" : "extra");
     const picked = [];
     plan.forEach(role => {
       const chain = role === "cur" ? ["cur", "earlier", "extra"] : role === "earlier" ? ["earlier", "extra", "cur"] : ["extra", "earlier", "cur"];
       for (let pass = 0, done = false; pass < 3 && !done; pass++) for (const r of chain) { const c = take(r, pass); if (c) { picked.push({c, role: r}); done = true; break; } }
     });
-    const tasks = picked.map(({c, role}) => makeTaskAuto(K, c, bx(c), role)).filter(Boolean);
+    if (modus === "sprechen") {
+      const tasks = picked.map(({c, role}) => {
+        const t = makeTask(K, c, "speak", role, A); if (!t) return null;
+        t.fallback = speakFallback(K, c, bx(c), role, A) || null; return t;
+      }).filter(Boolean);
+      const wantQa = n - tasks.length;
+      pickQa(qaAll, wantQa, seen, qaUsed).forEach(f => tasks.push(makeQaTask(f, K.id, "cur")));
+      return arrange(tasks);
+    }
+    const tasks = picked.map(({c, role}) => makeTaskAuto(K, c, bx(c), role, A)).filter(Boolean);
     // Abwechslung: mindestens eine Tipp- und eine Satzbau-Aufgabe, wenn die Karten es hergeben
     ["type", "build"].forEach(t => {
       if (tasks.some(x => x.t === t) || tasks.length < 6) return;
       const cand = tasks.map((x, i) => ({x, i})).filter(({x}) => x.t === "mc" && x.cardRef.kind !== "verb").sort((a, b) => bx(b.x.cardRef) - bx(a.x.cardRef));
       for (const {x, i} of cand) {
         if (tasks.filter(y => y.t === "mc").length <= 2) break;
-        const nt = makeTask(K, x.cardRef, t, x.role);
+        const nt = makeTask(K, x.cardRef, t, x.role, A);
         if (nt) { tasks[i] = nt; break; }
       }
     });
-    if (opts && opts.speakAvailable && tasks.length) {
-      const exp = tasks.length * SPEAK_SHARE, want = Math.floor(exp) + (Math.random() < exp - Math.floor(exp) ? 1 : 0);
+    if (modus === "mix" && tasks.length) {
+      const want = rndCount(tasks.length * MIX_SPEAK_SHARE);
       const cand = shuffle(tasks.map((x, i) => ({x, i})).filter(({x}) => (x.t === "mc" || x.t === "type") && speakOk(x.cardRef)));
       let done = 0;
       for (const {x, i} of cand) {
         if (done >= want) break;
         if (x.t === "mc" && tasks.filter(y => y.t === "mc").length <= 2) continue;
         if (x.t === "type" && tasks.filter(y => y.t === "type").length <= 1) continue;
-        const nt = makeTask(K, x.cardRef, "speak", x.role);
+        // ca. 30 % der Sprechaufgaben als Frage–Antwort (die Karte wird dann in dieser Session nicht geübt)
+        const f = Math.random() < QA_SHARE ? pickQa(qaAll, 1, seen, qaUsed)[0] : null;
+        const nt = f ? makeQaTask(f, K.id, x.role) : makeTask(K, x.cardRef, "speak", x.role, A);
         if (nt) { nt.fallback = x; tasks[i] = nt; done++; }
       }
     }
@@ -1165,7 +1515,8 @@ const LK = (function () {
     return n;
   }
   return {validate, metaOf, countCards, indexPaket, position, pools, buildSession, makeTask, boxStats, unitStats, capacity,
-          meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles};
+          meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles,
+          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, migriereProfile, BEKANNTE_BUECHER};
 })();
 </script>
 <script>
@@ -1266,7 +1617,8 @@ const store = {
   set(k, v) { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { storageOk = false; } },
   del(k) { delete mem[k]; try { localStorage.removeItem(k); } catch (e) {} }
 };
-const PKEY = "kk.v1.kindB";
+/* Beispielkarten-Stand je Profil: kk.v1.<profil> (beim Altprofil kindB derselbe Schlüssel wie bis v10) */
+const sampleKey = pid => "kk.v1." + (pid || "beispiel");
 
 function isoWeek(d) {
   const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -1283,15 +1635,15 @@ function seedProfile() {
   return {unit:1, station:1, boxes, week: isoWeek(new Date()), sessions:2, points:0};
 }
 let P = null;
-function loadProfile() {
-  let p = store.get(PKEY);
+function loadProfile(pid) {
+  let p = store.get(sampleKey(pid));
   if (!p || typeof p !== "object" || !p.boxes) p = seedProfile();
   ITEMS.forEach(it => { if (!p.boxes[it.id]) p.boxes[it.id] = 1; });
   const wk = isoWeek(new Date());
   if (p.week !== wk) { p.week = wk; p.sessions = 0; }
   P = p;
 }
-function saveProfile() { store.set(CUR && !CUR.sample ? CUR.key : PKEY, P); renderStoreInfo(); }
+function saveProfile() { if (CUR) store.set(CUR.sample ? sampleKey(CUR.pr.id) : CUR.key, P); renderStoreInfo(); }
 
 /* ---------- Hilfen ---------- */
 const $ = id => document.getElementById(id);
@@ -1302,7 +1654,7 @@ function toast(msg) {
 }
 function show(id) {
   try { spAbort(); } catch (e) {}
-  ["scrProfile","scrHome","scrSession","scrEnd","scrSprech"].forEach(s => $(s).hidden = s !== id);
+  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit"].forEach(s => $(s).hidden = s !== id);
   window.scrollTo(0, 0);
   renderTop(id);
 }
@@ -1392,11 +1744,9 @@ const OPT = {
 function renderOptTools() {
   const host = $("optTools"); if (!host) return;
   host.innerHTML = `<label class="opt-tog"><input type="checkbox" id="optSay"${OPT.get("autosay") ? " checked" : ""}> Antworten vorlesen</label>
-    <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>
-    <label class="opt-tog"${speakAvail() ? "" : ' title="Dieses Gerät hat keine Spracherkennung"'}><input type="checkbox" id="optSpeak"${speakOn() ? " checked" : ""}${speakAvail() ? "" : " disabled"}> Sprechübungen</label>`;
+    <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>`;
   $("optSay").onchange = e => OPT.set("autosay", e.target.checked);
   $("optFun").onchange = e => { OPT.set("fun", e.target.checked); if (e.target.checked) Fun.unlock(); };
-  $("optSpeak").onchange = e => OPT.set("speak", e.target.checked);
 }
 
 /* ---------- Überraschungen (E7: nur App-intern, sparsam, zufällig, nie als Strafe) ----------
@@ -1778,7 +2128,17 @@ function pickN(list, n, coverTypes) {
   for (const it of ordered) { if (out.length >= n) break; if (!out.includes(it)) out.push(it); }
   return out;
 }
-function buildSession() {
+/* Beispielkarten: modus wie im Lernkern (schreiben | mix | sprechen); Fragen nach Stand Green Line 3, Unit 1 */
+function buildSession(modus) {
+  modus = modus || "schreiben";
+  const qaPool = modus === "schreiben" ? [] : shuffle(LK.qaPoolFor("en", "gl3", "u1")), qaNext = () => qaPool.shift();
+  if (modus === "sprechen") {
+    const cards = prio(ITEMS.filter(it => (it.t === "mc" || it.t === "type") && poolFor(it.src).includes(it)));
+    const nQa = Math.min(qaPool.length, Math.round(10 * LK.QA_SHARE));
+    const out = cards.slice(0, 10 - nQa).map(sampleSpeak);
+    for (let k = 0; k < nQa; k++) out.splice(Math.floor(Math.random() * (out.length + 1)), 0, LK.makeQaTask(qaNext(), SAMPLE_ID, "cur"));
+    return out;
+  }
   const u1 = pickN(poolFor("u1"), 6, true);
   const b3 = pickN(poolFor("b3"), 2, false);
   const rev = pickN(poolFor("b1"), 1, false).concat(pickN(poolFor("b2"), 1, false));
@@ -1797,11 +2157,14 @@ function buildSession() {
     all.push(rest.splice(k, 1)[0]);
   }
   if (last) all.push(last);
-  // Sprechübungen (nur mit Spracherkennung und Schalter an): ca. 15 % der Aufgaben, die letzte bleibt eine Auswahl
-  if (speakOn()) {
-    const exp = all.length * LK.SPEAK_SHARE, want = Math.floor(exp) + (Math.random() < exp - Math.floor(exp) ? 1 : 0);
+  // Mix: ca. 30 % Sprechaufgaben (davon ca. 30 % Frage–Antwort), die letzte bleibt eine Auswahl
+  if (modus === "mix") {
+    const exp = all.length * LK.MIX_SPEAK_SHARE, want = Math.floor(exp) + (Math.random() < exp - Math.floor(exp) ? 1 : 0);
     const cand = shuffle(all.map((x, i) => ({x, i})).filter(({x, i}) => i < all.length - 1 && (x.t === "mc" || x.t === "type")));
-    cand.slice(0, want).forEach(({x, i}) => { all[i] = sampleSpeak(x); });
+    cand.slice(0, want).forEach(({x, i}) => {
+      const f = Math.random() < LK.QA_SHARE ? qaNext() : null;
+      all[i] = f ? Object.assign(LK.makeQaTask(f, SAMPLE_ID, "cur"), {fallback: x}) : sampleSpeak(x);
+    });
   }
   return all;
 }
@@ -1947,12 +2310,14 @@ const Verlauf = (function () {
 })();
 function logEvent(it, res, info) {
   try {
-    const pr = CUR && CUR.pr, typ = (info && info.typ) || (it.t === "speak" ? "speak" : "");
+    const pr = CUR && CUR.pr, typ = (info && info.typ) || (it.t === "speak" || it.t === "qa" ? it.t : "");
     const ev = {
-      profil: pr ? pr.id : "kindB", profil_name: pr ? pr.name : PROFILES[1].name,
+      profil: pr ? pr.id : "", profil_name: pr ? pr.name : "",
       buch: it.buch || (CUR && CUR.sample ? SAMPLE_ID : CUR ? CUR.book : SAMPLE_ID), sprache: it.lang || "en",
       item: it.id, aufgabe: typ || it.gen || it.t, richtung: it.dir || "",
       phase: (info && info.phase) || (S && S.phase === "retry" ? "fehlerrunde" : "haupt"),
+      // gewählter Stand (Auswahl in der Profilkarte), mit dem die Session gestartet wurde
+      einheit_gewaehlt: P ? String(CUR && CUR.sample ? P.unit : P.einheit) : "", station_gewaehlt: P && P.station != null ? String(P.station) : "",
       ergebnis: res, abweichung: (info && info.why) || "", hilfe: !!(info && info.hilfe), eingabe: String(info && info.input != null ? info.input : (info && info.yours) || ""),
       dauer_ms: info && info.dauer_ms != null ? Math.max(0, info.dauer_ms) : Math.max(0, Date.now() - ((S && S.t0) || Date.now())), zeit: new Date().toISOString()
     };
@@ -1967,9 +2332,11 @@ async function exportVerlauf() {
   if (!list.length) { toast("Noch keine Lernereignisse gespeichert."); return; }
   const d = new Date(), namen = {};
   PROFILES.forEach(p => { namen[p.id] = p.name; });
+  // Profile, die es nicht mehr gibt, behalten im Export ihren letzten Namen aus dem Verlauf
+  list.forEach(e => { if (e && e.profil && !(e.profil in namen) && e.profil_name) namen[e.profil] = e.profil_name; });
   const data = {schema: "kk-lernverlauf/1", erzeugt: d.toISOString(), anzahl: list.length, obergrenze: VERLAUF_MAX, profile: namen,
     hinweis: "Lokal erzeugt, nur zur Auswertung durch die Eltern. Enthält Eingaben der Kinder.", ereignisse: list};
-  const json = JSON.stringify(data, null, 1), fname = `kk_lernverlauf_${ymd(d)}.json`;
+  const json = JSON.stringify(data, null, 1), fname = `lern_lernverlauf_${ymd(d)}.json`;
   // Im Artifact-Viewer läuft der Download über die Viewer-Schnittstelle (Bestätigung durch den Nutzer),
   // außerhalb (lokale Datei, Safari) über einen normalen Download-Link.
   let dl = null;
@@ -2002,24 +2369,36 @@ async function renderVerlaufTools() {
   $("verlaufN").textContent = `Lernverlauf: ${fmt(n)} Antworten`;
 }
 
-/* ---------- Profile und Bücher ---------- */
-/* Profile: die ids (kindA/kindB) bleiben die Speicherschlüssel, damit vorhandene Lernstände beim Umbenennen erhalten bleiben.
-   books: Hauptbände des Profils in Wunschreihenfolge; Vorgängerbände derselben Reihe laufen automatisch als Wiederholung mit. */
-const PROFILES = [
-  {id: "kindA", name: "Valentin", jgst: 5, books: ["gl1", "gl2"], wants: "gl1", wantsTitel: "Green Line 1", sample: false},
-  {id: "kindB", name: "Maximilian", jgst: 7, books: ["gl3", "dec2"], wants: "gl3", wantsTitel: "Green Line 3 und Découvertes 2", sample: true}
-];
-const PROFILE_BOOKS = new Set(PROFILES.flatMap(p => p.books));
+/* ---------- Profile (v11) ----------
+   Liste in kk.v1.profile: [{id, name, nameFehlt?, farbe, jgst, en, fr, sample?}]. Die id ist Teil aller Speicherschlüssel
+   (kk.v1.<id>.<buch>, kk.v1.sel.<id>, kk.v1.last.<id>, kk.v1.recent.<id>.<buch>, Foto) und ändert sich nie.
+   Altbestand (v10, Kennungen kindA/kindB) wird beim ersten Start übernommen: LK.migriereProfile, Namen aus dem Lernverlauf.
+   en/fr: aktuelles Englisch- bzw. Französischbuch; Vorgängerbände derselben Reihe laufen automatisch als Wiederholung mit. */
+const PLIST_KEY = "kk.v1.profile";
+let PROFILES = [];
+/* Pastellpalette: Akzent (Knöpfe, Ring), Schrift auf Akzent, Akzent als Schrift auf Karte; Kontraste geprüft (WCAG AA) */
+const FARBEN = {
+  lavendel: {name: "Lavendel", accent: "#C4B8F2", ink: "#1C1A33", text: "#CEC4F7"},
+  mint: {name: "Mint", accent: "#9FE0CB", ink: "#0F2A22", text: "#A8E6D2"},
+  pfirsich: {name: "Pfirsich", accent: "#F5BFA0", ink: "#3A1E10", text: "#F7C9AE"},
+  himmel: {name: "Himmelblau", accent: "#A7CDF5", ink: "#0F2238", text: "#B3D5F7"},
+  rosa: {name: "Rosa", accent: "#F2B6CF", ink: "#3A1426", text: "#F5C2D8"},
+  zitrone: {name: "Zitrone", accent: "#EDDD8E", ink: "#2E2808", text: "#F0E29E"}
+};
+const farbeOf = pr => FARBEN[pr && pr.farbe] || FARBEN.lavendel;
+const farbStyle = pr => { const f = farbeOf(pr); return `--accent:${f.accent};--accent-ink:${f.ink};--accent-text:${f.text}`; };
+function saveProfiles() { store.set(PLIST_KEY, PROFILES); }
 const SAMPLE_ID = "beispiel";
 let METAS = [];      // geladene Pakete, nur Kopfdaten (Einheiten, Kartenzahl)
 const PAK = {};      // volle Pakete, erst bei Bedarf geladen
 const KIDX = {};     // Index je Paket
 let CUR = null;      // {pr, book, sample, K, meta, key}
 const fmt = n => Number(n).toLocaleString("de-DE");
+const lsKeys = () => { const out = []; try { for (let i = 0; i < localStorage.length; i++) out.push(localStorage.key(i)); } catch (e) {} return out.concat(Object.keys(mem)); };
 
 /* ---------- Profilbilder: 256 × 256 JPEG, nur auf diesem Gerät (IndexedDB kk-bilder, sonst localStorage, sonst Speicher) ---------- */
 const AvatarDB = (function () {
-  let dbp = null; const mem = {}, LS = "kk.v1.avatar.";
+  let dbp = null; const amem = {}, LS = "kk.v1.avatar.";
   function open() {
     if (dbp) return dbp;
     dbp = new Promise(res => {
@@ -2048,18 +2427,18 @@ const AvatarDB = (function () {
   }
   return {
     async all() {
-      const out = Object.assign({}, mem), db = await open();
-      PROFILES.forEach(p => { try { const v = localStorage.getItem(LS + p.id); if (v) out[p.id] = v; } catch (e) {} });
+      const out = Object.assign({}, amem), db = await open();
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(LS)) out[k.slice(LS.length)] = localStorage.getItem(k); } } catch (e) {}
       if (db) { try { ((await req(db, "readonly", st => st.getAll())) || []).forEach(r => { if (r && r.bild) out[r.id] = r.bild; }); } catch (e) {} }
       return out;
     },
     async put(id, bild) {
-      mem[id] = bild; const db = await open();
+      amem[id] = bild; const db = await open();
       if (db) { try { await req(db, "readwrite", st => st.put({id, bild})); return "idb"; } catch (e) {} }
       try { localStorage.setItem(LS + id, bild); return "ls"; } catch (e) { return "mem"; }
     },
     async del(id) {
-      delete mem[id]; const db = await open();
+      delete amem[id]; const db = await open();
       if (db) { try { await req(db, "readwrite", st => st.delete(id)); } catch (e) {} }
       try { localStorage.removeItem(LS + id); } catch (e) {}
     }
@@ -2067,7 +2446,7 @@ const AvatarDB = (function () {
 })();
 let AVATARS = {};
 let avatarFor = null;
-const avatarInner = pr => AVATARS[pr.id] ? `<img src="${esc(AVATARS[pr.id])}" alt="">` : esc(pr.name.slice(0, 1));
+const avatarInner = pr => AVATARS[pr.id] ? `<img src="${esc(AVATARS[pr.id])}" alt="">` : esc((pr.name || "?").slice(0, 1).toUpperCase());
 /* Foto quadratisch aus der Mitte schneiden, auf 256 × 256 verkleinern, JPEG 0,85. Alles im Gerät. */
 function shrinkImage(file) {
   return new Promise((res, rej) => {
@@ -2092,25 +2471,16 @@ function shrinkImage(file) {
     fr.readAsDataURL(file);
   });
 }
+/* Foto wird erst beim Speichern des Profils übernommen (EDIT.bild) */
 $("avatarIn").onchange = async e => {
-  const f = e.target.files && e.target.files[0], id = avatarFor; e.target.value = ""; avatarFor = null;
-  if (!f || !id) return;
+  const f = e.target.files && e.target.files[0]; e.target.value = ""; avatarFor = null;
+  if (!f || !EDIT) return;
   if (!/^image\//.test(f.type || "image/")) { toast("Das ist kein Bild."); return; }
-  try {
-    const bild = await shrinkImage(f);
-    AVATARS[id] = bild; const wo = await AvatarDB.put(id, bild);
-    toast(wo === "mem" ? "Profilbild gilt nur bis zum Neuladen (Speicher gesperrt)." : "Profilbild gespeichert. Es bleibt auf diesem Gerät.");
-  } catch (err) { toast("Das Bild ließ sich nicht verwenden. Anderes Foto probieren?"); }
-  renderProfiles(); renderTop(curScreen());
+  try { EDIT.bild = await shrinkImage(f); renderEditAvatar(); }
+  catch (err) { toast("Das Bild ließ sich nicht verwenden. Anderes Foto probieren?"); }
 };
-function wireAvatars() {
-  document.querySelectorAll("[data-ava]").forEach(b => b.onclick = () => { avatarFor = b.dataset.ava; const inp = $("avatarIn"); inp.value = ""; inp.click(); });
-  document.querySelectorAll("[data-ava-del]").forEach(b => b.onclick = async () => {
-    const id = b.dataset.avaDel; delete AVATARS[id]; await AvatarDB.del(id); toast("Profilbild entfernt."); renderProfiles();
-  });
-}
 
-/* ---------- Weiter beim letzten Stand (Profil, Buch, Einheit, Station) ---------- */
+/* ---------- Letzter Stand je Profil (Buch, Einheit, Station) ---------- */
 /* je Kind ein eigener Stand (kk.v1.last.<profil>); der frühere globale Stand kk.v1.last gilt nur noch für sein Profil */
 const LKEY = "kk.v1.last";
 function saveLast() {
@@ -2125,58 +2495,49 @@ function lastStand(pid) {
   if (!l) { const g = store.get(LKEY); if (g && g.pid === pid) l = g; }
   if (!l || typeof l !== "object" || l.pid !== pid) return null;
   const pr = PROFILES.find(p => p.id === l.pid); if (!pr) return null;
-  if (l.book === SAMPLE_ID) {
-    if (!pr.sample) return null;
-    const u = UNITS[l.unit] ? +l.unit : 1, st = UNITS[u].stations[l.station] ? +l.station : 1;
-    return {l, pr, book: SAMPLE_ID, titel: "Green Line 3 (Beispielkarten)", unit: "Unit " + u, station: "Station " + st, u, st};
+  if (!booksFor(pr).some(b => b.id === l.book)) return null;
+  return l;
+}
+/* Anzeige „Weiter bei …“ aus dem gewählten Buch und dem gespeicherten Fortschritt */
+function standText(pr) {
+  const book = chosenBook(pr); if (!book) return "";
+  if (book === SAMPLE_ID) {
+    const p = store.get(sampleKey(pr.id)) || {}, u = UNITS[p.unit] ? +p.unit : 1, st = UNITS[u].stations[p.station] ? +p.station : 1;
+    return `Beispielkarten, Unit ${u} · Station ${st}`;
   }
-  const meta = METAS.find(m => m.id === l.book);
-  if (!meta || !booksFor(pr).some(b => b.id === l.book)) return null;
-  const e = meta.einheiten.find(x => x.id === l.unit) || meta.einheiten[0];
-  const st = e.stations.find(s => s.id === l.station);
-  return {l, pr, meta, book: meta.id, titel: bookShort(meta.titel), unit: unitShort(e.titel), station: st ? LK.stShort(st) : "", u: e.id, st: st ? st.id : null};
+  const meta = METAS.find(m => m.id === book); if (!meta) return "";
+  const prog = loadPackProgress(pr.id, meta), e = meta.einheiten.find(x => x.id === prog.einheit) || meta.einheiten[0];
+  const st = e.stations.find(s => s.id === prog.station);
+  return `${bookShort(meta.titel)}, ${unitShort(e.titel)}${st ? " · " + LK.stShort(st) : ""}`;
 }
-function renderResume() {
-  const g = $("btnResume"); if (g) g.hidden = true;   // kein globaler Knopf mehr: je Kind in dessen Karte
-  PROFILES.forEach(pr => { const b = $("btnResume-" + pr.id), r = b && lastStand(pr.id); if (b && r) b.onclick = () => resumeLast(r, b); });
-}
-const curScreen = () => ["scrProfile", "scrHome", "scrSession", "scrEnd"].find(id => !$(id).hidden) || "scrProfile";
-async function resumeLast(r, b) {
-  if (!r) return;
-  if (b) b.disabled = true;
-  store.set("kk.v1.sel." + r.pr.id, {book: r.book});
-  if (r.book === SAMPLE_ID) { loadProfile(); P.unit = r.u; P.station = r.st; store.set(PKEY, P); }
-  else { const prog = loadPackProgress(r.pr.id, r.meta); prog.einheit = r.u; prog.station = r.st; store.set(packKey(r.pr.id, r.book), prog); }
-  await enterProfile(r.pr, r.book);
-  if (b) b.disabled = false;
-}
+const curScreen = () => ["scrProfile", "scrHome", "scrSession", "scrEnd", "scrEdit"].find(id => !$(id).hidden) || "scrProfile";
 
 /* ---------- Lernpakete-Klappe: ohne Paket aufgeklappt oben, sonst zugeklappt am Ende ---------- */
 let metasReady = false;
 function placePacks(boot) {
   const d = $("packDetails"), col = $("profileCol"); if (!d || !col || !metasReady) return;
   const empty = !METAS.length;
-  if (empty) { col.insertBefore(d, $("profiles")); d.open = true; }
+  if (empty) { col.insertBefore(d, $("profiles")); d.open = !!PROFILES.length; }
   else if (boot) { col.insertBefore(d, $("installHint")); d.open = false; }
   const h = $("hPack"); if (h) h.textContent = empty ? "Lernpakete verwalten · noch keins geladen" : `Lernpakete verwalten · ${METAS.length} geladen`;
 }
 
 function prevTitles(id) { return LK.vorgaenger(METAS, id).map(x => (METAS.find(m => m.id === x) || {titel: x}).titel); }
+const buchTitel = id => { const m = METAS.find(x => x.id === id), b = LK.BEKANNTE_BUECHER.find(x => x.id === id); return m ? bookShort(m.titel) : b ? b.titel : id; };
+/* Bücher eines Profils: sein Englisch- und Französischbuch (sofern geladen); Beispielkarten, wenn keins geladen ist */
 function booksFor(pr) {
-  // Hauptbände des Profils (fehlende werden übergangen), dazu Pakete, die keinem Profil zugeordnet sind
-  const mine = pr.books.map(id => METAS.find(m => m.id === id)).filter(Boolean);
-  // Vorgängerbände eines Profilbands (z. B. dec1 zu dec2) laufen dort als Wiederholung mit und stehen nicht einzeln da
-  const isPrev = id => Array.from(PROFILE_BOOKS).some(pb => METAS.some(m => m.id === pb) && LK.vorgaenger(METAS, pb).includes(id));
-  const other = METAS.filter(m => !PROFILE_BOOKS.has(m.id) && !isPrev(m.id));
-  const b = mine.concat(other).map(m => { const pv = LK.vorgaenger(METAS, m.id); return {id: m.id, titel: m.titel + (pv.length ? " + Wiederholung " + pv.map(x => x.toUpperCase()).join(", ") : "")}; });
-  if (pr.sample) b.push({id: SAMPLE_ID, titel: "Green Line 3 · Beispielkarten"});
+  const mine = [pr.en, pr.fr].filter(Boolean).map(id => METAS.find(m => m.id === id)).filter(Boolean);
+  const b = mine.map(m => { const pv = LK.vorgaenger(METAS, m.id); return {id: m.id, titel: m.titel + (pv.length ? " + Wiederholung " + pv.map(x => x.toUpperCase()).join(", ") : "")}; });
+  if (pr.sample || !b.length) b.push({id: SAMPLE_ID, titel: "Beispielkarten (Englisch, ohne Lernpaket)"});
   return b;
 }
+const fehlendeBuecher = pr => [pr.en, pr.fr].filter(id => id && !METAS.some(m => m.id === id));
 function chosenBook(pr) {
   const books = booksFor(pr), s = store.get("kk.v1.sel." + pr.id);
   if (s && books.some(b => b.id === s.book)) return s.book;
-  const w = books.find(b => b.id === pr.wants) || books.find(b => b.id === SAMPLE_ID) || books[0];
-  return w ? w.id : null;
+  const l = lastStand(pr.id);
+  if (l && books.some(b => b.id === l.book)) return l.book;
+  return books[0] ? books[0].id : null;
 }
 function packKey(pid, book) { return `kk.v1.${pid}.${book}`; }
 function loadPackProgress(pid, meta) {
@@ -2199,43 +2560,88 @@ function standNotePack(meta, e) {
   return "Geübt wird die Einheit bis zur gewählten Station, dazu frühere Einheiten und Zusatzwortschatz." + mit;
 }
 
+/* ---------- Übungsart je Session: Sprechen | Schreiben | Mix (letzte Wahl je Profil) ---------- */
+const MODI = [
+  {id: "sprechen", ic: "🎤", t: "Sprechen", s: "nur sprechen"},
+  {id: "schreiben", ic: "✏️", t: "Schreiben", s: "tippen, wählen"},
+  {id: "mix", ic: "🔀", t: "Mix", s: "von allem etwas"}
+];
+const modusKey = pid => "kk.v1.modus." + pid;
+function modusFor(pid) {
+  const m = store.get(modusKey(pid));
+  if (m === "sprechen" && !speakAvail()) return "schreiben";
+  return MODI.some(x => x.id === m) ? m : (speakAvail() ? "mix" : "schreiben");
+}
+function modeButtons(pid) {
+  const cur = modusFor(pid), mic = speakAvail();
+  return `<div class="modes" role="group" aria-label="Übungsart wählen und loslegen">${MODI.map(m => {
+    const dis = m.id === "sprechen" && !mic, on = m.id === cur;
+    const sub = dis ? "geht hier nicht" : m.id === "mix" && !mic ? "wie Schreiben" : m.s;
+    return `<button type="button" class="btn mode ${on ? "btn-primary is-last" : "btn-ghost"}" data-modus="${m.id}" data-pid="${esc(pid)}"${dis ? " disabled" : ""}${on ? ' aria-current="true"' : ""}><span class="ic" aria-hidden="true">${m.ic}</span>${m.t}<small>${sub}</small></button>`;
+  }).join("")}</div>${mic ? "" : `<p class="note">Auf diesem Gerät gibt es keine Spracherkennung. Sprechen geht hier nicht, Mix übt wie Schreiben.</p>`}`;
+}
+/* iOS: Sprachausgabe einmal direkt in der Tipp-Geste freischalten (danach darf die App selbst vorlesen, z. B. die Frage) */
+function unlockSpeech() {
+  try { if (window.speechSynthesis && !unlockSpeech.done) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); unlockSpeech.done = true; } } catch (e) {}
+}
+function wireModes(host, onPick) {
+  host.querySelectorAll("[data-modus]").forEach(b => b.onclick = () => {
+    if (b.disabled) return;
+    unlockSpeech(); try { Fun.unlock(); } catch (e) {}
+    store.set(modusKey(b.dataset.pid), b.dataset.modus);
+    onPick(b.dataset.modus, b);
+  });
+}
+async function startFor(pr, modus, btn) {
+  if (btn) btn.disabled = true;
+  const ok = await enterProfile(pr, chosenBook(pr), true);
+  if (btn) btn.disabled = false;
+  if (ok) startSession(modus); else renderProfiles();
+}
+
+/* ---------- Profilkarten ---------- */
 function renderProfiles() {
-  $("profiles").innerHTML = PROFILES.map(pr => {
-    const book = chosenBook(pr), books = booksFor(pr);
-    const meta = METAS.find(m => m.id === book);
-    const has = !!AVATARS[pr.id];
-    const head = t => `<div class="row"><button type="button" class="avatar avatar-btn" data-ava="${pr.id}" aria-label="Profilbild für ${esc(pr.name)} ${has ? "ändern" : "wählen"}">${avatarInner(pr)}<span class="cam" aria-hidden="true">📷</span></button><div><h2 id="h-${pr.id}">${esc(pr.name)}</h2><p class="muted">Jgst. ${pr.jgst} · ${esc(t)}</p>${has ? `<button type="button" class="link" data-ava-del="${pr.id}" style="font-size:.85rem">Foto entfernen</button>` : ""}</div></div>`;
-    if (!book) return `<section class="card profile soon" aria-labelledby="h-${pr.id}">${head(pr.wantsTitel)}
-      <p>Noch kein Lernpaket. Lade unten die Datei für ${esc(pr.wantsTitel)} (${pr.books.map(b => esc(b) + ".json").join(" oder ")}), dann geht's los.</p>
-      <button class="btn btn-ghost" disabled>Wartet auf Lernpaket</button></section>`;
-    const bookSel = books.length > 1 ? `<div class="row"><div class="field"><label for="selBook-${pr.id}">Buch</label><select id="selBook-${pr.id}">${books.map(b => `<option value="${esc(b.id)}">${esc(b.titel)}</option>`).join("")}</select></div></div>` : "";
-    const pickHtml = `${bookSel}
-      <div class="row">
-        <div class="field"><label for="selUnit-${pr.id}">${book === SAMPLE_ID ? "Unit" : "Einheit"}</label><select id="selUnit-${pr.id}"></select></div>
-        <div class="field"><label for="selStation-${pr.id}">Station</label><select id="selStation-${pr.id}"></select></div>
-      </div>
-      <p class="note" id="standNote-${pr.id}"></p>`;
-    // letzter Stand dieses Kindes: großer Weiter-Knopf in der eigenen Karte, Auswahl zugeklappt darunter
-    const r = lastStand(pr.id);
-    if (r) return `<section class="card profile" data-kind="${pr.id}" aria-labelledby="h-${pr.id}">${head(book === SAMPLE_ID ? "Green Line 3 (Beispielkarten)" : meta.titel)}
-      <button class="btn btn-primary btn-big resume" id="btnResume-${pr.id}"><span>Weiter: ${esc(r.titel)}, ${esc(r.unit)}${r.station ? " · " + esc(r.station) : ""}<small>genau da, wo ${esc(pr.name)} aufgehört hat</small></span><span class="arrow" aria-hidden="true">→</span></button>
-      <details class="pick"><summary>Anderes Buch oder andere Einheit</summary>${pickHtml}
-      <button class="btn btn-ghost" id="btnPick-${pr.id}">Mit dieser Auswahl weiter</button></details></section>`;
-    return `<section class="card profile" data-kind="${pr.id}" aria-labelledby="h-${pr.id}">${head(book === SAMPLE_ID ? "Green Line 3 (Beispielkarten)" : meta.titel)}
-      ${pickHtml}
-      <button class="btn btn-primary" id="btnPick-${pr.id}">Weiter als ${esc(pr.name)}</button></section>`;
-  }).join("");
+  const h1 = $("profileH1"); if (h1) h1.textContent = PROFILES.length ? "Wer lernt heute?" : "Wer lernt?";
+  const add = `<button type="button" class="add-card" id="btnAddProfile"><span class="plus" aria-hidden="true">+</span>${PROFILES.length ? "Kind hinzufügen" : "Erstes Profil anlegen"}<span class="note">${PROFILES.length ? "Name, Foto, Farbe und Bücher" : "Los geht's: Name, Klasse und Bücher eintragen"}</span></button>`;
+  $("profiles").innerHTML = PROFILES.map(profileCard).join("") + add;
   PROFILES.forEach(wireProfile);
-  wireAvatars();
-  renderResume();
+  $("btnAddProfile").onclick = () => openEdit(null);
+}
+function profileCard(pr) {
+  const book = chosenBook(pr), meta = METAS.find(m => m.id === book);
+  const sub = [pr.jgst ? "Jgst. " + pr.jgst : "", book === SAMPLE_ID ? "Beispielkarten" : meta ? meta.titel : ""].filter(Boolean).join(" · ");
+  const fehlt = fehlendeBuecher(pr);
+  const head = `<div class="row"><button type="button" class="avatar avatar-btn" data-edit="${esc(pr.id)}" aria-label="Profil von ${esc(pr.name)} bearbeiten">${avatarInner(pr)}<span class="cam" aria-hidden="true">✏️</span></button>
+    <div style="min-width:0"><h2 id="h-${esc(pr.id)}">${esc(pr.name)}</h2><p class="muted">${esc(sub)}</p>${pr.nameFehlt ? `<button type="button" class="link" data-edit="${esc(pr.id)}">Name eintragen</button>` : ""}</div></div>`;
+  const miss = fehlt.length ? `<p class="note">Für ${fehlt.map(buchTitel).map(esc).join(" und ")} fehlt noch das Lernpaket. Unten unter „Lernpakete verwalten“ laden.</p>` : "";
+  const books = booksFor(pr);
+  const bookSel = books.length > 1 ? `<div class="row"><div class="field"><label for="selBook-${esc(pr.id)}">Buch</label><select id="selBook-${esc(pr.id)}">${books.map(b => `<option value="${esc(b.id)}">${esc(b.titel)}</option>`).join("")}</select></div></div>` : "";
+  // Auswahl immer sichtbar direkt über den Knöpfen; die Knöpfe starten genau diese Einheit/Station (kein zweiter Startweg)
+  const pick = `<div class="pick" style="display:flex;flex-direction:column;gap:10px">${bookSel}
+      <div class="row">
+        <div class="field"><label for="selUnit-${esc(pr.id)}">${book === SAMPLE_ID ? "Unit" : "Einheit"}</label><select id="selUnit-${esc(pr.id)}"></select></div>
+        <div class="field"><label for="selStation-${esc(pr.id)}">Station</label><select id="selStation-${esc(pr.id)}"></select></div>
+      </div>
+      <p class="note" id="standNote-${esc(pr.id)}"></p></div>`;
+  return `<section class="card profile" data-pid="${esc(pr.id)}" style="${farbStyle(pr)}" aria-labelledby="h-${esc(pr.id)}">${head}${miss}
+    ${pick}<p class="stand" id="stand-${esc(pr.id)}"></p>${modeButtons(pr.id)}</section>`;
+}
+function renderStand(pr) {
+  const el = $("stand-" + pr.id); if (!el) return;
+  el.innerHTML = `Los geht's mit: ${esc(standText(pr))}<small>${lastStand(pr.id) ? "Vorbelegt mit dem letzten Stand. " : ""}Oben änderbar, dann Sprechen, Schreiben oder Mix tippen.</small>`;
 }
 function wireProfile(pr) {
+  const card = document.querySelector(`.profile[data-pid="${CSS.escape(pr.id)}"]`); if (!card) return;
+  card.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openEdit(pr.id));
+  wireModes(card, (modus, b) => startFor(pr, modus, b));
   const book = chosenBook(pr); if (!book) return;
   const sb = $("selBook-" + pr.id);
-  if (sb) { sb.value = book; sb.onchange = () => { store.set("kk.v1.sel." + pr.id, {book: sb.value}); renderProfiles(); }; }
+  // jede Änderung der Auswahl gilt sofort als „letzter Stand“ dieses Kindes
+  const keepLast = (unit, station) => { store.set(LKEY + "." + pr.id, {pid: pr.id, book, unit, station, zeit: Date.now()}); renderStand(pr); };
+  if (sb) { sb.value = book; sb.onchange = () => { store.set("kk.v1.sel." + pr.id, {book: sb.value}); store.del(LKEY + "." + pr.id); renderProfiles(); }; }
   const su = $("selUnit-" + pr.id), ss = $("selStation-" + pr.id), note = $("standNote-" + pr.id);
   if (book === SAMPLE_ID) {
-    loadProfile(); const prog = P;
+    loadProfile(pr.id); const prog = P;
     su.innerHTML = Object.keys(UNITS).map(u => `<option value="${u}">Unit ${u}${u === "3" ? "" : " · " + esc(UNITS[u].title)}</option>`).join("");
     su.value = String(prog.unit);
     const fillSt = () => {
@@ -2244,8 +2650,8 @@ function wireProfile(pr) {
       ss.value = st[prog.station] ? String(prog.station) : "1"; ss.disabled = false;
       note.textContent = standNoteSample(+su.value);
     };
-    su.onchange = () => { prog.unit = +su.value; fillSt(); prog.station = +ss.value; store.set(PKEY, prog); };
-    ss.onchange = () => { prog.station = +ss.value; store.set(PKEY, prog); };
+    su.onchange = () => { prog.unit = +su.value; fillSt(); prog.station = +ss.value; store.set(sampleKey(pr.id), prog); keepLast(prog.unit, prog.station); };
+    ss.onchange = () => { prog.station = +ss.value; store.set(sampleKey(pr.id), prog); keepLast(prog.unit, prog.station); };
     fillSt();
   } else {
     const meta = METAS.find(m => m.id === book), prog = loadPackProgress(pr.id, meta);
@@ -2259,27 +2665,133 @@ function wireProfile(pr) {
       } else { ss.innerHTML = `<option value="">ganze Einheit</option>`; ss.value = ""; ss.disabled = true; }
       note.textContent = standNotePack(meta, e);
     };
-    const save = () => { prog.einheit = su.value; prog.station = ss.value || null; store.set(packKey(pr.id, book), prog); };
+    const save = () => { prog.einheit = su.value; prog.station = ss.value || null; store.set(packKey(pr.id, book), prog); keepLast(prog.einheit, prog.station); };
     su.onchange = () => { fillSt(); save(); };
     ss.onchange = save;
     fillSt();
   }
-  $("btnPick-" + pr.id).onclick = () => enterProfile(pr, book);
+  renderStand(pr);
 }
+
+/* ---------- Profil bearbeiten / anlegen / löschen ---------- */
+let EDIT = null;   // {neu, p: Kopie des Profils, bild: undefined = unverändert | null = entfernen | DataURL = neu}
+function neueProfilId() { let id; do { id = "p" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); } while (PROFILES.some(p => p.id === id)); return id; }
+function freieFarbe() { const used = new Set(PROFILES.map(p => p.farbe)); return Object.keys(FARBEN).find(k => !used.has(k)) || "lavendel"; }
+function buchOptionen(lang, cur) {
+  const ids = LK.BEKANNTE_BUECHER.filter(b => b.sprache === lang).map(b => b.id);
+  METAS.forEach(m => { if ((m.sprache || "en") === lang && !ids.includes(m.id)) ids.push(m.id); });
+  if (cur && !ids.includes(cur)) ids.push(cur);
+  return `<option value="">${lang === "fr" ? "kein Französisch" : "kein Englisch"}</option>` + ids.map(id => {
+    const has = METAS.some(m => m.id === id);
+    return `<option value="${esc(id)}"${id === cur ? " selected" : ""}>${esc(buchTitel(id))}${has ? "" : " (Lernpaket fehlt noch)"}</option>`;
+  }).join("");
+}
+function openEdit(pid) {
+  const pr = PROFILES.find(p => p.id === pid);
+  EDIT = pr ? {neu: false, p: Object.assign({}, pr)} : {neu: true, p: {id: neueProfilId(), name: "", farbe: freieFarbe(), jgst: null, en: null, fr: null}};
+  EDIT.bild = undefined;
+  renderEdit(); show("scrEdit");
+  setTimeout(() => { const n = $("edName"); if (n && !n.value) try { n.focus({preventScroll: true}); } catch (e) {} }, 60);
+}
+function renderEditAvatar() {
+  const p = EDIT.p, host = $("edAva"); if (!host) return;
+  const bild = EDIT.bild === undefined ? AVATARS[p.id] : EDIT.bild;
+  host.innerHTML = bild ? `<img src="${esc(bild)}" alt="">` : esc((($("edName") && $("edName").value) || p.name || "?").slice(0, 1).toUpperCase());
+  const del = $("edFotoDel"); if (del) del.hidden = !bild;
+}
+function renderEdit() {
+  const p = EDIT.p, card = $("editCard");
+  card.setAttribute("style", farbStyle(p));
+  const jg = [5, 6, 7, 8, 9, 10, 11, 12, 13];
+  card.innerHTML = `<h1 id="editH">${EDIT.neu ? (PROFILES.length ? "Kind hinzufügen" : "Wer lernt?") : "Profil bearbeiten"}</h1>
+    <div class="row"><span class="avatar" id="edAva" style="width:72px;height:72px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--accent);color:var(--accent-ink);font-family:var(--f-display);font-weight:800;font-size:1.8rem;flex:none"></span>
+      <button type="button" class="btn btn-ghost btn-small" id="edFoto">📷 Foto wählen</button><button type="button" class="link" id="edFotoDel">Foto entfernen</button></div>
+    <div class="field"><label for="edName">Name</label><input type="text" id="edName" maxlength="30" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" value="${esc(p.nameFehlt ? "" : p.name || "")}" placeholder="Vorname"></div>
+    <div class="field"><span class="lbl" id="edFarbeL">Farbe</span><div class="swatches" role="radiogroup" aria-labelledby="edFarbeL">${Object.keys(FARBEN).map(k => `<button type="button" class="swatch" role="radio" data-farbe="${k}" aria-checked="${k === p.farbe}" aria-label="${FARBEN[k].name}" style="background:${FARBEN[k].accent}"></button>`).join("")}</div></div>
+    <div class="row"><div class="field"><label for="edJgst">Jahrgangsstufe</label><select id="edJgst"><option value="">–</option>${jg.map(j => `<option value="${j}"${+p.jgst === j ? " selected" : ""}>${j}</option>`).join("")}</select></div></div>
+    <div class="row"><div class="field"><label for="edEn">Englisch-Buch</label><select id="edEn">${buchOptionen("en", p.en)}</select></div>
+      <div class="field"><label for="edFr">Französisch-Buch</label><select id="edFr">${buchOptionen("fr", p.fr)}</select></div></div>
+    <p class="note">Das gewählte Buch ist der aktuelle Stand. Frühere Bände derselben Reihe kommen automatisch als Wiederholung dazu.</p>
+    <p class="msg-bad" id="edMsg" role="status" aria-live="polite"></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="edCancel">${PROFILES.length ? "Abbrechen" : "Zurück"}</button><button type="button" class="btn btn-primary" id="edSave">Speichern</button></div>
+    ${EDIT.neu ? "" : `<div class="row" style="justify-content:flex-start;border-top:1px solid var(--line);padding-top:14px"><button type="button" class="btn btn-ghost btn-small danger" id="edDel">Profil löschen</button></div>
+    <div class="card" id="edDelAsk" hidden style="background:var(--bad-bg);border-color:var(--bad)"><p><b>Profil ${esc(p.name)} wirklich löschen?</b></p>
+      <p class="muted" style="margin-block:6px 12px">Karteikasten, Fortschritt, letzter Stand und Foto dieses Profils werden auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen. Der Lernverlauf bleibt, bis du ihn unten in der Fußzeile löschst.</p>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="edDelNo">Nein, behalten</button><button type="button" class="btn btn-primary" id="edDelYes" style="background:var(--bad);color:#2A0D10">Ja, löschen</button></div></div>`}`;
+  renderEditAvatar();
+  $("edName").oninput = () => { if (!EDIT.bild && !AVATARS[p.id]) renderEditAvatar(); };
+  $("edName").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); saveEdit(); } };
+  $("edFoto").onclick = () => { avatarFor = p.id; const inp = $("avatarIn"); inp.value = ""; inp.click(); };
+  $("edFotoDel").onclick = () => { EDIT.bild = null; renderEditAvatar(); };
+  card.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => {
+    p.farbe = b.dataset.farbe; card.setAttribute("style", farbStyle(p));
+    card.querySelectorAll("[data-farbe]").forEach(x => x.setAttribute("aria-checked", String(x === b)));
+  });
+  $("edEn").onchange = () => { const b = LK.BEKANNTE_BUECHER.find(x => x.id === $("edEn").value); if (b && !$("edJgst").value) $("edJgst").value = String(b.jgst); };
+  $("edCancel").onclick = () => { EDIT = null; renderProfiles(); show("scrProfile"); };
+  $("edSave").onclick = saveEdit;
+  if (!EDIT.neu) {
+    $("edDel").onclick = () => { $("edDelAsk").hidden = false; $("edDel").hidden = true; $("edDelNo").focus(); };
+    $("edDelNo").onclick = () => { $("edDelAsk").hidden = true; $("edDel").hidden = false; };
+    $("edDelYes").onclick = async () => { const id = p.id, name = p.name; await deleteProfile(id); EDIT = null; renderProfiles(); renderPacks(); show("scrProfile"); toast(`Profil ${name} gelöscht.`); };
+  }
+}
+async function saveEdit() {
+  if (!EDIT) return;
+  const p = EDIT.p, name = $("edName").value.replace(/\s+/g, " ").trim();
+  if (!name) { $("edMsg").textContent = "Bitte einen Namen eintragen."; $("edName").focus(); return; }
+  const old = PROFILES.find(x => x.id === p.id);
+  p.name = name; delete p.nameFehlt;
+  p.jgst = +$("edJgst").value || null; p.en = $("edEn").value || null; p.fr = $("edFr").value || null;
+  if (old) PROFILES = PROFILES.map(x => x.id === p.id ? p : x); else PROFILES.push(p);
+  saveProfiles();
+  // neues Buch gewählt: Karte zeigt es gleich an
+  const neuBuch = (p.en !== (old && old.en) && p.en) || (p.fr !== (old && old.fr) && p.fr);
+  if (neuBuch && METAS.some(m => m.id === neuBuch)) { store.set("kk.v1.sel." + p.id, {book: neuBuch}); store.del(LKEY + "." + p.id); }
+  if (EDIT.bild === null) { delete AVATARS[p.id]; await AvatarDB.del(p.id); }
+  else if (typeof EDIT.bild === "string") {
+    AVATARS[p.id] = EDIT.bild; const wo = await AvatarDB.put(p.id, EDIT.bild);
+    if (wo === "mem") toast("Profilbild gilt nur bis zum Neuladen (Speicher gesperrt).");
+  }
+  if (CUR && CUR.pr.id === p.id) CUR.pr = p;
+  EDIT = null; renderProfiles(); renderPacks(); show("scrProfile");
+  toast(old ? "Profil gespeichert." : `Hallo ${name}! Profil angelegt.`);
+}
+/* Profil löschen: alle Speicherschlüssel mit seiner id und das Foto (der Lernverlauf bleibt; Löschen dort getrennt) */
+async function deleteProfile(pid) {
+  PROFILES = PROFILES.filter(p => p.id !== pid); saveProfiles();
+  delete AVATARS[pid]; try { await AvatarDB.del(pid); } catch (e) {}
+  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k.startsWith("kk.v1.recent." + pid + ".");
+  lsKeys().filter(mine).forEach(k => store.del(k));
+  const g = store.get(LKEY); if (g && g.pid === pid) store.del(LKEY);
+  if (CUR && CUR.pr.id === pid) CUR = null;
+}
+/* Erststart v11: gespeicherte Liste, sonst Übernahme aus v10 (Namen aus dem Lernverlauf), sonst leer */
+async function ladeProfile() {
+  const st = store.get(PLIST_KEY);
+  if (Array.isArray(st)) { PROFILES = st.filter(p => p && typeof p.id === "string" && typeof p.name === "string"); return; }
+  const namen = {};
+  try { (await Verlauf.all()).forEach(e => { if (e && e.profil && e.profil_name) namen[e.profil] = String(e.profil_name); }); } catch (e) {}
+  let bilder = [];
+  try { bilder = Object.keys(await AvatarDB.all()); } catch (e) {}
+  PROFILES = LK.migriereProfile(lsKeys(), k => store.get(k), namen, bilder);
+  saveProfiles();
+}
+
 async function getPaket(id) {
   if (PAK[id]) return PAK[id];
   const p = await PaketDB.get(id);
   if (p) PAK[id] = p;
   return p;
 }
-async function enterProfile(pr, book) {
-  if (book === SAMPLE_ID) {
-    loadProfile(); CUR = {pr, book, sample: true};
-    saveProfile(); saveLast(); renderHome(); show("scrHome"); return;
+/* quiet: Home vorbereiten, aber nicht anzeigen (Übungsart-Knopf startet gleich die Session). Liefert true, wenn es geklappt hat. */
+async function enterProfile(pr, book, quiet) {
+  if (book === SAMPLE_ID || !book) {
+    loadProfile(pr.id); CUR = {pr, book: SAMPLE_ID, sample: true};
+    saveProfile(); saveLast(); renderHome(); if (!quiet) show("scrHome"); return true;
   }
-  const btn = $("btnPick-" + pr.id); if (btn) { btn.disabled = true; btn.textContent = "Lade Karten …"; }
   const meta = METAS.find(m => m.id === book), p = await getPaket(book);
-  if (!p || !meta) { toast("Das Lernpaket ist nicht mehr auf diesem Gerät. Bitte neu laden."); renderProfiles(); return; }
+  if (!p || !meta) { toast("Das Lernpaket ist nicht mehr auf diesem Gerät. Bitte neu laden."); return false; }
   const K = KIDX[book] || (KIDX[book] = LK.indexPaket(p));
   const prev = [];
   for (const id of LK.vorgaenger(METAS, book)) {   // fehlende oder defekte Vorgängerpakete werden übergangen
@@ -2287,14 +2799,15 @@ async function enterProfile(pr, book) {
   }
   P = loadPackProgress(pr.id, meta);
   CUR = {pr, book, sample: false, K, meta, prev, key: packKey(pr.id, book)};
-  saveProfile(); saveLast(); renderHome(); show("scrHome");
+  saveProfile(); saveLast(); renderHome(); if (!quiet) show("scrHome");
+  return true;
 }
 
 /* ---------- Paket-Import ---------- */
 function renderPacks() {
   const ul = $("packList");
   placePacks(false);
-  if (!METAS.length) { ul.innerHTML = `<li class="muted">Noch kein Paket geladen. Maximilian übt so lange mit den Beispielkarten.</li>`; return; }
+  if (!METAS.length) { ul.innerHTML = `<li class="muted">Noch kein Paket geladen. Bis dahin gibt es Beispielkarten zum Ausprobieren.</li>`; return; }
   ul.innerHTML = METAS.map(m => `<li class="pack-row"><div><b>Paket ${esc(m.id)} geladen: ${fmt(m.count)} Karten</b>
       <span class="muted">${esc(m.titel)}${m.version ? " · Stand " + esc(m.version) : ""} · ${m.persist === "mem" ? "nur bis zum Neuladen (Speicher voll oder gesperrt)" : "auf diesem Gerät gespeichert"}</span></div>
       <button class="btn btn-ghost btn-small" data-del="${esc(m.id)}">Entfernen</button></li>`).join("");
@@ -2363,11 +2876,15 @@ $("fileIn").onchange = e => { importFile(e.target.files && e.target.files[0]); e
 /* ---------- Home ---------- */
 function renderTop(screen) {
   const r = $("topRight");
-  try { if (CUR && screen !== "scrProfile") document.documentElement.dataset.kind = CUR.pr.id; else delete document.documentElement.dataset.kind; } catch (e) {}
-  if (screen === "scrHome" && CUR) r.innerHTML = `<span class="pill who"><span class="top-ava" aria-hidden="true">${avatarInner(CUR.pr)}</span>${esc(CUR.pr.name)} · Jgst. ${CUR.pr.jgst}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
+  // Profilfarbe am <html>, solange ein Profil aktiv ist (Profil- und Bearbeiten-Seite: Standard, Karten tragen ihre Farbe selbst)
+  try {
+    const root = document.documentElement.style, on = CUR && screen !== "scrProfile" && screen !== "scrEdit", f = on ? farbeOf(CUR.pr) : null;
+    [["--accent", "accent"], ["--accent-ink", "ink"], ["--accent-text", "text"]].forEach(([v, k]) => { if (f) root.setProperty(v, f[k]); else root.removeProperty(v); });
+  } catch (e) {}
+  if (screen === "scrHome" && CUR) r.innerHTML = `<span class="pill who"><span class="top-ava" aria-hidden="true">${avatarInner(CUR.pr)}</span>${esc(CUR.pr.name)}${CUR.pr.jgst ? " · Jgst. " + esc(CUR.pr.jgst) : ""}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
   else r.innerHTML = "";
   const l = $("lnkSwitch"); if (l) l.onclick = () => { CUR = null; renderProfiles(); show("scrProfile"); };
-  document.title = CUR && screen !== "scrProfile" ? "Karteikasten " + sprache(curLang()).name : "Karteikasten";
+  document.title = CUR && screen !== "scrProfile" && screen !== "scrEdit" ? "Lern! " + sprache(curLang()).name : "Lern!";
   renderVoicePicker();
   $("footNote").textContent = CUR && !CUR.sample && screen !== "scrProfile"
     ? `Inhalte aus dem Lernpaket ${CUR.book}${CUR.prev && CUR.prev.length ? " (mit " + CUR.prev.map(k => k.id).join(", ") + ")" : ""}, nur auf diesem Gerät. Nicht weitergeben.`
@@ -2400,6 +2917,8 @@ function renderHome() {
   $("bossPill").textContent = bp + " %";
   $("bossTitle").textContent = "Bosskampf " + bn;
   $("bossText").textContent = bp >= 80 ? "Das Boss-Tor ist offen. Der Kampf kommt in der nächsten Version." : `Bosskampf ${bn} ab 80 %, aktuell ${bp} %. Zählt, wenn eine Karte ab Fach 3 liegt.`;
+  const hm = $("homeModes");
+  if (hm && CUR) { hm.innerHTML = modeButtons(CUR.pr.id); wireModes(hm, modus => startSession(modus)); }
   if (CUR && !CUR.sample) return renderHomePack();
   $("unitCard").hidden = true;
   const unitTxt = `Unit ${P.unit} · Station ${P.station}`;
@@ -2451,16 +2970,20 @@ function recentAdd(ids) {
   list = list.filter(r => r && now - r.t < RECENT_MS).concat([{t: now, ids: Array.from(new Set(ids))}]).slice(-12);
   store.set(recentKey(), list);
 }
-function startSession() {
+function startSession(modus) {
+  if (!CUR || !P) return;
+  modus = MODI.some(m => m.id === modus) ? modus : modusFor(CUR.pr.id);
+  if (modus === "sprechen" && !speakAvail()) modus = "schreiben";
+  if (modus === "mix" && !speakAvail()) modus = "schreiben";   // ohne Spracherkennung übt Mix wie Schreiben
   let boxes = P.boxes, queue;
   if (CUR && !CUR.sample) {
     // Fächer der Vorgängerbände (eigener Lernstand des Profils dort) + aktueller Band; Ergebnisse landen im aktuellen Band
     const prevBoxes = (CUR.prev || []).map(k => { const m = METAS.find(x => x.id === k.id); return m ? loadPackProgress(CUR.pr.id, m).boxes : {}; });
     boxes = Object.assign({}, ...prevBoxes, P.boxes);
-    queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, {speakAvailable: speakOn(), seen: recentSeen()});
-  } else queue = buildSession();
-  if (!queue.length) { toast("Für diese Einheit gibt es noch keine Karten."); return; }
-  S = {queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: ""};
+    queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, {modus, seen: recentSeen()});
+  } else queue = buildSession(modus);
+  if (!queue.length) { toast(modus === "sprechen" ? "Für diese Einheit gibt es nichts zum Sprechen. Probier Schreiben." : "Für diese Einheit gibt es noch keine Karten."); renderHome(); show("scrHome"); return; }
+  S = {modus, queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: ""};
   Fun.reset();
   show("scrSession");
   $("quitConfirm").hidden = true;
@@ -2471,14 +2994,24 @@ function totalSteps() { return S.queue.length; }
 function addExtraTask() {
   const have = new Set(S.queue.map(t => t.id));
   let cand = [];
-  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, {speakAvailable: speakOn(), seen: recentSeen()}) : buildSession(); } catch (e) { cand = []; }
+  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, {modus: S.modus, seen: recentSeen()}) : buildSession(S.modus); } catch (e) { cand = []; }
   const t = cand.find(x => !have.has(x.id)) || Object.assign({}, S.current);
   S.queue.push(t); S.extraTasks = (S.extraTasks || 0) + 1;
   const n = S.i + 1, tot = totalSteps();
   $("progBar").style.width = (100 * S.i / tot) + "%";
   $("progText").textContent = S.phase === "retry" ? `Fehlerrunde ${n - S.mainLen}/${tot - S.mainLen}` : `${n}/${tot}`;
 }
+/* Mikro gesperrt (einmal erkannt): Sprech- und Frageaufgaben dieser Session laufen als Ersatzaufgabe oder entfallen */
+function skipSpeakTask() {
+  const it = S.queue[S.i];
+  if (it && it.fallback) { S.queue[S.i] = it.fallback; return renderTask(); }
+  S.queue.splice(S.i, 1);
+  if (S.phase === "main" && S.i >= S.queue.length) { S.i--; return nextTask(); }
+  if (S.i >= S.queue.length) return endSession();
+  renderTask();
+}
 function renderTask() {
+  if (S.micBlocked && S.queue[S.i] && (S.queue[S.i].t === "speak" || S.queue[S.i].t === "qa")) return skipSpeakTask();
   const it = S.queue[S.i]; S.current = it; S.tries = 0; S.t0 = Date.now(); S.locked = false;
   try { spAbort(); } catch (e) {}
   const L = it.lang || "en", SL = sprache(L);
@@ -2496,7 +3029,7 @@ function renderTask() {
     const opts = shuffle([right].concat(it.opts));
     el.innerHTML = meta + `<p class="ask">${esc(it.ask || "Was heißt das?")}</p>
       <div class="prompt" lang="${qLang}">${esc(q)} ${qLang !== "de" ? sayBtn(q, "Vorlesen", qLang) : ""}</div>
-      <div class="options">${opts.map((o, k) => `<button class="opt" lang="${optLang}" data-k="${k}">${esc(o)}</button>`).join("")}</div>`;
+      <div class="options">${opts.map((o, k) => `<div class="opt-wrap"><button class="opt" lang="${optLang}" data-k="${k}">${esc(o)}</button>${optLang !== "de" ? sayBtn(o, "Antwort vorlesen: " + o, optLang) : ""}</div>`).join("")}</div>`;
     el.querySelectorAll(".opt").forEach(b => b.onclick = () => {
       const ok = opts[+b.dataset.k] === right;
       el.querySelectorAll(".opt").forEach(x => { x.disabled = true; if (opts[+x.dataset.k] === right) x.classList.add("is-good"); });
@@ -2552,7 +3085,7 @@ function renderTask() {
     const NOTE = {nothing: "Ich habe nichts gehört. Hör zu und sprich es nach.", article: "Fast! Zum Nomen gehört der Artikel, sag ihn mit.",
       part: "Fast! Da war noch mehr dabei. Sag nur das gesuchte Wort.", accent: "Fast! Hör genau hin und sprich es nach.", near: "Fast! Hör dir die Lösung an und sprich sie nach."};
     const ctl = spMount($("spHost"), {lang: L, accepted: [it.target].concat(it.alts || []),
-      onBlocked: () => { const b = $("btnSpSkip"); if (b) b.hidden = false; },
+      onBlocked: () => { S.micBlocked = true; const b = $("btnSpSkip"); if (b) b.hidden = false; },
       onDone: r => {
         if (S.current !== it || S.locked) return;
         S.locked = true; $("btnSpDunno").hidden = true; $("btnSpSkip").hidden = true;
@@ -2565,7 +3098,31 @@ function renderTask() {
       finishTask("bad", {sol: esc(it.target), solHtml: true, speak: it.speak || it.target, note: "Raten ist übrigens erlaubt. Kostet nix.", input: "", erkannt: "", versuche: 0, why: "dunno"});
     };
     // Mikro gesperrt: dieselbe Karte als Auswahl- oder Tippaufgabe, ohne Wertung des Sprechversuchs
-    $("btnSpSkip").onclick = () => { if (S.locked || !it.fallback) return; ctl.abort(); S.queue[S.i] = it.fallback; renderTask(); };
+    $("btnSpSkip").onclick = () => { if (S.locked) return; ctl.abort(); skipSpeakTask(); };
+  } else if (it.t === "qa") {
+    // Frage–Antwort: Frage anzeigen und vorlesen, Kind antwortet frei; Wertung checkAnswer (Muster der Fragebank)
+    el.innerHTML = meta + `<p class="ask">${esc(it.ask)}</p>
+      <div class="qa-q" lang="${L}">${esc(it.frage)} ${sayBtn(it.frage, "Frage noch mal vorlesen", L)}</div>
+      <p class="sp-hint muted">Antworte im ganzen Satz. Es gibt viele richtige Antworten.</p>
+      <div id="spHost"></div>
+      <div class="row" style="justify-content:center;gap:6px 18px"><button class="link" id="btnSpDunno">Keine Ahnung, zeig's mir</button><button class="link" id="btnSpSkip" hidden>Ohne Mikro weiter</button></div>`;
+    const NOTE = {kurz: "Gute Antwort! Noch besser im ganzen Satz, zum Beispiel:", echo: "Du hast die Frage wiederholt. Antworte darauf, zum Beispiel so:",
+      fremd: "Das passt noch nicht zur Frage. So könntest du antworten:", nothing: "Ich habe nichts gehört. So könntest du antworten:"};
+    const ctl = spMount($("spHost"), {lang: L, check: alts => checkAnswer(alts, it.qa, L), icons: {half: ["🟡", "Gut, aber kurz"], bad: ["❌", "Passt nicht"]},
+      onBlocked: () => { S.micBlocked = true; const b = $("btnSpSkip"); if (b) b.hidden = false; },
+      onDone: r => {
+        if (S.current !== it || S.locked) return;
+        S.locked = true; $("btnSpDunno").hidden = true; $("btnSpSkip").hidden = true;
+        finishTask(r.res, {sol: it.muster, speak: it.muster, yours: r.heard || "", input: r.heard || "", erkannt: r.heard || "", versuche: r.versuche, why: r.why,
+          forceSay: true, note: r.res === "ok" ? "Super Antwort! Eine weitere Möglichkeit:" : NOTE[r.why] || NOTE.fremd});
+      }});
+    $("btnSpDunno").onclick = () => {
+      if (S.locked) return;
+      ctl.abort(); S.locked = true; $("btnSpDunno").hidden = true; $("btnSpSkip").hidden = true;
+      finishTask("bad", {sol: it.muster, speak: it.muster, forceSay: true, note: "Kein Problem. So könntest du antworten:", input: "", erkannt: "", versuche: 0, why: "dunno"});
+    };
+    $("btnSpSkip").onclick = () => { if (S.locked) return; ctl.abort(); skipSpeakTask(); };
+    speak(it.frage, L);
   } else if (it.t === "build") {
     const tiles = shuffle(it.tiles.map((w, k) => ({w, k})));
     el.innerHTML = meta + `<p class="ask">${esc(it.ask || "Bau den Satz. Tipp die Kacheln an, nicht alle gehören rein.")}</p>
@@ -2652,7 +3209,12 @@ const PRAISE_OK = ["Sitzt.", "Sauber.", "Genau so.", "Läuft.", "Treffer.", "Yes
 function finishTask(res, info) {
   const it = S.current, L = it.lang || "en";
   logEvent(it, res, info);
-  if (S.phase === "main") {
+  if (S.phase === "main" && it.noBox) {
+    // Frage–Antwort: zählt für Punkte, aber nicht im Karteikasten und ohne Fehlerrunde
+    S.points += res === "ok" ? 10 : res === "half" ? 5 : 0;
+    if (res === "ok") S.firstOk++;
+    S.results[it.id] = res; S.qa = (S.qa || []).concat([res]);
+  } else if (S.phase === "main") {
     const from = S.boxes[it.id] || 0;  // 0 = neue Karte aus dem Paket
     const to = res === "ok" ? Math.min(5, Math.max(1, from) + 1) : res === "half" ? Math.max(1, from) : 1;
     S.moves.push({it, from, to});
@@ -2663,14 +3225,16 @@ function finishTask(res, info) {
   } else {
     if (res === "ok") { S.points += 5; S.rescued++; } else if (res === "half") { S.points += 3; S.rescued++; }
   }
-  const title = res === "ok" ? pick(PRAISE_OK) : res === "half" ? "Fast! Halber Punkt." : (S.phase === "main" ? "Nope. Kommt am Ende nochmal." : "Immer noch knifflig. Morgen wieder.");
+  const title = it.t === "qa" ? (res === "ok" ? pick(PRAISE_OK) : res === "half" ? "Gut! Halber Punkt." : "Noch nicht ganz.")
+    : res === "ok" ? pick(PRAISE_OK) : res === "half" ? "Fast! Halber Punkt." : (S.phase === "main" ? "Nope. Kommt am Ende nochmal." : "Immer noch knifflig. Morgen wieder.");
   const lines = [];
-  if (info.yours) lines.push(`<p class="muted">${it.t === "speak" ? "Verstanden" : "Du"}: <span lang="${L}">${esc(info.yours)}</span></p>`);
+  if (info.yours) lines.push(`<p class="muted">${it.t === "speak" || it.t === "qa" ? "Verstanden" : "Du"}: <span lang="${L}">${esc(info.yours)}</span></p>`);
+  if (it.t === "qa" && info.note) lines.push(`<p class="fb-ex">${esc(info.note)}</p>`);
   if (info.note && info.why === "variante") lines.push(`<p class="fb-ex">${esc(info.note)}</p>`);
   if (res !== "ok" || it.t !== "mc") lines.push(`<p class="fb-sol"><span lang="${L}">${info.solHtml ? info.sol : esc(info.sol)}</span>${sayBtn(info.speak, "Vorlesen", L)}</p>`);
   else lines.push(`<p class="fb-sol"><span>${esc(info.sol)}</span>${sayBtn(info.speak, "Vorlesen", L)}</p>`);
-  if (res === "half" && it.t !== "speak") lines.push(`<p class="fb-ex">Ein Buchstabe war verrutscht. Die markierte Stelle anschauen.</p>`);
-  if (info.note && info.why !== "variante") lines.push(`<p class="fb-ex">${esc(info.note)}</p>`);
+  if (res === "half" && it.t !== "speak" && it.t !== "qa") lines.push(`<p class="fb-ex">Ein Buchstabe war verrutscht. Die markierte Stelle anschauen.</p>`);
+  if (info.note && info.why !== "variante" && it.t !== "qa") lines.push(`<p class="fb-ex">${esc(info.note)}</p>`);
   if (it.ex) lines.push(`<p class="fb-ex">${esc(it.ex)}</p>`);
   if (it.ctx) lines.push(`<p class="fb-ex fb-ctx"><span lang="${L}">${esc(it.ctx)}</span>${sayBtn(it.ctx, "Beispielsatz vorlesen", L)}</p>`);
   if (it.tip) lines.push(`<p class="fb-ex">${esc(it.tip)}</p>`);
@@ -2720,7 +3284,7 @@ function interstitial() {
 /* ---------- Ende ---------- */
 function endSession() {
   S.moves.forEach(m => { P.boxes[m.it.id] = m.to; });
-  recentAdd(S.moves.map(m => m.it.id));
+  recentAdd(S.moves.map(m => m.it.id).concat(S.queue.filter(t => t.t === "qa").map(t => t.id)));
   P.sessions++; P.points = (P.points || 0) + S.points;
   saveProfile();
   const total = S.mainLen || 10;
@@ -2748,6 +3312,7 @@ function endSession() {
       <div class="stat"><b>${S.firstOk}/${total}</b>beim ersten Versuch</div>
       <div class="stat"><b>${Math.min(P.sessions, 99)}/${GOAL}</b>Wochenziel (+1)</div>
       <div class="stat"><b>${bp} %</b>Bosskampf ${esc(bossName())}</div>
+      ${S.qa && S.qa.length ? `<div class="stat"><b>${S.qa.filter(r => r !== "bad").length}/${S.qa.length}</b>Fragen beantwortet</div>` : ""}
     </div>
     ${collage}
     <div>
@@ -2760,7 +3325,7 @@ function endSession() {
       <button class="btn btn-primary" id="btnAgain">Nochmal</button>
     </div>`;
   $("btnHome").onclick = () => { renderHome(); show("scrHome"); };
-  $("btnAgain").onclick = startSession;
+  $("btnAgain").onclick = () => startSession(S.modus);
   show("scrEnd");
   if (fun) Fun.fanfare();
   confetti(stars);
@@ -2803,21 +3368,20 @@ $("btnQuit").onclick = () => { $("quitConfirm").hidden = false; };
 $("btnQuitNo").onclick = () => { $("quitConfirm").hidden = true; };
 $("btnQuitYes").onclick = () => { if (S) recentAdd(S.queue.slice(0, S.i + 1).map(t => t.id)); S = null; renderHome(); show("scrHome"); };
 
-/* ---------- Start ---------- */
-$("btnStart").onclick = startSession;
 
 // Footer: Zurücksetzen in zwei Schritten (kein confirm() nötig); betrifft das gerade gewählte Profil und Buch
 (function addReset() {
   const f = document.querySelector("footer");
   const b = document.createElement("button"); b.className = "link";
-  const label = () => CUR && !CUR.sample ? `Übungsstand ${CUR.pr.name} zurücksetzen` : "Beispielstand zurücksetzen";
+  const label = () => CUR ? `Übungsstand ${CUR.pr.name}${CUR.sample ? " (Beispielkarten)" : ""} zurücksetzen` : "Übungsstand zurücksetzen";
   let armed = false;
   b.textContent = label();
   document.addEventListener("click", e => { if (e.target !== b && !armed) b.textContent = label(); }, true);
   b.onclick = () => {
+    if (!CUR) { toast("Erst ein Profil wählen, dann geht Zurücksetzen."); return; }
     if (!armed) { armed = true; b.textContent = "Wirklich? Nochmal tippen."; setTimeout(() => { armed = false; b.textContent = label(); }, 3500); return; }
-    if (CUR && !CUR.sample) { store.del(CUR.key); P = loadPackProgress(CUR.pr.id, CUR.meta); }
-    else { store.del(PKEY); loadProfile(); }
+    if (!CUR.sample) { store.del(CUR.key); P = loadPackProgress(CUR.pr.id, CUR.meta); }
+    else { store.del(sampleKey(CUR.pr.id)); loadProfile(CUR.pr.id); }
     saveProfile(); armed = false; b.textContent = label(); toast("Zurückgesetzt.");
     if (!$("scrHome").hidden) renderHome(); else renderProfiles();
   };
@@ -2860,7 +3424,6 @@ $("btnStart").onclick = startSession;
 const SP_MAX_MS = 6000, SP_TRIES = 3;
 function srCtor() { try { return window.SpeechRecognition || window.webkitSpeechRecognition || null; } catch (e) { return null; } }
 const speakAvail = () => !!srCtor();
-const speakOn = () => speakAvail() && OPT.get("speak");
 let SPK = null; // laufende Aufnahme
 function spAbort() {
   const s = SPK; SPK = null; if (!s) return;
@@ -2891,12 +3454,12 @@ function spMount(host, o) {
     if (finished) return;
     finished = true; spAbort(); ui("off", "Fertig"); mic.disabled = true;
     if (r.why !== "nothing" && r.why !== "dunno") {
-      const [ic, t] = SP_ICON[r.res] || SP_ICON.bad;
+      const [ic, t] = (o.icons && o.icons[r.res]) || SP_ICON[r.res] || SP_ICON.bad;
       resEl.className = "sp-res " + r.res; resEl.innerHTML = `<span class="ic" aria-hidden="true">${ic}</span><span>${t}</span>`; resEl.hidden = false;
     }
     try { o.onDone(Object.assign({versuche: tries}, r)); } catch (e) {}
   }
-  function evaluate(alts) { finish(checkSpoken(alts, o.accepted, L)); }
+  function evaluate(alts) { finish(o.check ? o.check(alts) : checkSpoken(alts, o.accepted, L)); }
   function ended(s) {
     if (s.dead || s.over) return;
     s.over = true; clearInterval(s.timer); clearTimeout(s.stopT); clearTimeout(s.errT);
@@ -2911,7 +3474,7 @@ function spMount(host, o) {
       if (o.onBlocked) o.onBlocked();
       return;
     }
-    if (tries >= SP_TRIES) return finish({res: "bad", why: "nothing", heard: "", target: o.accepted[0]});
+    if (tries >= SP_TRIES) return finish({res: "bad", why: "nothing", heard: "", target: o.accepted ? o.accepted[0] : ""});
     ui("off", s.err === "network" ? "Keine Verbindung. Noch mal?" : "Ich habe nichts gehört, noch mal?");
     heard.textContent = `Versuch ${tries} von ${SP_TRIES}`;
   }
@@ -2975,84 +3538,12 @@ function sampleSpeak(it) {
           de: it.de, en: it.en, card: it.en, target: it.en, alts: acc.filter(x => x !== it.en), speak: it.en, ex: it.ex, fallback: it};
 }
 
-/* ---------- Sprechen üben (Fußzeile, #sprechen): 8 Karten der aktuellen Einheit, ohne Karteikasten ---------- */
-const PR = {list: [], i: 0, n: {ok: 0, half: 0, bad: 0}, t0: 0};
-function practiceTasks() {
-  let out = [];
-  try {
-    if (CUR && !CUR.sample && CUR.K) {
-      // aktuelle Einheit; ist sie (fast) leer, füllen frühere Einheiten auf
-      const K = CUR.K, pos = LK.position(K, P.einheit, P.station), pl = LK.pools(K, pos, CUR.prev || []);
-      const mk = list => shuffle(list.filter(LK.speakOk)).map(c => LK.makeTask(K, c, "speak", "cur")).filter(Boolean);
-      out = mk(pl.cur).slice(0, 8);
-      if (out.length < 8) out = out.concat(mk(pl.earlier).slice(0, 8 - out.length));
-    }
-  } catch (e) { out = []; }
-  if (!out.length) out = shuffle(ITEMS.filter(it => (it.t === "mc" || it.t === "type") && it.src === "u1")).slice(0, 8).map(sampleSpeak);
-  return out;
-}
-function prStart() {
-  PR.list = practiceTasks(); PR.i = 0; PR.n = {ok: 0, half: 0, bad: 0};
-  prRender();
-}
-function prRender() {
-  const card = $("spCard");
-  if (!speakAvail()) {
-    card.innerHTML = `<div class="sp-end"><div class="big" aria-hidden="true">🎤</div><h2>Hier kann ich leider nicht zuhören.</h2>
-      <p class="muted">Dieses Gerät oder dieser Browser hat keine Spracherkennung. Auf dem iPad klappt es in Safari und in der installierten App.</p></div>`;
-    return;
-  }
-  if (PR.i >= PR.list.length) {
-    const {ok, half} = PR.n, tot = PR.list.length;
-    card.innerHTML = `<div class="sp-end"><div class="big" aria-hidden="true">${ok >= tot * 0.75 ? "🏆" : ok + half >= tot / 2 ? "🌟" : "💪"}</div>
-      <h2>Geschafft!</h2><p class="sp-res ok" style="justify-content:center"><span>✅ ${ok}</span>&nbsp;<span style="color:var(--half)">🟡 ${half}</span></p>
-      <p class="muted">Das war nur zum Üben. Dein Karteikasten bleibt, wie er ist.</p>
-      <div class="row" style="justify-content:center"><button class="btn btn-ghost" id="prBack">Zurück</button><button class="btn btn-primary" id="prAgain">Noch mal 8 Karten</button></div></div>`;
-    $("prAgain").onclick = prStart; $("prBack").onclick = closeSprech;
-    if (Fun.on()) Fun.fanfare();
-    return;
-  }
-  const it = PR.list[PR.i], L = it.lang || "en";
-  card.innerHTML = `<div class="sp-top"><span class="pill u1">Karte ${PR.i + 1} von ${PR.list.length}</span><span class="pill">${esc(sprache(L).name)}</span></div>
-    <p class="ask">${esc(it.ask)}</p>
-    <div class="prompt">${esc(it.de)}</div>
-    ${it.hint ? `<p class="sp-hint muted" style="text-align:center">Im Satz: <span lang="${L}">${esc(it.hint)}</span></p>` : ""}
-    <div id="prHost"></div>
-    <div id="prFb"></div>`;
-  PR.t0 = Date.now();
-  spMount($("prHost"), {lang: L, accepted: [it.target].concat(it.alts || []), onDone: r => prDone(it, r)});
-}
-function prDone(it, r) {
-  const L = it.lang || "en";
-  PR.n[r.res] = (PR.n[r.res] || 0) + 1;
-  logEvent(it, r.res, {typ: "speak-frei", phase: "frei", erkannt: r.heard || "", versuche: r.versuche, why: r.why, input: r.heard || "", dauer_ms: Date.now() - PR.t0});
-  const sol = r.target || it.target;
-  $("prFb").innerHTML = `<div class="sp-sol"><span lang="${L}">${esc(sol)}</span>${sayBtn(sol, "Vorlesen", L)}</div>
-    ${r.why === "nothing" ? `<p class="muted" style="text-align:center">Ich habe nichts gehört. Hör zu und sprich nach.</p>` : r.res !== "ok" && r.heard ? `<p class="muted" style="text-align:center">Verstanden: <span lang="${L}">${esc(r.heard)}</span></p>` : ""}
-    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn btn-primary" id="prNext">${PR.i + 1 < PR.list.length ? "Weiter" : "Fertig"}</button></div>`;
-  if (OPT.get("autosay") || r.why === "nothing") speak(sol, L);
-  try { if (Fun.on() && r.res === "ok") Fun.pling(); } catch (e) {}
-  $("prNext").onclick = () => { PR.i++; prRender(); };
-  setTimeout(() => { const b = $("prNext"); if (b) b.focus({preventScroll: true}); }, 60);
-}
-function openSprech() { spAbort(); show("scrSprech"); prStart(); }
-function closeSprech() {
-  spAbort();
-  if (/^#sprech/.test(location.hash)) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; } }
-  show(CUR ? "scrHome" : "scrProfile");
-}
-$("stBack").onclick = closeSprech;
-const isSprechHash = () => location.hash === "#sprechen" || location.hash === "#sprechtest";
-window.addEventListener("hashchange", () => { if (isSprechHash()) openSprech(); });
-
 (async function boot() {
-  loadProfile();
   renderStoreInfo();
-  renderProfiles(); renderPacks();
-  show("scrProfile");
-  if (isSprechHash()) openSprech();
   renderVerlaufTools(); renderOptTools();
+  show("scrProfile");
   try { AVATARS = await AvatarDB.all(); } catch (e) { AVATARS = {}; }
+  try { await ladeProfile(); } catch (e) { PROFILES = []; }
   try { METAS = await PaketDB.list(); } catch (e) { METAS = []; }
   // lokale Testfassung: eingebettete Pakete beim Start übernehmen (Liste EMBEDDED_PAKETE oder Einzelobjekt EMBEDDED_PAKET)
   const embs = Array.isArray(window.EMBEDDED_PAKETE) ? window.EMBEDDED_PAKETE : (window.EMBEDDED_PAKET ? [window.EMBEDDED_PAKET] : []);
@@ -3065,6 +3556,9 @@ window.addEventListener("hashchange", () => { if (isSprechHash()) openSprech(); 
   METAS.sort((a, b) => a.id.localeCompare(b.id, "de", {numeric: true}));
   metasReady = true; placePacks(true);
   renderProfiles(); renderPacks();
+  // alter Link auf die frühere Übungsseite: einfach zur Profilwahl
+  if (/^#sprech/.test(location.hash)) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+  window.__lernBereit = true;
 })();
 </script>
 </body>
