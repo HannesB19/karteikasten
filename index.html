@@ -317,6 +317,8 @@ details.pack > * + * { margin-top: 14px; }
 /* v12: Lernstand sichern/holen, Dialog */
 .sync { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
 .sync h2 { font-size: 1.15rem; }
+.wdh { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.wdh h2 { font-size: 1.15rem; }
 .sich-btn.is-hot { border-color: var(--accent); color: var(--accent-text); border-width: 2px; }
 .dlg-back { position: fixed; inset: 0; background: rgba(10, 14, 22, .72); z-index: 70; display: grid; place-items: center; padding: 16px; }
 .dlg { max-width: 520px; width: 100%; max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 12px; }
@@ -438,7 +440,7 @@ details.pack > * + * { margin-top: 14px; }
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
     <span class="foot-tools" id="verlaufTools"></span>
-    <span id="appVersion">Lern! v12</span>
+    <span id="appVersion">Lern! v12.1</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -646,106 +648,106 @@ function checkSpoken(alts, accepted, lang) {
    ok = ganze Antwort (✅), halb = Kurzantwort (🟡, „sag es im ganzen Satz“). Kurzformen gelten wie Langformen (norm/CONTRACT). */
 const FRAGEN = [
   // ---- Englisch: Green Line 1 ----
-  {id: "qa-en-name", ab: "gl1:pua", frage: "What's your name?", ok: ["my name is {name}", "i am {name}", "{name} is my name", "it is {name}", "(you can) call me {name}"], halb: ["{name}"], muster: "My name is Sam."},
+  {id: "qa-en-name", ab: "gl1:pua", frage: "What's your name?", ok: ["my name is {name}", "i am {name}", "{name} is my name", "it is {name}", "(you can) call me {name}", "my name's {name}", "i am called {name}", "[they|people|everybody|everyone|my friends] call me {name}"], halb: ["{name}"], muster: "My name is Sam."},
   {id: "qa-en-age", ab: "gl1:pua", frage: "How old are you?", ok: ["i am {zahl}", "{zahl} years old", "i will be {zahl}"], halb: ["{zahl}", "{zahl} years"], muster: "I'm eleven years old."},
-  {id: "qa-en-from", ab: "gl1:pua", frage: "Where are you from?", ok: ["i am from {ort}", "i come from {ort}", "i live in {ort}", "i was born in {ort}"], halb: ["from {ort}", "{kurz}"], muster: "I'm from Germany."},
-  {id: "qa-en-colour", ab: "gl1:pua", frage: "What's your favourite colour?", ok: ["my favourite colour is {x}", "{farbe} is my favourite (colour)", "i like {x}", "i love {x}", "it is {x}"], halb: ["{farbe}", "{farbe} and {farbe}"], muster: "My favourite colour is green."},
-  {id: "qa-en-howareyou", ab: "gl1:pua", frage: "How are you today?", ok: ["(i am) (very|really|so) [fine|good|great|ok|okay|well|happy|tired|sad|not bad|not so good|not very good|super|excellent|bored|hungry]", "i am {x}", "i feel {x}", "so so"], halb: [], muster: "I'm fine, thanks. And you?"},
-  {id: "qa-en-hobby", ab: "gl1:pub", frage: "What are your hobbies?", ok: ["my hobby is {x}", "my hobbies are {x}", "i like {x}", "i love {x}", "i am into {x}", "i (often) play {x}", "i enjoy {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "My hobbies are football and reading."},
-  {id: "qa-en-room", ab: "gl1:u1:u1-st2", frage: "What is there in your room?", ok: ["there is {x}", "there are {x}", "in my room there (is|are) {x}", "i have (got) {x}", "my room has (got) {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "There's a bed, a desk and a big window."},
-  {id: "qa-en-family", ab: "gl1:u1:u1-st2", frage: "How many people are there in your family?", ok: ["there are {zahl}", "we are {zahl}", "{zahl} people", "my family has {zahl}"], halb: ["{zahl}"], muster: "There are four people in my family."},
-  {id: "qa-en-bestfriend", ab: "gl1:u1", frage: "Who is your best friend?", ok: ["my best friend is {name}", "{name} is my best friend", "it is {name}", "my best friend's name is {name}", "my best friend is called {name}"], halb: ["{name}"], muster: "My best friend is Lena."},
-  {id: "qa-en-pet", ab: "gl1:u2", frage: "Have you got a pet?", ok: ["yes i have", "no i have not", "yes i have (got) {x}", "i have (got) {x}", "no i have not (got) {x}", "no i do not have {x}", "yes i do", "no i do not"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I have. I've got a cat."},
-  {id: "qa-en-siblings", ab: "gl1:u2", frage: "Have you got any brothers or sisters?", ok: ["yes i have", "no i have not", "i have (got) {x}", "yes i have (got) {x}", "no i have not (got) {x}", "i am an only child", "yes i do", "no i do not", "no i am an only child"], halb: ["yes", "no", "yeah", "nope", "{zahl} brothers", "{zahl} sisters", "a [brother|sister]", "{zahl} [brother|sister]"], janein: true, muster: "Yes, I have. I've got one sister."},
-  {id: "qa-en-subject", ab: "gl1:u2", frage: "What's your favourite subject at school?", ok: ["my favourite subject is {x}", "{kurz} is my favourite (subject)", "i like {x}", "i love {x}", "it is {x}"], halb: ["{kurz}"], muster: "My favourite subject is art."},
+  {id: "qa-en-from", ab: "gl1:pua", frage: "Where are you from?", ok: ["i am from {ort}", "i come from {ort}", "i live in {ort}", "i was born in {ort}", "i am [german|austrian|swiss|bavarian|french|italian|spanish|turkish|polish|greek|croatian|ukrainian|russian|romanian|syrian|dutch|english|british|american]", "i am from {ort} (in|near) {ort}"], halb: ["from {ort}", "{kurz}", "[germany|austria|switzerland|bavaria|munich|nuremberg|berlin]"], muster: "I'm from Germany."},
+  {id: "qa-en-colour", ab: "gl1:pua", frage: "What's your favourite colour?", ok: ["my favourite colour is {x}", "{farbe} is my favourite (colour)", "i like {x}", "i love {x}", "it is {x}", "{farbe} and {farbe}", "i like {farbe} (best|most)"], halb: ["{farbe}", "{farbe} and {farbe}"], muster: "My favourite colour is green."},
+  {id: "qa-en-howareyou", ab: "gl1:pua", frage: "How are you today?", ok: ["(i am) (very|really|so) [fine|good|great|ok|okay|well|happy|tired|sad|not bad|not so good|not very good|super|excellent|bored|hungry]", "i am {x}", "i feel {x}", "so so", "(i am) (pretty|quite|rather|very|really) [fine|good|great|ok|okay|well|happy|tired|sad|bored|hungry]", "i am doing [fine|good|great|ok|okay|well] {x}", "i am doing [fine|good|great|ok|okay|well]", "[great|awesome|fantastic|amazing|good] thanks", "not too bad", "could be better"], halb: [], muster: "I'm fine, thanks. And you?"},
+  {id: "qa-en-hobby", ab: "gl1:pub", frage: "What are your hobbies?", ok: ["my hobby is {x}", "my hobbies are {x}", "i like {x}", "i love {x}", "i am into {x}", "i (often) play {x}", "i enjoy {x}", "[football|reading|swimming|dancing|drawing|gaming|riding] is my hobby", "in my free time i {x}"], halb: ["{kurz}", "{kurz} and {kurz}", "{inf}"], muster: "My hobbies are football and reading."},
+  {id: "qa-en-room", ab: "gl1:u1:u1-st2", frage: "What is there in your room?", ok: ["there is {x}", "there are {x}", "in my room there (is|are) {x}", "i have (got) {x}", "my room has (got) {x}", "in my room i have (got) {x}", "there is {x} in my room"], halb: ["{kurz}", "{kurz} and {kurz}", "{kurz} and (a|an|my|the|two|some) {kurz}"], muster: "There's a bed, a desk and a big window."},
+  {id: "qa-en-family", ab: "gl1:u1:u1-st2", frage: "How many people are there in your family?", ok: ["there are {zahl}", "we are {zahl}", "{zahl} people", "my family has {zahl}", "there are {zahl} of us", "we are a family of {zahl}", "my family has {zahl} people", "{zahl} people (in my family)"], halb: ["{zahl}", "{zahl} people"], muster: "There are four people in my family."},
+  {id: "qa-en-bestfriend", ab: "gl1:u1", frage: "Who is your best friend?", ok: ["my best friend is {name}", "{name} is my best friend", "it is {name}", "my best friend's name is {name}", "my best friend is called {name}", "[he|she] is called {name}", "[his|her] name is {name}", "{name} and {name} are my best friends"], halb: ["{name}"], muster: "My best friend is Lena."},
+  {id: "qa-en-pet", ab: "gl1:u2", frage: "Have you got a pet?", ok: ["yes i have", "no i have not", "yes i have (got) {x}", "i have (got) {x}", "no i have not (got) {x}", "no i do not have {x}", "yes i do", "no i do not", "yes i have (got) (a|an|two|three) {x}", "i have (got) no pets", "i do not have a pet", "no i do not have a pet", "yes we have (got) {x}", "we have (got) {x}"], halb: ["yes", "no", "yeah", "nope", "yes [a|an|one|two|three] {kurz}"], janein: true, muster: "Yes, I have. I've got a cat."},
+  {id: "qa-en-siblings", ab: "gl1:u2", frage: "Have you got any brothers or sisters?", ok: ["yes i have", "no i have not", "i have (got) {x}", "yes i have (got) {x}", "no i have not (got) {x}", "i am an only child", "yes i do", "no i do not", "no i am an only child", "i have (got) [one|two|three|four|a] [brother|brothers|sister|sisters] {x}", "i do not have any brothers or sisters", "no i do not have any (brothers or sisters)", "i have (got) no brothers or sisters"], halb: ["yes", "no", "yeah", "nope", "{zahl} brothers", "{zahl} sisters", "a [brother|sister]", "{zahl} [brother|sister]", "yes {zahl} [brother|brothers|sister|sisters]", "yes a [brother|sister]"], janein: true, muster: "Yes, I have. I've got one sister."},
+  {id: "qa-en-subject", ab: "gl1:u2", frage: "What's your favourite subject at school?", ok: ["my favourite subject is {x}", "{kurz} is my favourite (subject)", "i like {x}", "i love {x}", "it is {x}", "i like {x} best", "my favourite subjects are {x}", "{kurz} and {kurz} are my favourite subjects"], halb: ["{kurz}", "(it is) {kurz} and {kurz}"], muster: "My favourite subject is art."},
   {id: "qa-en-swim", ab: "gl1:u2:u2-st2", frage: "Can you swim?", ok: ["yes i can", "no i cannot", "yes i can swim {x}", "i can swim (very well|well|a bit|a little)", "no i cannot swim", "not very well", "yes of course"], halb: ["yes", "no", "yeah", "nope", "a bit", "a little"], janein: true, muster: "Yes, I can. I can swim very well."},
-  {id: "qa-en-cando", ab: "gl1:u2:u2-st2", frage: "What can you do really well?", ok: ["i can {x}", "i am good at {x}", "i am very good at {x}", "i am great at {x}"], halb: ["{kurz}"], muster: "I can play the guitar really well."},
-  {id: "qa-en-time", ab: "gl1:u3", frage: "What time is it now?", ok: ["it is {zeit}", "now it is {zeit}", "{zeit}"], halb: [], muster: "It's half past four."},
-  {id: "qa-en-getup", ab: "gl1:u3", frage: "When do you get up in the morning?", ok: ["i (usually|always|normally|often|sometimes) get up at {zeit}", "i get up at {zeit}", "at {zeit}", "i wake up at {zeit}"], halb: ["{zeit}"], muster: "I usually get up at seven o'clock."},
-  {id: "qa-en-afterschool", ab: "gl1:u3", frage: "What do you do after school?", ok: ["after school i {x}", "i (usually|always|often|sometimes|normally) {x}", "first i {x}", "i {x}"], halb: ["{kurz}"], muster: "After school I do my homework and then I meet my friends."},
-  {id: "qa-en-weekend", ab: "gl1:u3", frage: "What do you usually do at the weekend?", ok: ["at the weekend i {x}", "on saturdays i {x}", "on sundays i {x}", "i (usually|always|often|sometimes|normally) {x}", "we {x}", "i {x}"], halb: ["{kurz}"], muster: "At the weekend I often play football with my friends."},
-  {id: "qa-en-breakfast", ab: "gl1:u3", frage: "What do you have for breakfast?", ok: ["i (usually|always|often|normally) [have|eat|drink] {x}", "for breakfast i [have|eat|drink] {x}", "i [have|eat|drink] {x}", "i do not [have|eat] {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "I usually have cereal and orange juice."},
-  {id: "qa-en-school", ab: "gl1:u3", frage: "How do you get to school?", ok: ["i (usually|always|often) [go|come|get] to school by {x}", "i [go|come|get] (there|to school) by {x}", "i walk (to school)", "i go (to school) on foot", "i take the {x}", "my [mum|dad|mother|father|parents] [take|takes|drive|drives] me {x}", "i [ride|cycle] {x}"], halb: ["by {x}", "on foot", "{kurz}"], muster: "I go to school by bus."},
+  {id: "qa-en-cando", ab: "gl1:u2:u2-st2", frage: "What can you do really well?", ok: ["i can {x}", "i am good at {x}", "i am very good at {x}", "i am great at {x}", "i am really good at {x}", "i can really well {x}", "i [play|draw|sing|dance|swim|ride|cook|run] really well {x}", "i [play|draw|sing|dance|swim|ride|cook|run] {x} really well"], halb: ["{kurz}", "{inf}"], muster: "I can play the guitar really well."},
+  {id: "qa-en-time", ab: "gl1:u3", frage: "What time is it now?", ok: ["it is {zeit}", "now it is {zeit}", "{zeit}", "it is about {zeit}", "it is nearly {zeit}"], halb: [], muster: "It's half past four."},
+  {id: "qa-en-getup", ab: "gl1:u3", frage: "When do you get up in the morning?", ok: ["i (usually|always|normally|often|sometimes) get up at {zeit}", "i get up at {zeit}", "at {zeit}", "i wake up at {zeit}", "[usually|normally|always|mostly] (at|around|about) {zeit}", "i (usually|always|normally|often|sometimes) get up (at|around|about) {zeit}", "i get up (at|around|about) {zeit}", "(i (usually|always|normally)) wake up (at|around|about) {zeit}", "my alarm (clock) rings at {zeit}"], halb: ["{zeit}", "(at|around|about) {zeit}"], muster: "I usually get up at seven o'clock."},
+  {id: "qa-en-afterschool", ab: "gl1:u3", frage: "What do you do after school?", ok: ["after school i {x}", "i (usually|always|often|sometimes|normally) {x}", "first i {x}", "i {x}", "when i come home i {x}", "after school i usually {x}"], halb: ["{kurz}", "{inf}"], muster: "After school I do my homework and then I meet my friends."},
+  {id: "qa-en-weekend", ab: "gl1:u3", frage: "What do you usually do at the weekend?", ok: ["at the weekend i {x}", "on saturdays i {x}", "on sundays i {x}", "i (usually|always|often|sometimes|normally) {x}", "we {x}", "i {x}", "on the weekend i {x}", "[on|at] weekends i {x}", "at the weekend we {x}"], halb: ["{kurz}", "{inf}"], muster: "At the weekend I often play football with my friends."},
+  {id: "qa-en-breakfast", ab: "gl1:u3", frage: "What do you have for breakfast?", ok: ["i (usually|always|often|normally) [have|eat|drink] {x}", "for breakfast i [have|eat|drink] {x}", "i [have|eat|drink] {x}", "i do not [have|eat] {x}", "i [have|eat|drink] {x} for breakfast", "i do not eat breakfast", "nothing", "i do not have breakfast"], halb: ["{kurz}", "{kurz} and {kurz}", "(a|an|some|two) {kurz} and (a|an|some) {kurz}"], muster: "I usually have cereal and orange juice."},
+  {id: "qa-en-school", ab: "gl1:u3", frage: "How do you get to school?", ok: ["i (usually|always|often) [go|come|get] to school by {x}", "i [go|come|get] (there|to school) by {x}", "i walk (to school)", "i go (to school) on foot", "i take the {x}", "my [mum|dad|mother|father|parents] [take|takes|drive|drives] me {x}", "i [ride|cycle] {x}", "my [mum|mom|dad|mother|father|parents|grandma|grandpa] [takes|take|drives|drive|brings|bring] me", "i [go|come|get] (to school) [by|with the] {x}", "i [walk|run] (to school) {x}", "i go (to school) on foot {x}", "i take the {x} (to school)", "i usually take the {x}"], halb: ["by {x}", "on foot", "{kurz}"], muster: "I go to school by bus."},
   {id: "qa-en-day", ab: "gl1:u3", frage: "What's your favourite day of the week?", ok: ["my favourite day is {tag}", "{tag} is my favourite (day)", "i like {tag}", "i love {tag}", "it is {tag}"], halb: ["{tag}"], muster: "My favourite day is Saturday because I can sleep long."},
-  {id: "qa-en-friendlike", ab: "gl1:u4:u4-st2", frage: "Does your best friend like sport?", ok: ["yes [he|she] does", "no [he|she] does not", "[he|she] likes {x}", "[he|she] loves {x}", "[he|she] does not like {x}", "yes [he|she] likes {x}", "no [he|she] does not like {x}", "yes [he|she] loves {x}"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, she does. She loves tennis."},
-  {id: "qa-en-likefootball", ab: "gl1:u4", frage: "Do you like football?", ok: ["yes i do", "no i do not", "yes i like (it|football) {x}", "i like (it|football)", "i love (it|football)", "yes i love (it|football)", "no i do not like (it|football)", "i do not like (it|football)", "not really", "it is ok", "yes very much", "i hate (it|football)"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I do. I play it every week."},
-  {id: "qa-en-food", ab: "gl1:u5", frage: "What's your favourite food?", ok: ["my favourite food is {x}", "{kurz} is my favourite (food)", "i like {x}", "i love {x}", "it is {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "My favourite food is pizza."},
-  {id: "qa-en-shop", ab: "gl1:u5", frage: "Hello, can I help you?", ok: ["yes please", "i would like {x}", "can i have {x}", "i am looking for {x}", "no thanks", "no thank you", "i am just looking", "i need {x}", "how much is {x}", "how much are {x}", "yes i need {x}", "yes i would like {x}"], halb: ["yes", "no", "{kurz} please"], muster: "Yes, please. Can I have two apples, please?"},
-  {id: "qa-en-now", ab: "gl1:u5:u5-st1", frage: "What are you doing at the moment?", ok: ["i am {x}", "at the moment i am {x}", "right now i am {x}", "i am just {x}"], halb: ["{kurz}"], muster: "I'm learning English with this app."},
-  {id: "qa-en-birthday", ab: "gl1:u6", frage: "When is your birthday?", ok: ["my birthday is {x}", "it is (on|in) {x}", "it is the {x}"], halb: ["(on|in) {x}", "{kurz}"], muster: "My birthday is on the third of May."},
-  {id: "qa-en-yesterday", ab: "gl1:u6:u6-st2", frage: "What did you do yesterday?", ok: ["yesterday i {x}", "i {x}", "we {x}", "first i {x}", "in the afternoon i {x}"], halb: ["{kurz}"], muster: "Yesterday I played football and watched a film."},
-  {id: "qa-en-lastweekend", ab: "gl1:u6:u6-st2", frage: "What did you do last weekend?", ok: ["last weekend i {x}", "on saturday i {x}", "on sunday i {x}", "i {x}", "we {x}"], halb: ["{kurz}"], muster: "Last weekend I visited my grandma."},
-  {id: "qa-en-goodweekend", ab: "gl1:u6:u6-st3", frage: "Did you have a good weekend?", ok: ["yes i did", "no i did not", "yes it was {x}", "it was {x}", "no it was {x}", "yes thank you", "not really"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I did. It was great."},
-  {id: "qa-en-party", ab: "gl1:u6:u6-st1", frage: "What do you need for a good party?", ok: ["you need {x}", "we need {x}", "i need {x}", "for a good party you need {x}", "a good party needs {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "You need music, snacks and good friends."},
+  {id: "qa-en-friendlike", ab: "gl1:u4:u4-st2", frage: "Does your best friend like sport?", ok: ["yes [he|she] does", "no [he|she] does not", "[he|she] likes {x}", "[he|she] loves {x}", "[he|she] does not like {x}", "yes [he|she] likes {x}", "no [he|she] does not like {x}", "yes [he|she] loves {x}", "[he|she] [plays|does] {x}", "yes [he|she] [plays|does] {x}", "no [he|she] does not {x}", "[he|she] does not like (sport) {x}", "[he|she] hates {x}"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, she does. She loves tennis."},
+  {id: "qa-en-likefootball", ab: "gl1:u4", frage: "Do you like football?", ok: ["yes i do", "no i do not", "yes i like (it|football) {x}", "i like (it|football)", "i love (it|football)", "yes i love (it|football)", "no i do not like (it|football)", "i do not like (it|football)", "not really", "it is ok", "yes very much", "i hate (it|football)", "yes i [play|watch] (it|football) {x}", "i [play|watch] (it|football) {x}", "no i prefer {x}", "i prefer {x}", "it is [ok|okay|boring|great|fun|cool]", "i do not like (it|football) {x}"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I do. I play it every week."},
+  {id: "qa-en-food", ab: "gl1:u5", frage: "What's your favourite food?", ok: ["my favourite food is {x}", "{kurz} is my favourite (food)", "i like {x}", "i love {x}", "it is {x}", "i like {x} best", "my favourite food is {x} and {x}"], halb: ["{kurz}", "{kurz} and {kurz}", "(it is) {kurz} and {kurz}"], muster: "My favourite food is pizza."},
+  {id: "qa-en-shop", ab: "gl1:u5", frage: "Hello, can I help you?", ok: ["yes please", "i would like {x}", "can i have {x}", "i am looking for {x}", "no thanks", "no thank you", "i am just looking", "i need {x}", "how much is {x}", "how much are {x}", "yes i need {x}", "yes i would like {x}", "yes i am looking for {x}", "yes can i have {x}", "do you have {x}", "have you got {x}", "i want {x}", "i would like to buy {x}", "yes please i would like {x}"], halb: ["yes", "no", "{kurz} please"], muster: "Yes, please. Can I have two apples, please?"},
+  {id: "qa-en-now", ab: "gl1:u5:u5-st1", frage: "What are you doing at the moment?", ok: ["i am {x}", "at the moment i am {x}", "right now i am {x}", "i am just {x}", "i am [playing|learning|doing|reading|talking|sitting|practising|practicing|watching|listening|answering|speaking] {x}", "i am [playing|learning|doing|reading|talking|sitting|practising|practicing|watching|listening|answering|speaking]"], halb: ["{kurz}", "[playing|learning|doing|reading|talking|sitting|practising|practicing|watching|listening|answering|speaking] {x}"], muster: "I'm learning English with this app."},
+  {id: "qa-en-birthday", ab: "gl1:u6", frage: "When is your birthday?", ok: ["my birthday is {x}", "it is (on|in) {x}", "it is the {x}", "my birthday is (on|in) {x}", "it is (on) the {x}", "my birthday is the {x}", "i was born (on|in) {x}"], halb: ["(on|in) {x}", "{kurz}"], muster: "My birthday is on the third of May."},
+  {id: "qa-en-yesterday", ab: "gl1:u6:u6-st2", frage: "What did you do yesterday?", ok: ["yesterday i {x}", "i {x}", "we {x}", "first i {x}", "in the afternoon i {x}", "i was {x}", "we were {x}", "i did not do (much|anything)", "nothing special"], halb: ["{kurz}", "nothing", "{inf}"], muster: "Yesterday I played football and watched a film."},
+  {id: "qa-en-lastweekend", ab: "gl1:u6:u6-st2", frage: "What did you do last weekend?", ok: ["last weekend i {x}", "on saturday i {x}", "on sunday i {x}", "i {x}", "we {x}", "i was {x}", "we were {x}", "i stayed {x}", "at the weekend i {x}", "on saturday we {x}", "i did not do (much|anything)", "nothing special"], halb: ["{kurz}", "nothing"], muster: "Last weekend I visited my grandma."},
+  {id: "qa-en-goodweekend", ab: "gl1:u6:u6-st3", frage: "Did you have a good weekend?", ok: ["yes i did", "no i did not", "yes it was {x}", "it was {x}", "no it was {x}", "yes thank you", "not really", "yes i had a [good|great|nice|lovely] weekend", "it was [great|good|ok|okay|nice|boring|fun|cool|awesome]", "yes very good", "not so good"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, I did. It was great."},
+  {id: "qa-en-party", ab: "gl1:u6:u6-st1", frage: "What do you need for a good party?", ok: ["you need {x}", "we need {x}", "i need {x}", "for a good party you need {x}", "a good party needs {x}", "[you|we] need {x}", "you need {x} for a good party"], halb: ["{kurz}", "{kurz} and {kurz}", "(some|good) {kurz} and (some|good) {kurz}"], muster: "You need music, snacks and good friends."},
   // ---- Englisch: Green Line 2 ----
-  {id: "qa-en-weather", ab: "gl2:u1", frage: "What's the weather like today?", ok: ["it is {x}", "the weather is {x}", "today it is {x}", "it is raining", "it is snowing", "the sun is shining"], halb: ["{kurz}"], muster: "It's sunny and warm today."},
-  {id: "qa-en-holiday", ab: "gl2:u1", frage: "Where did you go on holiday last year?", ok: ["i went to {x}", "we went to {x}", "last year i went to {x}", "last year we went to {x}", "we stayed (at home|in {x})", "i stayed {x}", "we [visited|travelled to] {x}"], halb: ["{kurz}"], muster: "We went to Italy. It was great."},
-  {id: "qa-en-evening", ab: "gl2:u1", frage: "What were you doing yesterday at eight in the evening?", ok: ["i was {x}", "yesterday at eight i was {x}", "at eight (o'clock) i was {x}", "we were {x}"], halb: ["{kurz}"], muster: "I was watching a film with my family."},
-  {id: "qa-en-been", ab: "gl2:u2", frage: "Have you ever been to London?", ok: ["yes i have", "no i have not", "yes i have been (there|to london) {x}", "no i have never been (there|to london)", "i have never been (there|to london)", "not yet", "no never"], halb: ["yes", "no", "yeah", "nope", "never"], janein: true, muster: "No, I haven't. But I'd like to go there one day."},
-  {id: "qa-en-livedhere", ab: "gl2:u2", frage: "How long have you lived in your town?", ok: ["i have lived (here|there|in {x}) [for|since] {x}", "[for|since] {x}", "all my life", "i have always lived (here|there|in {x})", "my whole life"], halb: ["{zahl} years", "{kurz}"], muster: "I've lived here for eight years."},
-  {id: "qa-en-goingto", ab: "gl2:u3", frage: "What are you going to do next weekend?", ok: ["i am going to {x}", "next weekend i am going to {x}", "we are going to {x}", "i will {x}", "i want to {x}", "i would like to {x}"], halb: ["{kurz}"], muster: "I'm going to visit my cousins."},
-  {id: "qa-en-summer", ab: "gl2:u3", frage: "What will you do in the summer holidays?", ok: ["i will {x}", "we will {x}", "in the summer holidays i will {x}", "i am going to {x}", "we are going to {x}", "i want to {x}", "i would like to {x}", "maybe i will {x}"], halb: ["{kurz}"], muster: "I'll go swimming every day."},
-  {id: "qa-en-sport", ab: "gl2:u4", frage: "Which sport do you think is the most exciting?", ok: ["i think {x}", "{kurz} is the most exciting (sport)", "the most exciting sport is {x}", "i like {x}", "it is {x}"], halb: ["{kurz}"], muster: "I think basketball is the most exciting sport."},
-  {id: "qa-en-film", ab: "gl2:u4", frage: "What's the best film you have ever seen?", ok: ["the best film (i have ever seen) is {x}", "my favourite film is {x}", "i think {x}", "it is {x}", "i liked {x}"], halb: ["{kurz}"], muster: "The best film I've ever seen is about a dragon."},
-  {id: "qa-en-rain", ab: "gl2:u5", frage: "What will you do if it rains tomorrow?", ok: ["if it rains (tomorrow) i will {x}", "i will {x}", "we will {x}", "i am going to {x}", "then i will {x}"], halb: ["{kurz}"], muster: "If it rains, I'll stay at home and read a book."},
-  {id: "qa-en-travel", ab: "gl2:u5", frage: "Where would you like to travel one day?", ok: ["i would like to [go|travel|fly] to {x}", "i want to [go|travel|fly] to {x}", "one day i would like to {x}", "i would love to [go|travel|fly] to {x}"], halb: ["{kurz}"], muster: "I'd like to travel to Canada."},
-  {id: "qa-en-phone", ab: "gl2:u5", frage: "How do you stay in touch with your friends?", ok: ["i [send|write|call|text|phone|meet|chat] {x}", "we [send|write|call|text|phone|meet|chat] {x}", "by {x}", "with {x}", "i use {x}"], halb: ["{kurz}"], muster: "We send messages and meet after school."},
+  {id: "qa-en-weather", ab: "gl2:u1", frage: "What's the weather like today?", ok: ["it is {x}", "the weather is {x}", "today it is {x}", "it is raining", "it is snowing", "the sun is shining", "it [rains|snows|is raining|is snowing] {x}", "it [rains|snows]", "the sun is shining {x}", "there is {x}"], halb: ["{kurz}"], muster: "It's sunny and warm today."},
+  {id: "qa-en-holiday", ab: "gl2:u1", frage: "Where did you go on holiday last year?", ok: ["i went to {x}", "we went to {x}", "last year i went to {x}", "last year we went to {x}", "we stayed (at home|in {x})", "i stayed {x}", "we [visited|travelled to] {x}", "[we|i] [were|was] in {x}", "[we|i] [flew|drove|travelled|traveled] to {x}", "[we|i] went on holiday to {x}", "[we|i] did not go (anywhere|on holiday)", "we stayed at home"], halb: ["{kurz}"], muster: "We went to Italy. It was great."},
+  {id: "qa-en-evening", ab: "gl2:u1", frage: "What were you doing yesterday at eight in the evening?", ok: ["i was {x}", "yesterday at eight i was {x}", "at eight (o'clock) i was {x}", "we were {x}", "at eight (o'clock) (i was|we were) {x}", "[i was|we were] [watching|eating|having|reading|playing|sleeping|doing|sitting|talking|listening|learning] {x}"], halb: ["{kurz}"], muster: "I was watching a film with my family."},
+  {id: "qa-en-been", ab: "gl2:u2", frage: "Have you ever been to London?", ok: ["yes i have", "no i have not", "yes i have been (there|to london) {x}", "no i have never been (there|to london)", "i have never been (there|to london)", "not yet", "no never", "yes i [went|was] there {x}", "yes i [went|was] (there) to london {x}", "i [went|was] there {x}", "yes i have been there", "yes once", "yes twice", "yes {zahl} times", "no i have not been (there) (yet)", "no not yet"], halb: ["yes", "no", "yeah", "nope", "never"], janein: true, muster: "No, I haven't. But I'd like to go there one day."},
+  {id: "qa-en-livedhere", ab: "gl2:u2", frage: "How long have you lived in your town?", ok: ["i have lived (here|there|in {x}) [for|since] {x}", "[for|since] {x}", "all my life", "i have always lived (here|there|in {x})", "my whole life", "i have lived (here|there|in {x}) all my life", "i have been living (here|there|in {x}) [for|since] {x}", "[for|since] {zahl} years", "since i was born", "since i was {zahl}"], halb: ["{zahl} years", "{kurz}"], muster: "I've lived here for eight years."},
+  {id: "qa-en-goingto", ab: "gl2:u3", frage: "What are you going to do next weekend?", ok: ["i am going to {x}", "next weekend i am going to {x}", "we are going to {x}", "i will {x}", "i want to {x}", "i would like to {x}", "[i am|we are] going to {x}", "next weekend [i|we] will {x}", "i do not know yet", "i am not sure yet", "maybe i will {x}", "maybe i am going to {x}"], halb: ["{kurz}", "{inf}"], muster: "I'm going to visit my cousins."},
+  {id: "qa-en-summer", ab: "gl2:u3", frage: "What will you do in the summer holidays?", ok: ["i will {x}", "we will {x}", "in the summer holidays i will {x}", "i am going to {x}", "we are going to {x}", "i want to {x}", "i would like to {x}", "maybe i will {x}", "[we|i] will [go|travel|fly|visit|stay] {x}", "in the summer holidays we will {x}", "i do not know yet"], halb: ["{kurz}", "{inf}"], muster: "I'll go swimming every day."},
+  {id: "qa-en-sport", ab: "gl2:u4", frage: "Which sport do you think is the most exciting?", ok: ["i think {x}", "{kurz} is the most exciting (sport)", "the most exciting sport is {x}", "i like {x}", "it is {x}", "i think {kurz} is the most exciting (sport)", "{kurz} is very exciting"], halb: ["{kurz}"], muster: "I think basketball is the most exciting sport."},
+  {id: "qa-en-film", ab: "gl2:u4", frage: "What's the best film you have ever seen?", ok: ["the best film (i have ever seen) is {x}", "my favourite film is {x}", "i think {x}", "it is {x}", "i liked {x}", "the best film is {x}", "the best film i have seen is {x}", "i think the best film is {x}", "{x} is the best film (i have ever seen)", "i loved {x}"], halb: ["{kurz}"], muster: "The best film I've ever seen is about a dragon."},
+  {id: "qa-en-rain", ab: "gl2:u5", frage: "What will you do if it rains tomorrow?", ok: ["if it rains (tomorrow) i will {x}", "i will {x}", "we will {x}", "i am going to {x}", "then i will {x}", "if it rains [i|we] will {x}", "[i|we] will [stay|read|watch|play|go|do|visit|listen|sleep|bake|cook] {x}", "[i am|we are] going to {x}", "i will probably {x}", "maybe i will {x}"], halb: ["{kurz}", "{inf}"], muster: "If it rains, I'll stay at home and read a book."},
+  {id: "qa-en-travel", ab: "gl2:u5", frage: "Where would you like to travel one day?", ok: ["i would like to [go|travel|fly] to {x}", "i want to [go|travel|fly] to {x}", "one day i would like to {x}", "i would love to [go|travel|fly] to {x}", "i would (like|love) to [visit|see|go to|travel to|fly to] {x}", "i want to [visit|see|go to|travel to|fly to] {x}", "one day i want to {x}", "i would like to go {x}"], halb: ["{kurz}", "{inf}"], muster: "I'd like to travel to Canada."},
+  {id: "qa-en-phone", ab: "gl2:u5", frage: "How do you stay in touch with your friends?", ok: ["i [send|write|call|text|phone|meet|chat] {x}", "we [send|write|call|text|phone|meet|chat] {x}", "by {x}", "with {x}", "i use {x}", "[i|we] [send|write|call|text|phone|meet|chat|talk|use] {x}", "on the phone", "[we|i] talk on the phone", "[we|i] [video chat|facetime|skype] {x}"], halb: ["{kurz}"], muster: "We send messages and meet after school."},
   // ---- Englisch: Green Line 3 ----
-  {id: "qa-en-person", ab: "gl3:u1", frage: "What kind of person are you?", ok: ["i am {x}", "i think i am {x}", "my friends say (that) i am {x}", "people say (that) i am {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "I think I'm friendly and a bit shy."},
-  {id: "qa-en-enjoy", ab: "gl3:u1", frage: "What do you enjoy doing with your friends?", ok: ["i enjoy {x}", "we enjoy {x}", "i like {x}", "we like {x}", "we often {x}", "we {x}"], halb: ["{kurz}"], muster: "We enjoy playing games and having fun together."},
-  {id: "qa-en-eachother", ab: "gl3:u1", frage: "Do you and your best friend help each other?", ok: ["yes we do", "no we do not", "yes we help each other {x}", "we help each other {x}", "yes (we do) {x}", "sometimes", "yes of course", "yes always"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, we do. We help each other with homework."},
-  {id: "qa-en-learning", ab: "gl3:u2:u2-st1", frage: "How long have you been learning English?", ok: ["i have been learning (english|it) [for|since] {x}", "[for|since] {x}", "i have learned (english|it) [for|since] {x}", "i have been learning (english|it) {x}"], halb: ["{zahl} years", "{kurz}"], muster: "I've been learning English for three years."},
-  {id: "qa-en-million", ab: "gl3:u2:u2-st2", frage: "What would you do if you had a million euros?", ok: ["i would {x}", "if i had a million euros i would {x}", "first i would {x}", "i would buy {x}"], halb: ["{kurz}"], muster: "I would buy a house by the sea and give some money to my family."},
-  {id: "qa-en-famous", ab: "gl3:u2:u2-st2", frage: "If you could meet a famous person, who would it be?", ok: ["i would meet {x}", "it would be {x}", "i would like to meet {x}", "i would choose {x}"], halb: ["{kurz}"], muster: "I would meet a famous football player."},
-  {id: "qa-en-change", ab: "gl3:u2:u2-st2", frage: "What would you change at your school?", ok: ["i would {x}", "if i could i would {x}", "i would like to {x}", "i would change {x}"], halb: ["{kurz}"], muster: "I would start school later in the morning."},
-  {id: "qa-en-lastholiday", ab: "gl3:u3", frage: "What was your last holiday like?", ok: ["it was {x}", "my last holiday was {x}", "we {x}", "i {x}"], halb: ["{kurz}"], muster: "It was great. We went to the mountains."},
-  {id: "qa-en-wish", ab: "gl3:u4", frage: "What do you wish you could do?", ok: ["i wish i could {x}", "i wish {x}", "if only i could {x}"], halb: ["{kurz}"], muster: "I wish I could fly."},
-  {id: "qa-en-teacher", ab: "gl3:u4", frage: "What did your teacher tell you yesterday?", ok: ["[he|she|my teacher] (told us|said) (that) {x}", "[he|she|my teacher] told [us|me] to {x}", "[he|she|my teacher] asked [us|me] {x}"], halb: [], muster: "She told us that we would write a test next week."},
+  {id: "qa-en-person", ab: "gl3:u1", frage: "What kind of person are you?", ok: ["i am {x}", "i think i am {x}", "my friends say (that) i am {x}", "people say (that) i am {x}", "i would say i am {x}", "i am a {x} person", "i am quite {x}"], halb: ["{kurz}", "{kurz} and {kurz}"], muster: "I think I'm friendly and a bit shy."},
+  {id: "qa-en-enjoy", ab: "gl3:u1", frage: "What do you enjoy doing with your friends?", ok: ["i enjoy {x}", "we enjoy {x}", "i like {x}", "we like {x}", "we often {x}", "we {x}", "[i|we] enjoy {x}", "[i|we] love {x}", "[i|we] like to {x}", "we [play|go|watch|meet|talk|chat|hang] {x}"], halb: ["{kurz}", "{inf}"], muster: "We enjoy playing games and having fun together."},
+  {id: "qa-en-eachother", ab: "gl3:u1", frage: "Do you and your best friend help each other?", ok: ["yes we do", "no we do not", "yes we help each other {x}", "we help each other {x}", "yes (we do) {x}", "sometimes", "yes of course", "yes always", "yes we always help each other", "yes (we do) we help each other {x}", "no not really", "we help each other", "of course we do"], halb: ["yes", "no", "yeah", "nope"], janein: true, muster: "Yes, we do. We help each other with homework."},
+  {id: "qa-en-learning", ab: "gl3:u2:u2-st1", frage: "How long have you been learning English?", ok: ["i have been learning (english|it) [for|since] {x}", "[for|since] {x}", "i have learned (english|it) [for|since] {x}", "i have been learning (english|it) {x}", "[for|since] {x} (now)", "i have learnt (english|it) [for|since] {x}", "i have been learning (english|it) for {zahl} years"], halb: ["{zahl} years", "{kurz}", "{zahl} years (now)"], muster: "I've been learning English for three years."},
+  {id: "qa-en-million", ab: "gl3:u2:u2-st2", frage: "What would you do if you had a million euros?", ok: ["i would {x}", "if i had a million euros i would {x}", "first i would {x}", "i would buy {x}", "[i would|i'd] [buy|travel|give|help|go|visit|keep|save|spend|get|build|donate|share] {x}", "i would [buy|travel|give|help|go|visit|keep|save|spend|get|build|donate|share] {x}"], halb: ["{kurz}", "{inf}"], muster: "I would buy a house by the sea and give some money to my family."},
+  {id: "qa-en-famous", ab: "gl3:u2:u2-st2", frage: "If you could meet a famous person, who would it be?", ok: ["i would meet {x}", "it would be {x}", "i would like to meet {x}", "i would choose {x}", "i would (like to) (meet|choose) {x}", "[my|the] {x} i think", "probably {x}"], halb: ["{kurz}"], muster: "I would meet a famous football player."},
+  {id: "qa-en-change", ab: "gl3:u2:u2-st2", frage: "What would you change at your school?", ok: ["i would {x}", "if i could i would {x}", "i would like to {x}", "i would change {x}", "i would [change|start|make|have|get|build|give|let|stop|buy|end|paint] {x}", "i would like (to have) {x}", "i would not change anything", "nothing"], halb: ["{kurz}", "{inf}"], muster: "I would start school later in the morning."},
+  {id: "qa-en-lastholiday", ab: "gl3:u3", frage: "What was your last holiday like?", ok: ["it was {x}", "my last holiday was {x}", "we {x}", "i {x}", "it was [great|good|ok|okay|nice|boring|fun|cool|awesome|fantastic|wonderful|amazing|terrible|bad] {x}", "[we|i] [went|were|was|stayed|visited] {x}"], halb: ["{kurz}"], muster: "It was great. We went to the mountains."},
+  {id: "qa-en-wish", ab: "gl3:u4", frage: "What do you wish you could do?", ok: ["i wish i could {x}", "i wish {x}", "if only i could {x}", "i wish i [could|was|were|had] {x}", "i would like to {x}"], halb: ["{kurz}", "{inf}"], muster: "I wish I could fly."},
+  {id: "qa-en-teacher", ab: "gl3:u4", frage: "What did your teacher tell you yesterday?", ok: ["[he|she|my teacher] (told us|said) (that) {x}", "[he|she|my teacher] told [us|me] to {x}", "[he|she|my teacher] asked [us|me] {x}", "[he|she|my teacher|our teacher] [told|asked] [us|me] [to|that|if|whether] {x}", "[he|she|my teacher|our teacher] said (that) {x}", "[he|she|my teacher|our teacher] told us {x}", "[he|she|my teacher|our teacher] wanted us to {x}"], halb: [], muster: "She told us that we would write a test next week."},
   // ---- Französisch: Découvertes 1 ----
-  {id: "qa-fr-nom", ab: "dec1:ad", frage: "Comment tu t'appelles ?", ok: ["je m'appelle {name}", "moi c'est {name}", "c'est {name}", "je suis {name}", "mon nom est {name}"], halb: ["{name}"], muster: "Je m'appelle Lucas."},
-  {id: "qa-fr-cava", ab: "dec1:ad", frage: "Salut ! Ça va ?", ok: ["(oui) ça va (bien|très bien|super|merci)", "(très) bien (merci)", "pas mal", "super", "ça ne va pas", "ça va pas", "bof", "pas très bien", "ça va (et toi)", "je vais bien"], halb: ["oui", "non"], muster: "Ça va bien, merci. Et toi ?"},
-  {id: "qa-fr-habite", ab: "dec1:u1", frage: "Tu habites où ?", ok: ["j'habite [à|en|au|dans] {ort}", "moi j'habite [à|en|au|dans] {ort}", "je vis [à|en|au|dans] {ort}"], halb: ["[à|en|au|dans] {ort}", "{kurz}"], muster: "J'habite à Munich."},
-  {id: "qa-fr-ami", ab: "dec1:u1", frage: "Qui est ton meilleur ami ou ta meilleure amie ?", ok: ["mon meilleur ami [c'est|s'appelle|est] {name}", "ma meilleure amie [c'est|s'appelle|est] {name}", "c'est {name}", "[il|elle] s'appelle {name}", "{name} est mon meilleur ami", "{name} est ma meilleure amie"], halb: ["{name}"], muster: "Ma meilleure amie, c'est Emma."},
-  {id: "qa-fr-copain", ab: "dec1:u2", frage: "Comment s'appelle ton copain ou ta copine ?", ok: ["[il|elle] s'appelle {name}", "mon copain s'appelle {name}", "ma copine s'appelle {name}", "c'est {name}"], halb: ["{name}"], muster: "Il s'appelle Tom."},
-  {id: "qa-fr-aimes", ab: "dec1:u2", frage: "Qu'est-ce que tu aimes ?", ok: ["j'aime {x}", "j'adore {x}", "moi j'aime {x}", "j'aime bien {x}"], halb: ["{kurz}"], muster: "J'aime la musique et le foot."},
-  {id: "qa-fr-age", ab: "dec1:u3", frage: "Tu as quel âge ?", ok: ["j'ai {zahl} ans", "moi j'ai {zahl} ans"], halb: ["{zahl} ans", "{zahl}"], muster: "J'ai douze ans."},
-  {id: "qa-fr-anniv", ab: "dec1:u3", frage: "C'est quand, ton anniversaire ?", ok: ["mon anniversaire c'est le {x}", "mon anniversaire est le {x}", "c'est le {x}", "c'est en {x}", "mon anniversaire est en {x}"], halb: ["le {x}", "en {x}", "{kurz}"], muster: "Mon anniversaire, c'est le cinq mai."},
-  {id: "qa-fr-freres", ab: "dec1:u3", frage: "Tu as des frères et sœurs ?", ok: ["oui j'ai {x}", "j'ai {x}", "non je n'ai pas (de frères et sœurs)", "non j'ai pas (de frères et sœurs)", "je suis [fils|fille] unique", "non je suis [fils|fille] unique"], halb: ["oui", "non", "{zahl} [frère|frères|sœur|sœurs]", "un frère", "une sœur"], janein: true, muster: "Oui, j'ai une sœur."},
-  {id: "qa-fr-animal", ab: "dec1:u3", frage: "Tu as un animal ?", ok: ["oui j'ai {x}", "j'ai {x}", "non je n'ai pas d'animal", "non j'ai pas d'animal", "non je n'ai pas {x}"], halb: ["oui", "non", "un {kurz}", "une {kurz}"], janein: true, muster: "Oui, j'ai un chat."},
-  {id: "qa-fr-musique", ab: "dec1:u3", frage: "Tu aimes la musique ?", ok: ["oui j'aime (bien) (la musique|ça)", "j'adore (la musique|ça)", "oui j'adore (la musique|ça)", "non je n'aime pas (la musique|ça)", "non j'aime pas (la musique|ça)", "oui beaucoup", "oui j'aime {x}", "j'aime {x}"], halb: ["oui", "non"], janein: true, muster: "Oui, j'adore la musique."},
-  {id: "qa-fr-heure", ab: "dec1:u4", frage: "Il est quelle heure ?", ok: ["il est {zeit}", "{zeit}"], halb: [], muster: "Il est huit heures et demie."},
-  {id: "qa-fr-matiere", ab: "dec1:u4", frage: "Quelle est ta matière préférée ?", ok: ["ma matière préférée [c'est|est] {x}", "c'est {x}", "j'aime {x}", "j'adore {x}", "je préfère {x}"], halb: ["{kurz}", "le {kurz}", "la {kurz}", "les {kurz}"], muster: "Ma matière préférée, c'est le sport."},
-  {id: "qa-fr-cours", ab: "dec1:u4", frage: "Les cours commencent à quelle heure ?", ok: ["les cours commencent à {zeit}", "l'école commence à {zeit}", "[ils|elles] commencent à {zeit}", "on commence à {zeit}", "à {zeit}"], halb: ["{zeit}"], muster: "Les cours commencent à huit heures."},
-  {id: "qa-fr-classe", ab: "dec1:u4", frage: "Tu es en quelle classe ?", ok: ["je suis en {x}", "je suis dans la classe {x}"], halb: ["en {x}", "{kurz}"], muster: "Je suis en cinquième."},
-  {id: "qa-fr-samedi", ab: "dec1:u5", frage: "Qu'est-ce que tu fais le samedi ?", ok: ["le samedi je {x}", "le samedi j'{x}", "je {x}", "j'{x}", "on {x}", "d'abord je {x}"], halb: ["{kurz}"], muster: "Le samedi, je fais du sport avec mes copains."},
-  {id: "qa-fr-sport", ab: "dec1:u5", frage: "Tu fais du sport ?", ok: ["oui je fais (du|de la|de l') {x}", "je fais (du|de la|de l') {x}", "oui je joue au {x}", "je joue au {x}", "non je ne fais pas de sport", "non je fais pas de sport", "oui beaucoup", "non pas beaucoup"], halb: ["oui", "non", "(du|de la) {kurz}"], janein: true, muster: "Oui, je fais du judo."},
-  {id: "qa-fr-vas", ab: "dec1:u5", frage: "Où est-ce que tu vas après l'école ?", ok: ["je vais [à|au|aux|chez|en|dans] {x}", "après l'école je vais [à|au|aux|chez|en|dans] {x}", "je rentre {x}", "je reste {x}"], halb: ["[à|au|aux|chez|en|dans] {x}", "{kurz}"], muster: "Je vais à la maison."},
-  {id: "qa-fr-veux", ab: "dec1:u6", frage: "Qu'est-ce que tu veux faire ce week-end ?", ok: ["je veux {x}", "ce week-end je veux {x}", "je voudrais {x}", "je vais {x}", "j'ai envie de {x}"], halb: ["{kurz}"], muster: "Je veux aller au cinéma."},
-  {id: "qa-fr-fete", ab: "dec1:u6", frage: "Tu peux venir à ma fête samedi ?", ok: ["oui je peux (venir)", "non je ne peux pas", "non je peux pas", "oui avec plaisir", "oui bien sûr", "désolé je ne peux pas", "désolée je ne peux pas", "oui je viens", "oui super", "bien sûr"], halb: ["oui", "non"], janein: true, muster: "Oui, je peux venir. Merci !"},
-  {id: "qa-fr-demain", ab: "dec1:u6", frage: "Qu'est-ce que tu vas faire demain ?", ok: ["demain je vais {x}", "je vais {x}", "on va {x}", "nous allons {x}"], halb: ["{kurz}"], muster: "Demain, je vais jouer au foot."},
-  {id: "qa-fr-allezvous", ab: "dec1:u7", frage: "Bonjour, comment allez-vous ?", ok: ["je vais (très) bien (merci)", "(très) bien (merci)", "ça va (bien) (merci)", "pas mal", "ça va (et vous)", "je vais {x}"], halb: ["oui"], muster: "Je vais bien, merci. Et vous ?"},
-  {id: "qa-fr-paris", ab: "dec1:u7", frage: "Qu'est-ce qu'on peut faire à Paris ?", ok: ["on peut {x}", "à paris on peut {x}", "il y a {x}", "tu peux {x}", "vous pouvez {x}"], halb: ["{kurz}"], muster: "On peut visiter la tour Eiffel."},
+  {id: "qa-fr-nom", ab: "dec1:ad", frage: "Comment tu t'appelles ?", ok: ["je m'appelle {name}", "moi c'est {name}", "c'est {name}", "je suis {name}", "mon nom est {name}", "je m'appelle {name} et {x}", "on m'appelle {name}", "mon prénom c'est {name}", "mon prénom est {name}"], halb: ["{name}"], muster: "Je m'appelle Lucas."},
+  {id: "qa-fr-cava", ab: "dec1:ad", frage: "Salut ! Ça va ?", ok: ["(oui) ça va (bien|très bien|super|merci)", "(très) bien (merci)", "pas mal", "super", "ça ne va pas", "ça va pas", "bof", "pas très bien", "ça va (et toi)", "je vais bien", "(oui) ça va (et toi)", "(oui) ça va (très) bien", "je vais (très) bien (merci)", "(ça va) pas mal", "ça va (super) bien", "comme ci comme ça", "ça ne va pas (très bien|bien|trop)", "je suis [fatigué|fatiguée|content|contente|malade]"], halb: ["oui", "non"], muster: "Ça va bien, merci. Et toi ?"},
+  {id: "qa-fr-habite", ab: "dec1:u1", frage: "Tu habites où ?", ok: ["j'habite [à|en|au|dans] {ort}", "moi j'habite [à|en|au|dans] {ort}", "je vis [à|en|au|dans] {ort}", "j'habite [à|en|au|dans] {ort} [à|en|au|dans] {ort}", "j'habite près de {ort}", "nous habitons [à|en|au|dans] {ort}", "on habite [à|en|au|dans] {ort}", "je suis de {ort}", "je viens de {ort}"], halb: ["[à|en|au|dans] {ort}", "{kurz}"], muster: "J'habite à Munich."},
+  {id: "qa-fr-ami", ab: "dec1:u1", frage: "Qui est ton meilleur ami ou ta meilleure amie ?", ok: ["mon meilleur ami [c'est|s'appelle|est] {name}", "ma meilleure amie [c'est|s'appelle|est] {name}", "c'est {name}", "[il|elle] s'appelle {name}", "{name} est mon meilleur ami", "{name} est ma meilleure amie", "{name} c'est mon meilleur ami", "{name} c'est ma meilleure amie", "mes meilleurs amis [sont|s'appellent] {x}"], halb: ["{name}"], muster: "Ma meilleure amie, c'est Emma."},
+  {id: "qa-fr-copain", ab: "dec1:u2", frage: "Comment s'appelle ton copain ou ta copine ?", ok: ["[il|elle] s'appelle {name}", "mon copain s'appelle {name}", "ma copine s'appelle {name}", "c'est {name}", "mon copain c'est {name}", "ma copine c'est {name}", "[il|elle] c'est {name}", "mon ami s'appelle {name}", "mon amie s'appelle {name}"], halb: ["{name}"], muster: "Il s'appelle Tom."},
+  {id: "qa-fr-aimes", ab: "dec1:u2", frage: "Qu'est-ce que tu aimes ?", ok: ["j'aime {x}", "j'adore {x}", "moi j'aime {x}", "j'aime bien {x}", "j'aime (bien|beaucoup) {x}", "moi j'adore {x}", "je préfère {x}"], halb: ["{kurz}", "(le|la|les|l') {kurz} et (le|la|les|l') {kurz}", "{inf}"], muster: "J'aime la musique et le foot."},
+  {id: "qa-fr-age", ab: "dec1:u3", frage: "Tu as quel âge ?", ok: ["j'ai {zahl} ans", "moi j'ai {zahl} ans", "j'ai bientôt {zahl} ans", "j'ai presque {zahl} ans", "j'ai {zahl} ans et demi"], halb: ["{zahl} ans", "{zahl}"], muster: "J'ai douze ans."},
+  {id: "qa-fr-anniv", ab: "dec1:u3", frage: "C'est quand, ton anniversaire ?", ok: ["mon anniversaire c'est le {x}", "mon anniversaire est le {x}", "c'est le {x}", "c'est en {x}", "mon anniversaire est en {x}", "mon anniversaire c'est en {x}", "je suis [né|née] le {x}"], halb: ["le {x}", "en {x}", "{kurz}"], muster: "Mon anniversaire, c'est le cinq mai."},
+  {id: "qa-fr-freres", ab: "dec1:u3", frage: "Tu as des frères et sœurs ?", ok: ["oui j'ai {x}", "j'ai {x}", "non je n'ai pas (de frères et sœurs)", "non j'ai pas (de frères et sœurs)", "je suis [fils|fille] unique", "non je suis [fils|fille] unique", "oui j'ai (un|une|deux|trois|quatre) {x}", "j'ai (un|une|deux|trois|quatre) [frère|frères|sœur|sœurs|demi frère|demi sœur] {x}", "non je n'ai pas de [frères|sœurs|frère|sœur] {x}", "non je n'ai ni frère ni sœur", "je n'ai pas de frères et sœurs"], halb: ["oui", "non", "{zahl} [frère|frères|sœur|sœurs]", "un frère", "une sœur", "oui {zahl} [frère|frères|sœur|sœurs]", "oui (un|une) [frère|sœur]"], janein: true, muster: "Oui, j'ai une sœur."},
+  {id: "qa-fr-animal", ab: "dec1:u3", frage: "Tu as un animal ?", ok: ["oui j'ai {x}", "j'ai {x}", "non je n'ai pas d'animal", "non j'ai pas d'animal", "non je n'ai pas {x}", "oui nous avons {x}", "oui on a {x}", "nous avons {x}", "on a {x}", "non je n'ai pas d'animaux", "non pas d'animal"], halb: ["oui", "non", "un {kurz}", "une {kurz}"], janein: true, muster: "Oui, j'ai un chat."},
+  {id: "qa-fr-musique", ab: "dec1:u3", frage: "Tu aimes la musique ?", ok: ["oui j'aime (bien) (la musique|ça)", "j'adore (la musique|ça)", "oui j'adore (la musique|ça)", "non je n'aime pas (la musique|ça)", "non j'aime pas (la musique|ça)", "oui beaucoup", "oui j'aime {x}", "j'aime {x}", "oui j'aime bien", "j'aime bien (la musique|ça)", "oui j'écoute {x}", "j'écoute {x}", "non pas trop", "pas beaucoup", "oui un peu"], halb: ["oui", "non"], janein: true, muster: "Oui, j'adore la musique."},
+  {id: "qa-fr-heure", ab: "dec1:u4", frage: "Il est quelle heure ?", ok: ["il est {zeit}", "{zeit}", "il est environ {zeit}", "il est presque {zeit}", "il est déjà {zeit}"], halb: [], muster: "Il est huit heures et demie."},
+  {id: "qa-fr-matiere", ab: "dec1:u4", frage: "Quelle est ta matière préférée ?", ok: ["ma matière préférée [c'est|est] {x}", "c'est {x}", "j'aime {x}", "j'adore {x}", "je préfère {x}", "mes matières préférées sont {x}", "j'aime bien {x}"], halb: ["{kurz}", "le {kurz}", "la {kurz}", "les {kurz}", "(le|la|les|l') {kurz} et (le|la|les|l') {kurz}"], muster: "Ma matière préférée, c'est le sport."},
+  {id: "qa-fr-cours", ab: "dec1:u4", frage: "Les cours commencent à quelle heure ?", ok: ["les cours commencent à {zeit}", "l'école commence à {zeit}", "[ils|elles] commencent à {zeit}", "on commence à {zeit}", "à {zeit}", "[le cours|les cours|le premier cours|mon premier cours|l'école|le collège|la classe|ça|ma journée] [commence|commencent] [à|vers] {zeit}", "[il|elle|on|nous|ils|elles] [commence|commencent|commençons] [à|vers] {zeit}", "les cours [sont|ont lieu] à {zeit}", "on a cours [à|vers|dès] {zeit}", "[à|vers] {zeit} (le matin)", "le matin à {zeit}", "à {zeit} (heures)", "(d'habitude|normalement|toujours) [à|vers] {zeit}"], halb: ["{zeit}", "vers {zeit}"], muster: "Les cours commencent à huit heures."},
+  {id: "qa-fr-classe", ab: "dec1:u4", frage: "Tu es en quelle classe ?", ok: ["je suis en {x}", "je suis dans la classe {x}", "je suis dans la {x}", "je vais en {x}", "je suis au collège en {x}", "je suis en {zahl} (e|eme|ème|ième) (classe)"], halb: ["en {x}", "{kurz}", "{zahl} (e|eme|ème|ième)"], muster: "Je suis en cinquième."},
+  {id: "qa-fr-samedi", ab: "dec1:u5", frage: "Qu'est-ce que tu fais le samedi ?", ok: ["le samedi je {x}", "le samedi j'{x}", "je {x}", "j'{x}", "on {x}", "d'abord je {x}", "le samedi (matin|après-midi|soir) je {x}", "le samedi (matin|après-midi|soir) j'{x}", "le samedi on {x}", "nous {x}", "je vais {x}", "je joue {x}", "je dors {x}", "le samedi je dors (longtemps)", "je fais {x}"], halb: ["{kurz}", "{inf}"], muster: "Le samedi, je fais du sport avec mes copains."},
+  {id: "qa-fr-sport", ab: "dec1:u5", frage: "Tu fais du sport ?", ok: ["oui je fais (du|de la|de l') {x}", "je fais (du|de la|de l') {x}", "oui je joue au {x}", "je joue au {x}", "non je ne fais pas de sport", "non je fais pas de sport", "oui beaucoup", "non pas beaucoup", "oui je fais (du|de la|de l'|des) {x}", "oui je joue (au|à la|aux) {x}", "je joue (au|à la|aux) {x}", "oui je fais {x}", "je fais {x}", "oui un peu", "non pas vraiment", "non je n'aime pas le sport"], halb: ["oui", "non", "(du|de la) {kurz}"], janein: true, muster: "Oui, je fais du judo."},
+  {id: "qa-fr-vas", ab: "dec1:u5", frage: "Où est-ce que tu vas après l'école ?", ok: ["je vais [à|au|aux|chez|en|dans] {x}", "après l'école je vais [à|au|aux|chez|en|dans] {x}", "je rentre {x}", "je reste {x}", "je vais (à la maison|chez moi) {x}", "je rentre (à la maison|chez moi)", "après l'école je rentre {x}", "je vais (directement) [à|au|aux|chez|en|dans] {x}", "je reste [à|au|chez] {x}", "on va [à|au|aux|chez|en|dans] {x}"], halb: ["[à|au|aux|chez|en|dans] {x}", "{kurz}", "[à la maison|chez moi]"], muster: "Je vais à la maison."},
+  {id: "qa-fr-veux", ab: "dec1:u6", frage: "Qu'est-ce que tu veux faire ce week-end ?", ok: ["je veux {x}", "ce week-end je veux {x}", "je voudrais {x}", "je vais {x}", "j'ai envie de {x}", "ce week-end je voudrais {x}", "je voudrais bien {x}", "j'aimerais {x}", "on va {x}", "nous allons {x}", "je ne sais pas encore"], halb: ["{kurz}", "{inf}"], muster: "Je veux aller au cinéma."},
+  {id: "qa-fr-fete", ab: "dec1:u6", frage: "Tu peux venir à ma fête samedi ?", ok: ["oui je peux (venir)", "non je ne peux pas", "non je peux pas", "oui avec plaisir", "oui bien sûr", "désolé je ne peux pas", "désolée je ne peux pas", "oui je viens", "oui super", "bien sûr", "oui je peux venir {x}", "oui je veux bien", "oui je viens {x}", "oui merci", "non je ne peux pas {x}", "non désolé", "non désolée", "malheureusement je ne peux pas {x}", "je ne peux pas {x}", "non je peux pas {x}"], halb: ["oui", "non"], janein: true, muster: "Oui, je peux venir. Merci !"},
+  {id: "qa-fr-demain", ab: "dec1:u6", frage: "Qu'est-ce que tu vas faire demain ?", ok: ["demain je vais {x}", "je vais {x}", "on va {x}", "nous allons {x}", "demain on va {x}", "demain je {x}", "je ne sais pas encore"], halb: ["{kurz}", "{inf}"], muster: "Demain, je vais jouer au foot."},
+  {id: "qa-fr-allezvous", ab: "dec1:u7", frage: "Bonjour, comment allez-vous ?", ok: ["je vais (très) bien (merci)", "(très) bien (merci)", "ça va (bien) (merci)", "pas mal", "ça va (et vous)", "je vais {x}", "je vais (très) bien (merci) {x}", "(très) bien (merci) et vous", "bien et vous", "ça va (bien) et vous", "pas mal (merci)"], halb: ["oui"], muster: "Je vais bien, merci. Et vous ?"},
+  {id: "qa-fr-paris", ab: "dec1:u7", frage: "Qu'est-ce qu'on peut faire à Paris ?", ok: ["on peut {x}", "à paris on peut {x}", "il y a {x}", "tu peux {x}", "vous pouvez {x}", "on peut [visiter|voir|aller|faire|manger|monter|regarder] {x}", "nous pouvons {x}"], halb: ["{kurz}", "{inf}"], muster: "On peut visiter la tour Eiffel."},
   // ---- Französisch: Découvertes 2 ----
-  {id: "qa-fr-vacances", ab: "dec2:plr", frage: "Qu'est-ce que tu as fait pendant les vacances ?", ok: ["j'ai {x}", "pendant les vacances j'ai {x}", "je suis (allé|allée) {x}", "nous avons {x}", "on a {x}", "je {x}"], halb: ["{kurz}"], muster: "Pendant les vacances, j'ai nagé dans la mer."},
-  {id: "qa-fr-connais", ab: "dec2:u1", frage: "Tu connais Paris ?", ok: ["oui je connais (paris) {x}", "non je ne connais pas (paris)", "non je connais pas (paris)", "oui je connais", "oui un peu", "pas encore", "non pas encore"], halb: ["oui", "non"], janein: true, muster: "Non, je ne connais pas Paris. Mais je voudrais y aller."},
-  {id: "qa-fr-nager", ab: "dec2:u1", frage: "Tu sais nager ?", ok: ["oui je sais (nager)", "oui je sais (nager) {x}", "non je ne sais pas (nager)", "non je sais pas (nager)", "oui bien sûr", "oui très bien", "un peu"], halb: ["oui", "non"], janein: true, muster: "Oui, je sais nager."},
-  {id: "qa-fr-decris", ab: "dec2:u1:u1-atb", frage: "Comment est ton meilleur ami ou ta meilleure amie ?", ok: ["[il|elle] est {x}", "mon meilleur ami est {x}", "ma meilleure amie est {x}", "[il|elle] a {x}", "c'est {x}"], halb: ["{kurz}"], muster: "Elle est grande et très sympa."},
-  {id: "qa-fr-hier", ab: "dec2:u2", frage: "Qu'est-ce que tu as fait hier ?", ok: ["hier j'ai {x}", "j'ai {x}", "hier je suis (allé|allée) {x}", "je suis (allé|allée) {x}", "je n'ai rien fait", "j'ai rien fait", "on a {x}"], halb: ["rien", "{kurz}"], muster: "Hier, j'ai regardé un film."},
-  {id: "qa-fr-film", ab: "dec2:u2", frage: "Tu as vu un bon film récemment ?", ok: ["oui j'ai vu {x}", "j'ai vu {x}", "non je n'ai pas vu {x}", "non j'ai pas vu {x}", "non pas récemment"], halb: ["oui", "non"], janein: true, muster: "Oui, j'ai vu un film drôle."},
-  {id: "qa-fr-midi", ab: "dec2:u2", frage: "Qu'est-ce que tu as mangé à midi ?", ok: ["à midi j'ai mangé {x}", "j'ai mangé {x}", "je n'ai rien mangé", "j'ai rien mangé"], halb: ["{kurz}", "des {kurz}", "une {kurz}", "un {kurz}", "du {kurz}"], muster: "À midi, j'ai mangé des pâtes."},
-  {id: "qa-fr-leve", ab: "dec2:u3", frage: "À quelle heure est-ce que tu te lèves ?", ok: ["je me lève à {zeit}", "je me lève vers {zeit}", "le matin je me lève à {zeit}", "à {zeit}", "vers {zeit}"], halb: ["{zeit}"], muster: "Je me lève à sept heures."},
-  {id: "qa-fr-mets", ab: "dec2:u3", frage: "Qu'est-ce que tu mets pour aller à l'école ?", ok: ["je mets {x}", "pour aller à l'école je mets {x}", "je porte {x}"], halb: ["{kurz}", "un {kurz}", "une {kurz}", "des {kurz}", "mon {kurz}", "ma {kurz}", "mes {kurz}"], muster: "Je mets un jean et un pull."},
-  {id: "qa-fr-weekend", ab: "dec2:u3:u3-atb", frage: "Où est-ce que tu es allé le week-end dernier ?", ok: ["je suis (allé|allée) {x}", "le week-end dernier je suis (allé|allée) {x}", "je suis (resté|restée) {x}", "nous sommes (allés|allées) {x}", "on est (allé|allés) {x}"], halb: ["[à|au|aux|chez|en|dans] {x}", "{kurz}"], muster: "Je suis allée chez ma grand-mère."},
-  {id: "qa-fr-temps", ab: "dec2:u4", frage: "Quel temps fait-il aujourd'hui ?", ok: ["il fait {x}", "aujourd'hui il fait {x}", "il pleut", "il neige", "il y a {x}", "le temps est {x}", "aujourd'hui il [pleut|neige] {x}"], halb: ["{kurz}"], muster: "Aujourd'hui, il fait beau et chaud."},
-  {id: "qa-fr-petit", ab: "dec2:u4:u4-atc", frage: "Qu'est-ce que tu faisais quand tu étais petit ou petite ?", ok: ["quand j'étais (petit|petite) je {x}", "quand j'étais (petit|petite) j'{x}", "je {x}", "j'{x}"], halb: ["{kurz}"], muster: "Quand j'étais petit, je jouais beaucoup avec mes Lego."},
-  {id: "qa-fr-passes", ab: "dec2:u4", frage: "Où est-ce que tu passes tes vacances ?", ok: ["je passe mes vacances [à|en|au|aux|chez|dans] {x}", "nous passons nos vacances {x}", "on passe nos vacances {x}", "je vais [à|en|au|aux|chez|dans] {x}"], halb: ["[à|en|au|aux|chez|dans] {x}", "{kurz}"], muster: "Je passe mes vacances à la mer."},
-  {id: "qa-fr-sportpref", ab: "dec2:u5", frage: "Quel sport est-ce que tu préfères ?", ok: ["je préfère {x}", "mon sport préféré [c'est|est] {x}", "c'est {x}", "j'aime {x}", "j'adore {x}"], halb: ["{kurz}", "le {kurz}", "la {kurz}"], muster: "Je préfère le basket."},
-  {id: "qa-fr-sportif", ab: "dec2:u5", frage: "Qui est le plus sportif de ta famille ?", ok: ["le plus sportif c'est {x}", "la plus sportive c'est {x}", "c'est {x}", "{x} est (le|la) plus (sportif|sportive)", "mon {x}", "ma {x}", "moi"], halb: ["{kurz}"], muster: "Le plus sportif, c'est mon frère."},
-  {id: "qa-fr-petitdej", ab: "dec2:u6", frage: "Qu'est-ce que tu manges au petit-déjeuner ?", ok: ["je mange {x}", "au petit-déjeuner je mange {x}", "je bois {x}", "je prends {x}", "je ne mange rien", "je mange rien"], halb: ["{kurz}", "du {kurz}", "de la {kurz}", "des {kurz}", "un {kurz}", "une {kurz}"], muster: "Je mange du pain avec de la confiture."},
-  {id: "qa-fr-lait", ab: "dec2:u6:u6-atb", frage: "Tu bois du lait le matin ?", ok: ["oui j'en bois {x}", "oui j'en bois", "non je n'en bois pas", "non j'en bois pas", "oui je bois du lait", "non je ne bois pas de lait", "non je bois pas de lait", "je bois {x}"], halb: ["oui", "non"], janein: true, muster: "Oui, j'en bois un verre."},
-  {id: "qa-fr-gateau", ab: "dec2:u6", frage: "Qu'est-ce qu'il faut pour faire un gâteau ?", ok: ["il faut {x}", "pour faire un gâteau il faut {x}", "on a besoin de {x}", "tu as besoin de {x}"], halb: ["{kurz}", "de la {kurz}", "du {kurz}", "des {kurz}"], muster: "Il faut de la farine, du sucre et des œufs."},
-  {id: "qa-fr-ville", ab: "dec2:u7", frage: "Qu'est-ce qu'on peut visiter dans ta ville ?", ok: ["on peut visiter {x}", "dans ma ville on peut visiter {x}", "il y a {x}", "on peut {x}", "tu peux visiter {x}"], halb: ["{kurz}"], muster: "On peut visiter le château et le musée."},
-  {id: "qa-fr-vacaimes", ab: "dec2:u4", frage: "Qu'est-ce que tu aimes faire en vacances ?", ok: ["en vacances j'aime {x}", "j'aime {x}", "j'adore {x}", "je préfère {x}"], halb: ["{kurz}"], muster: "En vacances, j'aime nager et dormir longtemps."}
+  {id: "qa-fr-vacances", ab: "dec2:plr", frage: "Qu'est-ce que tu as fait pendant les vacances ?", ok: ["j'ai {x}", "pendant les vacances j'ai {x}", "je suis (allé|allée) {x}", "nous avons {x}", "on a {x}", "je {x}", "pendant les vacances [je suis|nous sommes|on est] (allé|allée|allés|allées) {x}", "[nous sommes|on est] (allé|allée|allés|allées) {x}", "je suis (resté|restée) {x}", "[nous sommes|on est] (resté|restés|restée|restées) {x}"], halb: ["{kurz}"], muster: "Pendant les vacances, j'ai nagé dans la mer."},
+  {id: "qa-fr-connais", ab: "dec2:u1", frage: "Tu connais Paris ?", ok: ["oui je connais (paris) {x}", "non je ne connais pas (paris)", "non je connais pas (paris)", "oui je connais", "oui un peu", "pas encore", "non pas encore", "oui je suis (déjà) (allé|allée) [à paris|là bas] {x}", "oui je suis (déjà) (allé|allée) {x}", "oui j'ai (déjà) visité (paris) {x}", "oui j'y suis (déjà) (allé|allée) {x}", "non je n'ai jamais été {x}", "je n'ai jamais été {x}", "non je ne suis jamais (allé|allée) {x}", "je ne suis jamais (allé|allée) {x}", "non pas encore {x}", "non je ne connais pas (encore) {x}", "non je ne connais pas encore"], halb: ["oui", "non"], janein: true, muster: "Non, je ne connais pas Paris. Mais je voudrais y aller."},
+  {id: "qa-fr-nager", ab: "dec2:u1", frage: "Tu sais nager ?", ok: ["oui je sais (nager)", "oui je sais (nager) {x}", "non je ne sais pas (nager)", "non je sais pas (nager)", "oui bien sûr", "oui très bien", "un peu", "je sais nager {x}", "je sais nager", "je ne sais pas nager", "oui je nage {x}", "je nage {x}", "oui je sais bien nager", "non pas très bien"], halb: ["oui", "non"], janein: true, muster: "Oui, je sais nager."},
+  {id: "qa-fr-decris", ab: "dec2:u1:u1-atb", frage: "Comment est ton meilleur ami ou ta meilleure amie ?", ok: ["[il|elle] est {x}", "mon meilleur ami est {x}", "ma meilleure amie est {x}", "[il|elle] a {x}", "c'est {x}", "[il|elle] est (très|assez|un peu|super) {x}", "[il|elle] est (grand|grande|petit|petite) et {x}", "c'est un garçon {x}", "c'est une fille {x}"], halb: ["{kurz}", "{kurz} et {kurz}"], muster: "Elle est grande et très sympa."},
+  {id: "qa-fr-hier", ab: "dec2:u2", frage: "Qu'est-ce que tu as fait hier ?", ok: ["hier j'ai {x}", "j'ai {x}", "hier je suis (allé|allée) {x}", "je suis (allé|allée) {x}", "je n'ai rien fait", "j'ai rien fait", "on a {x}", "hier on a {x}", "hier nous avons {x}", "[nous sommes|on est] (allé|allée|allés|allées) {x}", "je suis (resté|restée) {x}", "hier je {x}", "pas grand chose"], halb: ["rien", "{kurz}", "{inf}"], muster: "Hier, j'ai regardé un film."},
+  {id: "qa-fr-film", ab: "dec2:u2", frage: "Tu as vu un bon film récemment ?", ok: ["oui j'ai vu {x}", "j'ai vu {x}", "non je n'ai pas vu {x}", "non j'ai pas vu {x}", "non pas récemment", "oui j'ai [vu|regardé] {x}", "j'ai [vu|regardé] {x}", "non je n'ai pas [vu|regardé] {x}", "non je n'ai pas vu de film", "oui {x} c'était (super|bien|drôle|nul|génial)"], halb: ["oui", "non"], janein: true, muster: "Oui, j'ai vu un film drôle."},
+  {id: "qa-fr-midi", ab: "dec2:u2", frage: "Qu'est-ce que tu as mangé à midi ?", ok: ["à midi j'ai mangé {x}", "j'ai mangé {x}", "je n'ai rien mangé", "j'ai rien mangé", "à midi j'ai [mangé|pris] {x}", "j'ai [mangé|pris] {x}", "[on a|nous avons] mangé {x}", "à la cantine j'ai mangé {x}", "rien"], halb: ["{kurz}", "des {kurz}", "une {kurz}", "un {kurz}", "du {kurz}", "{kurz} et {kurz}"], muster: "À midi, j'ai mangé des pâtes."},
+  {id: "qa-fr-leve", ab: "dec2:u3", frage: "À quelle heure est-ce que tu te lèves ?", ok: ["je me lève à {zeit}", "je me lève vers {zeit}", "le matin je me lève à {zeit}", "à {zeit}", "vers {zeit}", "je me lève (normalement|d'habitude|toujours|souvent|en général) [à|vers] {zeit}", "je me réveille (normalement|d'habitude|toujours) [à|vers] {zeit}", "[à|vers] {zeit} (le matin)", "(d'habitude|normalement|toujours) [à|vers] {zeit}", "le matin je me lève [à|vers] {zeit}", "je me lève tôt {x}"], halb: ["{zeit}"], muster: "Je me lève à sept heures."},
+  {id: "qa-fr-mets", ab: "dec2:u3", frage: "Qu'est-ce que tu mets pour aller à l'école ?", ok: ["je mets {x}", "pour aller à l'école je mets {x}", "je porte {x}", "je mets (souvent|toujours|d'habitude) {x}", "je porte (souvent|toujours|d'habitude) {x}", "pour aller à l'école je porte {x}", "aujourd'hui je porte {x}", "aujourd'hui je mets {x}"], halb: ["{kurz}", "un {kurz}", "une {kurz}", "des {kurz}", "mon {kurz}", "ma {kurz}", "mes {kurz}", "{kurz} et {kurz}", "(un|une|des|mon|ma|mes) {kurz} et (un|une|des|mon|ma|mes) {kurz}"], muster: "Je mets un jean et un pull."},
+  {id: "qa-fr-weekend", ab: "dec2:u3:u3-atb", frage: "Où est-ce que tu es allé le week-end dernier ?", ok: ["je suis (allé|allée) {x}", "le week-end dernier je suis (allé|allée) {x}", "je suis (resté|restée) {x}", "nous sommes (allés|allées) {x}", "on est (allé|allés) {x}", "le week-end dernier [je suis|nous sommes|on est] (allé|allée|allés|allées) {x}", "[je suis|nous sommes|on est] (allé|allée|allés|allées) {x}", "[je suis|nous sommes|on est] (resté|restée|restés|restées) {x}", "j'ai [visité|fait|rendu visite à] {x}", "je ne suis (allé|allée) nulle part"], halb: ["[à|au|aux|chez|en|dans] {x}", "{kurz}"], muster: "Je suis allée chez ma grand-mère."},
+  {id: "qa-fr-temps", ab: "dec2:u4", frage: "Quel temps fait-il aujourd'hui ?", ok: ["il fait {x}", "aujourd'hui il fait {x}", "il pleut", "il neige", "il y a {x}", "le temps est {x}", "aujourd'hui il [pleut|neige] {x}", "il fait (très|assez|super) {x}", "il fait {x} et il y a {x}", "il y a (du|des|de la) {x}", "il pleut {x}", "il neige {x}", "il fait {x} aujourd'hui", "le soleil brille"], halb: ["{kurz}", "du {kurz}"], muster: "Aujourd'hui, il fait beau et chaud."},
+  {id: "qa-fr-petit", ab: "dec2:u4:u4-atc", frage: "Qu'est-ce que tu faisais quand tu étais petit ou petite ?", ok: ["quand j'étais (petit|petite) je {x}", "quand j'étais (petit|petite) j'{x}", "je {x}", "j'{x}", "quand j'étais (petit|petite) [je|j'|on|nous] {x}", "[je|on|nous] {x}", "j'aimais {x}", "j'adorais {x}"], halb: ["{kurz}", "{inf}"], muster: "Quand j'étais petit, je jouais beaucoup avec mes Lego."},
+  {id: "qa-fr-passes", ab: "dec2:u4", frage: "Où est-ce que tu passes tes vacances ?", ok: ["je passe mes vacances [à|en|au|aux|chez|dans] {x}", "nous passons nos vacances {x}", "on passe nos vacances {x}", "je vais [à|en|au|aux|chez|dans] {x}", "je passe (souvent) mes vacances {x}", "[nous passons|on passe] (nos|les) vacances {x}", "nous allons [à|en|au|aux|chez|dans] {x}", "on va [à|en|au|aux|chez|dans] {x}", "je reste (à la maison|chez moi)"], halb: ["[à|en|au|aux|chez|dans] {x}", "{kurz}"], muster: "Je passe mes vacances à la mer."},
+  {id: "qa-fr-sportpref", ab: "dec2:u5", frage: "Quel sport est-ce que tu préfères ?", ok: ["je préfère {x}", "mon sport préféré [c'est|est] {x}", "c'est {x}", "j'aime {x}", "j'adore {x}", "j'aime (bien) {x}", "je joue (au|à la) {x}"], halb: ["{kurz}", "le {kurz}", "la {kurz}"], muster: "Je préfère le basket."},
+  {id: "qa-fr-sportif", ab: "dec2:u5", frage: "Qui est le plus sportif de ta famille ?", ok: ["le plus sportif c'est {x}", "la plus sportive c'est {x}", "c'est {x}", "{x} est (le|la) plus (sportif|sportive)", "mon {x}", "ma {x}", "moi", "c'est moi", "moi je suis (le|la) plus (sportif|sportive)"], halb: ["{kurz}"], muster: "Le plus sportif, c'est mon frère."},
+  {id: "qa-fr-petitdej", ab: "dec2:u6", frage: "Qu'est-ce que tu manges au petit-déjeuner ?", ok: ["je mange {x}", "au petit-déjeuner je mange {x}", "je bois {x}", "je prends {x}", "je ne mange rien", "je mange rien", "au petit déjeuner je [mange|bois|prends] {x}", "je [mange|bois|prends] {x}", "le matin je [mange|bois|prends] {x}", "rien"], halb: ["{kurz}", "du {kurz}", "de la {kurz}", "des {kurz}", "un {kurz}", "une {kurz}", "(du|de la|de l'|des|un|une) {kurz} et (du|de la|de l'|des|un|une) {kurz}"], muster: "Je mange du pain avec de la confiture."},
+  {id: "qa-fr-lait", ab: "dec2:u6:u6-atb", frage: "Tu bois du lait le matin ?", ok: ["oui j'en bois {x}", "oui j'en bois", "non je n'en bois pas", "non j'en bois pas", "oui je bois du lait", "non je ne bois pas de lait", "non je bois pas de lait", "je bois {x}", "non je n'en bois pas {x}", "oui je bois du lait {x}", "non je ne bois pas de lait {x}", "non je bois {x}", "oui [un peu|beaucoup|toujours|souvent]", "non jamais"], halb: ["oui", "non"], janein: true, muster: "Oui, j'en bois un verre."},
+  {id: "qa-fr-gateau", ab: "dec2:u6", frage: "Qu'est-ce qu'il faut pour faire un gâteau ?", ok: ["il faut {x}", "pour faire un gâteau il faut {x}", "on a besoin de {x}", "tu as besoin de {x}", "[on a|tu as|nous avons] besoin [de|d'] {x}", "il nous faut {x}"], halb: ["{kurz}", "de la {kurz}", "du {kurz}", "des {kurz}", "(de la|du|des|de l') {kurz} et (de la|du|des|de l') {kurz}"], muster: "Il faut de la farine, du sucre et des œufs."},
+  {id: "qa-fr-ville", ab: "dec2:u7", frage: "Qu'est-ce qu'on peut visiter dans ta ville ?", ok: ["on peut visiter {x}", "dans ma ville on peut visiter {x}", "il y a {x}", "on peut {x}", "tu peux visiter {x}", "on peut [visiter|voir|aller|faire|manger] {x}", "dans ma ville on peut {x}", "dans ma ville il y a {x}", "tu peux {x}", "vous pouvez {x}"], halb: ["{kurz}", "{inf}"], muster: "On peut visiter le château et le musée."},
+  {id: "qa-fr-vacaimes", ab: "dec2:u4", frage: "Qu'est-ce que tu aimes faire en vacances ?", ok: ["en vacances j'aime {x}", "j'aime {x}", "j'adore {x}", "je préfère {x}", "en vacances j'aime (bien|beaucoup) {x}", "j'aime (bien|beaucoup) {x}", "en vacances j'adore {x}"], halb: ["{kurz}", "{inf}"], muster: "En vacances, j'aime nager et dormir longtemps."}
 ];
 FRAGEN.forEach(f => {
   const [buch, einheit, st] = f.ab.split(":");
@@ -754,7 +756,8 @@ FRAGEN.forEach(f => {
 /* Normalform für freie Antworten: wie beim Sprechen (Zahlen ausgeschrieben, Füllwörter weg), en Kurzformen aufgelöst, fr ohne Akzente */
 function qaNorm(s, lang) {
   if (lang === "fr") return fold(normFr(spBase(s, "fr"))).replace(/\s+/g, " ").trim();
-  return norm(spBase(s, "en"));
+  // v12.1: amerikanische Schreibweise wie britische (favorite color = favourite colour)
+  return norm(spBase(s, "en")).replace(/\bfavorite\b/g, "favourite").replace(/\bfavorites\b/g, "favourites").replace(/\bcolor(s?)\b/g, "colour$1");
 }
 const QA_W = (list, lang) => Array.from(new Set(list.map(w => qaNorm(w, lang)).filter(Boolean))).sort((a, b) => b.length - a.length).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 const QA_STOP = {
@@ -771,6 +774,11 @@ const QA_TIME = {
 };
 const QA_FARBE = ["red", "blue", "green", "yellow", "black", "white", "pink", "purple", "orange", "brown", "grey", "gray", "light", "dark", "gold", "silver", "turquoise"];
 const QA_TAG = {en: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"], fr: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]};
+const QA_INF_EN = ["go", "play", "watch", "visit", "read", "stay", "buy", "travel", "meet", "see", "eat", "sleep", "swim", "ride", "make", "do", "help", "give",
+  "fly", "start", "change", "learn", "write", "listen", "cook", "bake", "draw", "sing", "dance", "call", "send", "relax", "run", "study", "build", "get", "take",
+  "have", "save", "spend", "keep", "paint", "walk", "chat", "talk", "text", "be", "become", "live", "move", "drive", "sit", "hang out", "open", "close"];
+/* v12.1: Artikel vor einer Kurzantwort („le foot“, „a bed and a desk“) – nur für die halbe Wertung */
+const QA_ART = {en: /^(?:a|an|the|some|my) /, fr: /^(?:(?:le|la|les|un|une|des|du|de la|mon|ma|mes) |de l'|l')/};
 const QA_CLS = {};
 function qaCls(lang) {
   if (QA_CLS[lang]) return QA_CLS[lang];
@@ -780,7 +788,9 @@ function qaCls(lang) {
     x: "[^ ]+(?: [^ ]+){0,9}", ort: "[^ ]+(?: [^ ]+){0,4}",
     name: `${free}(?: ${free}){0,2}`, kurz: `${free}(?: ${free}){0,2}`,
     zahl: `(?:${num})(?: (?:${num})){0,4}`, zeit: `(?:${time})(?: (?:${time})){0,7}`,
-    farbe: `(?:${QA_W(QA_FARBE, "en")})`, tag: `(?:${QA_W(QA_TAG[lang], lang)})`
+    farbe: `(?:${QA_W(QA_FARBE, "en")})`, tag: `(?:${QA_W(QA_TAG[lang], lang)})s?`,
+    // v12.1: Kurzantwort mit Verb im Infinitiv („aller au cinéma“, „stay at home“), höchstens 7 Wörter
+    inf: lang === "fr" ? `(?:(?!(?:${stop})(?: |$))[^ ]+(?:er|ir|re|oir))(?! (?:est|sont|a|ont|etait|c'est)(?: |$))(?: [^ ]+){0,6}` : `(?:${QA_W(QA_INF_EN, "en")})(?: [^ ]+){0,6}`
   });
 }
 /* "(a|b)" optional, "[a|b]" Pflicht-Alternative -> alle Varianten (höchstens 400) */
@@ -827,7 +837,7 @@ function checkAnswer(alts, f, lang) {
     if (!n) r = {res: "bad", why: "nothing"};
     else if (cands.some(c => R.ok.some(re => re.test(c)))) r = {res: "ok", why: ""};
     else if (lev(n, R.frage) <= Math.max(2, Math.floor(0.25 * R.frage.length)) || (n.length > 8 && R.frage.includes(n))) r = {res: "bad", why: "echo"};
-    else if (cands.some(c => R.halb.some(re => re.test(c)))) r = {res: "half", why: "kurz"};
+    else if (cands.concat(cands.map(c => c.replace(QA_ART[lang], "")).filter(c => c && c.split(" ").length <= 4)).some(c => R.halb.some(re => re.test(c)))) r = {res: "half", why: "kurz"};
     else r = {res: "bad", why: "fremd"};
     r.heard = String(a).trim();
     if (!best || rank[r.res] < rank[best.res]) best = r;
@@ -874,7 +884,8 @@ function migriereProfile(keys, get, namen, bilder) {
 /* ---------- Lernstand (v12): je Kind eine Datei, damit es auf einem anderen Gerät weiterlernen kann (Abgleich über iCloud Drive) ----------
    Schema lern-lernstand/1:
    {schema, gesichert: ISO-Zeit, app, geraet, hinweis, kinder: [Kind]}   (eine Datei je Kind oder Sammeldatei mit mehreren)
-   Kind = {profil: {id, name, nameFehlt?, farbe, jgst, en, fr, sample?, geaendert: ms, auch: [ids desselben Kindes auf anderen Geräten]},
+   Kind = {profil: {id, name, nameFehlt?, farbe, jgst, en, fr, sample?, geaendert: ms, auch: [ids desselben Kindes auf anderen Geräten],
+                    bis?: {<Vorgängerband>: {einheit, station|null}}, fak?: boolean (v12.1, optional)},
            foto: DataURL (256 px JPEG) | null, modus: {wert, zeit} | null, auswahl: {book, zeit} | null (kk.v1.sel),
            stand: {pid, book, unit, station, zeit} | null (kk.v1.last),
            buecher: {<buch-id | "beispiel">: {einheit | unit, station, standZeit, boxes: {karte: Fach 1–5}, boxT: {karte: ms letzte Änderung},
@@ -971,6 +982,16 @@ const Lernstand = (function () {
   const FOTO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
   const saubereFoto = f => typeof f === "string" && f.length < 700000 && FOTO_RE.test(f) ? f : null;
   const standWert = v => typeof v === "string" ? v.slice(0, 60) : typeof v === "number" && isFinite(v) ? v : null;
+  /* v12.1: {<buch-id>: {einheit, station | null}}; fehlt ein Band = ganz */
+  function saubereBis(b) {
+    if (!b || typeof b !== "object" || Array.isArray(b)) return null;
+    const o = {};
+    Object.keys(b).slice(0, 20).forEach(id => {
+      const v = b[id]; if (!BUCH_RE.test(id) || !v || typeof v !== "object" || !BUCH_RE.test(v.einheit || "")) return;
+      o[id] = {einheit: v.einheit, station: typeof v.station === "string" && /^[A-Za-z0-9_-]{1,60}$/.test(v.station) ? v.station : null};
+    });
+    return Object.keys(o).length ? o : null;
+  }
   function saubereProfil(p) {
     if (!p || typeof p !== "object" || !ID_RE.test(p.id || "")) return null;
     const name = (str(p.name, 30) || "").replace(/\s+/g, " ").trim();
@@ -980,6 +1001,9 @@ const Lernstand = (function () {
     if (p.nameFehlt) o.nameFehlt = true;
     if (p.sample) o.sample = true;
     if (p.migriert) o.migriert = true;
+    // v12.1: Vorgängerband „behandelt bis“ je Buch und Schalter „freiwillige Teile“ wandern mit dem Profil (neuerer Zeitstempel gewinnt)
+    const bis = saubereBis(p.bis); if (bis) o.bis = bis;
+    if (typeof p.fak === "boolean") o.fak = p.fak;
     o.geaendert = Math.max(0, num(p.geaendert, 0));
     o.auch = Array.isArray(p.auch) ? uniq(p.auch.filter(x => typeof x === "string" && ID_RE.test(x) && x !== p.id)).sort().slice(0, 20) : [];
     return o;
@@ -1133,7 +1157,7 @@ const Lernstand = (function () {
   /* Dateiinhalt bauen (info: {zeit: ISO, geraet}) */
   function datei(kinder, info) {
     info = info || {};
-    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v12", geraet: info.geraet || "",
+    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v12.1", geraet: info.geraet || "",
       hinweis: "Lernstand zum Weiterlernen auf einem anderen Gerät. In Lern! unter Profil › „Lernstand holen“ öffnen. Enthält Eingaben des Kindes.",
       kinder: (kinder || []).map(sauberesKind).filter(Boolean)};
   }
@@ -1305,7 +1329,8 @@ const LK = (function () {
     return {
       id: p.buch.id, titel: p.buch.titel || p.buch.id, verlag: p.buch.verlag || "", sprache: p.buch.sprache || "en",
       jahrgangsstufe: p.buch.jahrgangsstufe || null, version: p.version || "", count: countCards(p),
-      einheiten: p.einheiten.map(e => ({id: e.id, titel: e.titel, typ: e.typ || "unit", umfasst: e.umfasst || null, stations: (e.stations || []).map(s => ({id: s.id, titel: s.titel}))})),
+      einheiten: p.einheiten.map(e => ({id: e.id, titel: e.titel, typ: e.typ || "unit", umfasst: e.umfasst || null, fak: e.fakultativ === true,
+        stations: (e.stations || []).map(s => ({id: s.id, titel: s.titel, fak: s.fakultativ === true}))})),
       verben_ab: p.verben_ab || null
     };
   }
@@ -1317,7 +1342,8 @@ const LK = (function () {
     const E = p.einheiten.map((e, i) => {
       const stations = e.stations || [], sIdx = {};
       stations.forEach((s, k) => { sIdx[s.id] = k; });
-      return {id: e.id, titel: e.titel, typ: e.typ || "unit", umfasst: e.umfasst || null, stations, sIdx, i};
+      // v12.1: fakultativ (optionales Paketfeld „fakultativ“: true an Einheit oder Station)
+      return {id: e.id, titel: e.titel, typ: e.typ || "unit", umfasst: e.umfasst || null, stations, sIdx, i, fak: e.fakultativ === true, stFak: stations.map(s => !!s && s.fakultativ === true)};
     });
     const byId = {}; E.forEach(e => { byId[e.id] = e; });
     const cards = [], byEinheit = E.map(() => []), byMeaning = {};
@@ -1330,6 +1356,7 @@ const LK = (function () {
         beispiel: it.beispiel || "", hinweis: it.hinweis || "", thema: it.thema || "", tags: it.tags || [],
         satz: (it.tags || []).includes("satz")
       };
+      c.stFak = !!e.stFak[c.si]; c.fak = e.fak || c.stFak;
       c.mk = meanings(c.de).map(mkey).filter(Boolean);
       cards.push(c); byEinheit[e.i].push(c);
       c.mk.forEach(k => { (byMeaning[k] = byMeaning[k] || []).push(c); });
@@ -1361,15 +1388,38 @@ const LK = (function () {
   }
   /* Mischregel: aktuelle Einheit bis Station | frühere Einheiten (auch Vorgängerbände derselben Sprache) | Zusatzwortschatz + Verben.
      prev: Indizes der Vorgängerbände, ältester zuerst (gl1 < gl2 < gl3, dec1 < dec2); ihre Vokabeln zählen als "früher". */
-  function pools(K, pos, prev) {
+  /* v12.1: Umfang der Wiederholung je Profil, o = {bis, fak} (wie opts von buildSession)
+     bis: {<Vorgängerband-id>: {einheit, station | null}} = „im Unterricht behandelt bis“; fehlt der Band = ganz (wie bisher).
+       Bis einschließlich dieser Einheit (mit Station: bis einschließlich dieser Station), spätere Einheiten des Bands fallen weg.
+     fak: false = fakultative Einheiten/Stationen (Paketfeld „fakultativ“) nicht als „früher“, nicht als Ablenker und nicht
+       als Satzbau-Kacheln. Die gewählte Einheit/Station gilt immer, auch wenn sie fakultativ ist (ausdrückliche Wahl gewinnt).
+       Fehlt fak (alte Aufrufe), gilt alles wie bisher. */
+  function grenzeVon(P, bis) {
+    const b = bis && P && bis[P.id];
+    if (!b || typeof b !== "object" || !b.einheit || !P.byId[b.einheit]) return null;
+    const e = P.byId[b.einheit];
+    return {ei: e.i, si: b.station != null && e.sIdx[b.station] != null ? e.sIdx[b.station] : Infinity, eid: e.id};
+  }
+  function umfang(K, pos, prev, o) {
+    o = o || {};
+    const fak = o.fak !== false, G = {};
+    (prev || []).forEach(P => { if (P && P !== K) G[P.id] = grenzeVon(P, o.bis); });
+    const e = K.E[pos.ei] || K.E[0];
+    const own = c => fak || !c.fak || (c.ei === pos.ei && (e.fak || c.si === pos.si));
+    const prv = c => { const g = G[c.K.id]; return (!g || c.ei < g.ei || (c.ei === g.ei && c.si <= g.si)) && (fak || !c.fak); };
+    return {own, prv, G, key: (fak ? "f" : "-") + Object.keys(G).sort().map(k => k + (G[k] ? "<" + G[k].ei + "." + G[k].si : "")).join(",")};
+  }
+  function pools(K, pos, prev, o) {
+    const U = umfang(K, pos, prev, o);
     const e = K.E[pos.ei], prevCards = [];
-    (prev || []).forEach(P => { if (P && P !== K && P.lang === K.lang) P.cards.forEach(c => { if (c.kind === "vok") prevCards.push(c); }); });
+    (prev || []).forEach(P => { if (P && P !== K && P.lang === K.lang) P.cards.forEach(c => { if (c.kind === "vok" && U.prv(c)) prevCards.push(c); }); });
     if (pos.ei === 0 && e.typ === "pickup" && !prevCards.length) return {cur: K.cards.filter(c => c.ei === 0), earlier: [], extra: [], onlyCur: true};
     const umf = e.umfasst ? new Set(e.umfasst) : null;
     const isCur = c => umf ? umf.has(c.einheit) : (c.ei === pos.ei && c.si <= pos.si);
     const isEarlier = c => !isCur(c) && c.ei < pos.ei;
     const cur = [], earlier = [], extra = [];
     K.cards.forEach(c => {
+      if (!U.own(c)) return;
       if (c.kind === "vok") { if (isCur(c)) cur.push(c); else if (isEarlier(c)) earlier.push(c); }
       else if (isCur(c) || isEarlier(c)) extra.push(c);
     });
@@ -1440,13 +1490,13 @@ const LK = (function () {
   }
   /* Erlaubter Stoff (v11): gewählte Einheit bis zur gewählten Station, frühere Einheiten, Vorgängerbände; nie spätere Units.
      Gilt für Ablenker (Auswahl) und Zusatzkacheln (Satzbau). Ohne Session-Stand gilt die Position der Karte selbst. */
-  function allowFn(K, pos, prev) {
-    const e = K.E[pos.ei] || K.E[0], umf = e.umfasst ? new Set(e.umfasst) : null;
+  function allowFn(K, pos, prev, o) {
+    const e = K.E[pos.ei] || K.E[0], umf = e.umfasst ? new Set(e.umfasst) : null, U = umfang(K, pos, prev, o);
     const prevB = (prev || []).filter(B => B && B !== K && B.lang === K.lang);
     const pick0 = pos.ei === 0 && e.typ === "pickup" && !prevB.length;
     const own = o => o.ei >= 0 && (pick0 ? o.ei === 0 : (umf && umf.has(o.einheit)) || o.ei < pos.ei || (o.ei === pos.ei && o.si <= pos.si));
     const pv = new Set(prevB);
-    return {fn: o => o.K === K ? own(o) : pv.has(o.K), books: [K].concat(prevB), key: K.id + ":" + pos.ei + ":" + pos.si + ":" + prevB.map(B => B.id).join(",")};
+    return {fn: c => c.K === K ? own(c) && U.own(c) : pv.has(c.K) && U.prv(c), books: [K].concat(prevB), key: K.id + ":" + pos.ei + ":" + pos.si + ":" + prevB.map(B => B.id).join(",") + ":" + U.key};
   }
   const allowOfCard = c => allowFn(c.K, {ei: Math.max(0, c.ei), si: c.si}, []);
   /* Karte aus einem Vorgängerband: Ablenker/Kacheln nur aus diesem Band und seinen eigenen Vorgängern, nicht aus dem späteren Session-Band */
@@ -1655,12 +1705,28 @@ const LK = (function () {
      in der aktuellen Unit nur ab der genannten Station. Unbekanntes Buch: nur Fragen des ersten Bands bis Unit 2. */
   const QA_SERIEN = {en: ["gl1", "gl2", "gl3"], fr: ["dec1", "dec2"]};
   const qaRank = id => { const m = String(id).match(/^u(\d+)$/); return m ? +m[1] : id === "pub" ? 1.5 : /^(pua|ad|plr)$/.test(id) ? 0 : null; };
-  function qaStand(K, pos) {
+  /* v12.1: prev/o wie bei buildSession: Fragen mit Mindeststand in einem Vorgängerband nur, wenn dessen Grenze (o.bis) ihn erreicht */
+  function qaStand(K, pos, prev, o) {
     let r = 0;
     for (let i = pos.ei; i >= 0; i--) { const q = qaRank(K.E[i].id); if (q != null) { r = q; break; } }
     const e = K.E[pos.ei];
-    return {lang: K.lang, buch: K.id, rank: r, einheit: e.id, si: pos.si, sIdx: e.sIdx || {}};
+    const st = {lang: K.lang, buch: K.id, rank: r, einheit: e.id, si: pos.si, sIdx: e.sIdx || {}};
+    const bis = o && o.bis;
+    if (bis && typeof bis === "object") {
+      st.vor = {};
+      (prev || []).forEach(P => { const g = P && P !== K ? grenzeVon(P, bis) : null; if (g) st.vor[P.id] = qaStand(P, g); });
+      // Vorgängerband ohne Paket: Grenze nur über die Unit-Nummer (Station unbekannt = ganze Unit)
+      Object.keys(bis).forEach(id => { const b = bis[id], q = b && qaRank(b.einheit); if (!(id in st.vor) && q != null && id !== K.id) st.vor[id] = {rank: q, einheit: b.einheit, si: Infinity, sIdx: {}}; });
+    }
+    return st;
   }
+  const imStand = (f, s) => {
+    const fr = qaRank(f.einheit);
+    if (fr == null || fr > s.rank) return false;
+    if (fr < s.rank || !f.st || f.einheit !== s.einheit) return true;
+    const k = s.sIdx[f.st];
+    return k == null || k <= s.si;
+  };
   function qaPool(st) {
     const ser = QA_SERIEN[st.lang] || [];
     let bi = ser.indexOf(st.buch), rank = st.rank;
@@ -1669,12 +1735,8 @@ const LK = (function () {
       if (f.lang !== st.lang) return false;
       const fb = ser.indexOf(f.buch);
       if (fb < 0 || fb > bi) return false;
-      if (fb < bi) return true;
-      const fr = qaRank(f.einheit);
-      if (fr == null || fr > rank) return false;
-      if (fr < rank || !f.st || f.einheit !== st.einheit) return true;
-      const k = st.sIdx[f.st];
-      return k == null || k <= st.si;
+      if (fb < bi) return !(st.vor && st.vor[f.buch]) || imStand(f, st.vor[f.buch]);
+      return imStand(f, Object.assign({}, st, {rank}));
     });
   }
   /* Stand ohne Paket (Beispielkarten): Buch und Einheit direkt */
@@ -1704,8 +1766,8 @@ const LK = (function () {
     n = n || 10;
     opts = opts || {};
     const modus = opts.modus || (opts.speakAvailable ? "mix" : "schreiben");
-    const A = allowFn(K, pos, prev);   // erlaubter Stoff für Ablenker und Zusatzkacheln
-    const pl0 = pools(K, pos, prev), used = new Set(), usedTxt = new Set(), ordered = {}, NEWCAP = 6;
+    const A = allowFn(K, pos, prev, opts);   // erlaubter Stoff für Ablenker und Zusatzkacheln (v12.1: mit bis/fak)
+    const pl0 = pools(K, pos, prev, opts), used = new Set(), usedTxt = new Set(), ordered = {}, NEWCAP = 6;
     // Sprechen: nur Karten, die man sprechen kann (keine Verbformen, keine Auslassungen, höchstens 12 Wörter)
     const pl = modus === "sprechen" ? {cur: pl0.cur.filter(speakOk), earlier: pl0.earlier.filter(speakOk), extra: pl0.extra.filter(speakOk), onlyCur: pl0.onlyCur} : pl0;
     const txt = c => c.kind === "verb" ? "verb:" + c.en : (c.K || K).nrm(cleanEn(c.en, (c.K || K).lang));
@@ -1726,7 +1788,7 @@ const LK = (function () {
       }
       return null;
     };
-    const qaAll = modus === "schreiben" ? [] : qaPool(qaStand(K, pos)), qaUsed = new Set();
+    const qaAll = modus === "schreiben" ? [] : qaPool(qaStand(K, pos, prev, opts)), qaUsed = new Set();
     // Sprechen: Anzahl Fragen vorab, Rest Vokabeln nachsprechen; fehlen Karten, füllen weitere Fragen auf
     const nQa = modus === "sprechen" ? Math.min(qaAll.length, rndCount(n * QA_SHARE)) : 0;
     const nCards = n - nQa;
@@ -1805,7 +1867,7 @@ const LK = (function () {
   }
   return {validate, metaOf, countCards, indexPaket, position, pools, buildSession, makeTask, boxStats, unitStats, capacity,
           meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles,
-          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, migriereProfile, BEKANNTE_BUECHER, Lernstand};
+          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, umfang, grenzeVon, migriereProfile, BEKANNTE_BUECHER, Lernstand};
 })();
 </script>
 <script>
@@ -2832,7 +2894,17 @@ function placePacks(boot) {
   const h = $("hPack"); if (h) h.textContent = empty ? "Lernpakete verwalten · noch keins geladen" : `Lernpakete verwalten · ${METAS.length} geladen`;
 }
 
-function prevTitles(id) { return LK.vorgaenger(METAS, id).map(x => (METAS.find(m => m.id === x) || {titel: x}).titel); }
+function prevTitles(id, pr) {
+  return LK.vorgaenger(METAS, id).map(x => {
+    const m = METAS.find(y => y.id === x) || {titel: x, einheiten: []}, b = pr && pr.bis && pr.bis[x];
+    const e = b && (m.einheiten || []).find(y => y.id === b.einheit), s = e && b.station && e.stations.find(y => y.id === b.station);
+    return m.titel + (e ? " (bis " + LK.short(e) + (s ? " · " + LK.stShort(s) : "") + ")" : "");
+  });
+}
+/* v12.1: Umfang der Wiederholung je Profil für buildSession: Vorgängerband „behandelt bis“, freiwillige Teile (Standard aus) */
+const umfangOpts = pr => ({bis: (pr && pr.bis) || {}, fak: !!(pr && pr.fak)});
+/* „(freiwillig)“ an fakultativen Einheiten/Stationen, wenn der Titel es nicht schon sagt */
+const fakTxt = x => x && x.fak && !/fak|facult|freiwillig/i.test(x.titel || "") ? " (freiwillig)" : "";
 const buchTitel = id => { const m = METAS.find(x => x.id === id), b = LK.BEKANNTE_BUECHER.find(x => x.id === id); return m ? bookShort(m.titel) : b ? b.titel : id; };
 /* Bücher eines Profils: sein Englisch- und Französischbuch (sofern geladen); Beispielkarten, wenn keins geladen ist */
 function booksFor(pr) {
@@ -2862,8 +2934,8 @@ function standNoteSample(u) {
     ? "Geübt wird alles bis zur gewählten Station, dazu Wiederholung aus Band 1 und 2."
     : "Für Unit " + u + " gibt es im Prototyp noch keine Karten. Du übst dann Unit 1 als Wiederholung.";
 }
-function standNotePack(meta, e) {
-  const pv = prevTitles(meta.id), mit = pv.length ? ` Wiederholung auch aus ${pv.join(" und ")}.` : "";
+function standNotePack(meta, e, pr) {
+  const pv = prevTitles(meta.id, pr), mit = pv.length ? ` Wiederholung auch aus ${pv.join(" und ")}.` : "";
   if (e.id === meta.einheiten[0].id && e.typ === "pickup" && !pv.length) return `Geübt wird nur ${e.titel.split(" ").slice(0, 2).join(" ")}.`;
   if (e.umfasst) return `Wiederholung: ${e.umfasst.map(id => LK.short(meta.einheiten.find(x => x.id === id) || {titel: id})).join(" und ")}, dazu Zusatzwortschatz.` + mit;
   return "Geübt wird die Einheit bis zur gewählten Station, dazu frühere Einheiten und Zusatzwortschatz." + mit;
@@ -2969,19 +3041,19 @@ function wireProfile(pr) {
     fillSt();
   } else {
     const meta = METAS.find(m => m.id === book), prog = loadPackProgress(pr.id, meta);
-    su.innerHTML = meta.einheiten.map(e => `<option value="${esc(e.id)}">${esc(e.titel)}</option>`).join("");
+    su.innerHTML = meta.einheiten.map(e => `<option value="${esc(e.id)}">${esc(e.titel + fakTxt(e))}</option>`).join("");
     su.value = prog.einheit;
     const fillSt = () => {
       const e = meta.einheiten.find(x => x.id === su.value);
       if (e.stations.length) {
-        ss.innerHTML = e.stations.map(s => `<option value="${esc(s.id)}">${esc(s.titel)}</option>`).join("");
+        ss.innerHTML = e.stations.map(s => `<option value="${esc(s.id)}">${esc(s.titel + fakTxt(s))}</option>`).join("");
         ss.value = e.stations.some(s => s.id === prog.station) ? prog.station : e.stations[0].id; ss.disabled = false;
       } else { ss.innerHTML = `<option value="">ganze Einheit</option>`; ss.value = ""; ss.disabled = true; }
-      note.textContent = standNotePack(meta, e);
+      note.textContent = standNotePack(meta, e, pr) + (e.fak || (e.stations.find(s => s.id === ss.value) || {}).fak ? " Freiwilliger Teil: wird geübt, weil du ihn gewählt hast." : "");
     };
     const save = () => { prog.einheit = su.value; prog.station = ss.value || null; prog.standZeit = Date.now(); store.set(packKey(pr.id, book), prog); keepLast(prog.einheit, prog.station); };
     su.onchange = () => { fillSt(); save(); };
-    ss.onchange = save;
+    ss.onchange = () => { save(); fillSt(); };
     fillSt();
   }
   renderStand(pr);
@@ -3002,7 +3074,7 @@ function buchOptionen(lang, cur) {
 }
 function openEdit(pid) {
   const pr = PROFILES.find(p => p.id === pid);
-  EDIT = pr ? {neu: false, p: Object.assign({}, pr)} : {neu: true, p: {id: neueProfilId(), name: "", farbe: freieFarbe(), jgst: null, en: null, fr: null}};
+  EDIT = pr ? {neu: false, p: Object.assign({}, pr, pr.bis ? {bis: JSON.parse(JSON.stringify(pr.bis))} : {})} : {neu: true, p: {id: neueProfilId(), name: "", farbe: freieFarbe(), jgst: null, en: null, fr: null}};
   EDIT.bild = undefined;
   renderEdit(); show("scrEdit");
   setTimeout(() => { const n = $("edName"); if (n && !n.value) try { n.focus({preventScroll: true}); } catch (e) {} }, 60);
@@ -3012,6 +3084,37 @@ function renderEditAvatar() {
   const bild = EDIT.bild === undefined ? AVATARS[p.id] : EDIT.bild;
   host.innerHTML = bild ? `<img src="${esc(bild)}" alt="">` : esc((($("edName") && $("edName").value) || p.name || "?").slice(0, 1).toUpperCase());
   const del = $("edFotoDel"); if (del) del.hidden = !bild;
+}
+/* v12.1: Vorgängerbände eines Buchs, auch wenn ihr Paket (noch) fehlt */
+function vorBaende(book) {
+  if (!book) return [];
+  const metas = METAS.concat(LK.BEKANNTE_BUECHER.filter(b => !METAS.some(m => m.id === b.id)).map(b => ({id: b.id, sprache: b.sprache, titel: b.titel})));
+  return LK.vorgaenger(metas, book);
+}
+function bisOptionen(meta, cur) {
+  const v = cur && cur.einheit ? cur.einheit + (cur.station ? "|" + cur.station : "") : "";
+  const opt = (val, t) => `<option value="${esc(val)}"${val === v ? " selected" : ""}>${esc(t)}</option>`;
+  return opt("", "ganz (alles aus diesem Band)") + meta.einheiten.map(e => !e.stations.length ? opt(e.id, "bis " + e.titel + fakTxt(e))
+    : `<optgroup label="${esc(e.titel + fakTxt(e))}">${opt(e.id, "bis " + LK.short(e) + " (ganze Einheit)")}${e.stations.map(s => opt(e.id + "|" + s.id, "bis " + LK.short(e) + " · " + s.titel + fakTxt(s))).join("")}</optgroup>`).join("");
+}
+/* „Im Unterricht behandelt bis“ je Vorgängerband der gewählten Bücher (Englisch und Französisch) */
+function renderWdh() {
+  const host = $("edWdh"); if (!host || !EDIT) return;
+  const p = EDIT.p, bis = p.bis || (p.bis = {});
+  const ids = [$("edEn").value, $("edFr").value].filter(Boolean).flatMap(vorBaende);
+  if (!ids.length) { host.hidden = true; host.innerHTML = ""; return; }
+  host.hidden = false;
+  host.innerHTML = `<h2 id="edWdhH">Wiederholung aus früheren Bänden</h2>
+    <p class="note">Stell ein, bis wohin die Klasse den früheren Band im Unterricht wirklich durchgenommen hat. Spätere Teile kommen dann weder als Wiederholung noch als Antwortmöglichkeit vor. Voreinstellung: ganz.</p>` +
+    ids.map(id => {
+      const m = METAS.find(x => x.id === id);
+      if (!m) return `<p class="note">${esc(buchTitel(id))}: Lernpaket fehlt noch, wird bei der Wiederholung übersprungen.</p>`;
+      return `<div class="field"><label for="edBis_${esc(id)}">${esc(buchTitel(id))}: im Unterricht behandelt bis</label><select id="edBis_${esc(id)}" data-bis="${esc(id)}">${bisOptionen(m, bis[id])}</select></div>`;
+    }).join("");
+  host.querySelectorAll("select[data-bis]").forEach(s => s.onchange = () => {
+    const [einheit, station] = s.value.split("|");
+    if (einheit) bis[s.dataset.bis] = {einheit, station: station || null}; else delete bis[s.dataset.bis];
+  });
 }
 function renderEdit() {
   const p = EDIT.p, card = $("editCard");
@@ -3026,6 +3129,9 @@ function renderEdit() {
     <div class="row"><div class="field"><label for="edEn">Englisch-Buch</label><select id="edEn">${buchOptionen("en", p.en)}</select></div>
       <div class="field"><label for="edFr">Französisch-Buch</label><select id="edFr">${buchOptionen("fr", p.fr)}</select></div></div>
     <p class="note">Das gewählte Buch ist der aktuelle Stand. Frühere Bände derselben Reihe kommen automatisch als Wiederholung dazu.</p>
+    <div class="wdh" id="edWdh" aria-labelledby="edWdhH"></div>
+    <label class="opt-tog"><input type="checkbox" id="edFak"${p.fak ? " checked" : ""}> Freiwillige Teile üben (Plateaus, Bonus, freiwillige Stationen)</label>
+    <p class="note" id="edFakNote">Aus: Freiwillige Teile kommen nicht als Wiederholung und nicht als Antwortmöglichkeiten vor. Wählt das Kind einen freiwilligen Teil selbst aus, wird er trotzdem geübt.</p>
     <p class="msg-bad" id="edMsg" role="status" aria-live="polite"></p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="edCancel">${PROFILES.length ? "Abbrechen" : "Zurück"}</button><button type="button" class="btn btn-primary" id="edSave">Speichern</button></div>
     ${EDIT.neu ? "" : `<div class="sync" aria-labelledby="edSyncH"><h2 id="edSyncH">Auf anderen Geräten weiterlernen</h2>
@@ -3045,7 +3151,9 @@ function renderEdit() {
     p.farbe = b.dataset.farbe; card.setAttribute("style", farbStyle(p));
     card.querySelectorAll("[data-farbe]").forEach(x => x.setAttribute("aria-checked", String(x === b)));
   });
-  $("edEn").onchange = () => { const b = LK.BEKANNTE_BUECHER.find(x => x.id === $("edEn").value); if (b && !$("edJgst").value) $("edJgst").value = String(b.jgst); };
+  $("edEn").onchange = () => { const b = LK.BEKANNTE_BUECHER.find(x => x.id === $("edEn").value); if (b && !$("edJgst").value) $("edJgst").value = String(b.jgst); renderWdh(); };
+  $("edFr").onchange = () => renderWdh();
+  renderWdh();
   $("edCancel").onclick = () => { EDIT = null; renderProfiles(); show("scrProfile"); };
   $("edSave").onclick = saveEdit;
   if (!EDIT.neu) {
@@ -3066,6 +3174,9 @@ async function saveEdit() {
   const old = PROFILES.find(x => x.id === p.id);
   p.name = name; delete p.nameFehlt; p.geaendert = Date.now();   // v12: Änderungszeit fürs Abgleichen
   p.jgst = +$("edJgst").value || null; p.en = $("edEn").value || null; p.fr = $("edFr").value || null;
+  // v12.1: Vorgängerband „behandelt bis“ (leer = ganz) und freiwillige Teile
+  if (p.bis && !Object.keys(p.bis).length) delete p.bis;
+  p.fak = !!$("edFak").checked;
   if (old) PROFILES = PROFILES.map(x => x.id === p.id ? p : x); else PROFILES.push(p);
   saveProfiles();
   // neues Buch gewählt: Karte zeigt es gleich an
@@ -3475,7 +3586,7 @@ function startSession(modus) {
     // Fächer der Vorgängerbände (eigener Lernstand des Profils dort) + aktueller Band; Ergebnisse landen im aktuellen Band
     const prevBoxes = (CUR.prev || []).map(k => { const m = METAS.find(x => x.id === k.id); return m ? loadPackProgress(CUR.pr.id, m).boxes : {}; });
     boxes = Object.assign({}, ...prevBoxes, P.boxes);
-    queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, {modus, seen: recentSeen()});
+    queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus, seen: recentSeen()}, umfangOpts(CUR.pr)));
   } else queue = buildSession(modus);
   if (!queue.length) { toast(modus === "sprechen" ? "Für diese Einheit gibt es nichts zum Sprechen. Probier Schreiben." : "Für diese Einheit gibt es noch keine Karten."); renderHome(); show("scrHome"); return; }
   S = {modus, queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: ""};
@@ -3489,7 +3600,7 @@ function totalSteps() { return S.queue.length; }
 function addExtraTask() {
   const have = new Set(S.queue.map(t => t.id));
   let cand = [];
-  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, {modus: S.modus, seen: recentSeen()}) : buildSession(S.modus); } catch (e) { cand = []; }
+  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus: S.modus, seen: recentSeen()}, umfangOpts(CUR.pr))) : buildSession(S.modus); } catch (e) { cand = []; }
   const t = cand.find(x => !have.has(x.id)) || Object.assign({}, S.current);
   S.queue.push(t); S.extraTasks = (S.extraTasks || 0) + 1;
   const n = S.i + 1, tot = totalSteps();
@@ -4054,7 +4165,7 @@ function sampleSpeak(it) {
   for (const emb of embs) {
     if (!emb || LK.validate(emb)) continue;  // defekte Einträge still übergehen
     const m = LK.metaOf(emb), old = METAS.find(x => x.id === m.id);
-    if (!old || old.version !== m.version || old.count !== m.count) { try { await addPaket(emb, true); } catch (e) {} }
+    if (!old || old.version !== m.version || old.count !== m.count || JSON.stringify(old.einheiten) !== JSON.stringify(m.einheiten)) { try { await addPaket(emb, true); } catch (e) {} }
     else PAK[m.id] = emb;
   }
   METAS.sort((a, b) => a.id.localeCompare(b.id, "de", {numeric: true}));
