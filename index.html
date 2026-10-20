@@ -314,6 +314,17 @@ details.pack > * + * { margin-top: 14px; }
 .swatch[aria-checked="true"] { border-color: var(--ink); }
 .danger { color: var(--bad); border-color: var(--bad); }
 .qa-q { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.2; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* v12: Lernstand sichern/holen, Dialog */
+.sync { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.sync h2 { font-size: 1.15rem; }
+.sich-btn.is-hot { border-color: var(--accent); color: var(--accent-text); border-width: 2px; }
+.dlg-back { position: fixed; inset: 0; background: rgba(10, 14, 22, .72); z-index: 70; display: grid; place-items: center; padding: 16px; }
+.dlg { max-width: 520px; width: 100%; max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.dlg h2 { font-size: 1.3rem; }
+.dlg .pick-kid { justify-content: flex-start; gap: 12px; text-align: left; width: 100%; }
+.dlg .pick-kid .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: var(--accent); color: var(--accent-ink); font-weight: 800; flex: none; }
+.dlg .pick-kid .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.dlg ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -330,6 +341,7 @@ details.pack > * + * { margin-top: 14px; }
       <div id="profileHead"><p class="eyebrow">Englisch und Französisch üben</p><h1 id="profileH1">Wer lernt heute?</h1></div>
       <div class="profiles" id="profiles"></div>
       <input type="file" id="avatarIn" class="vh" accept="image/*" tabindex="-1" aria-hidden="true">
+      <input type="file" id="lernstandIn" class="vh" accept=".json,application/json" tabindex="-1" aria-hidden="true">
       <details class="card pack" id="packDetails">
         <summary id="hPack">Lernpakete verwalten</summary>
         <div class="drop" id="dropZone">
@@ -426,10 +438,11 @@ details.pack > * + * { margin-top: 14px; }
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
     <span class="foot-tools" id="verlaufTools"></span>
-    <span id="appVersion">Lern! v11</span>
+    <span id="appVersion">Lern! v12</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
+<div class="dlg-back" id="dlgBack" hidden><section class="card dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgH"></section></div>
 
 <!-- EMBED -->
 <script id="lernkern">
@@ -857,6 +870,282 @@ function migriereProfile(keys, get, namen, bilder) {
   });
   return out;
 }
+
+/* ---------- Lernstand (v12): je Kind eine Datei, damit es auf einem anderen Gerät weiterlernen kann (Abgleich über iCloud Drive) ----------
+   Schema lern-lernstand/1:
+   {schema, gesichert: ISO-Zeit, app, geraet, hinweis, kinder: [Kind]}   (eine Datei je Kind oder Sammeldatei mit mehreren)
+   Kind = {profil: {id, name, nameFehlt?, farbe, jgst, en, fr, sample?, geaendert: ms, auch: [ids desselben Kindes auf anderen Geräten]},
+           foto: DataURL (256 px JPEG) | null, modus: {wert, zeit} | null, auswahl: {book, zeit} | null (kk.v1.sel),
+           stand: {pid, book, unit, station, zeit} | null (kk.v1.last),
+           buecher: {<buch-id | "beispiel">: {einheit | unit, station, standZeit, boxes: {karte: Fach 1–5}, boxT: {karte: ms letzte Änderung},
+                     resetZeit, zaehler: {<geraet>: {week, sessions, points}}, week, sessions, points}},
+           verlauf: [Ereignisse wie kk-lernverlauf/1, ohne nr]}
+   Zusammenführen (mergeKind, rein, ohne Speicher): je Karte gewinnt der neuere Zeitstempel (gleich alt: höheres Fach);
+   Lernverlauf = Vereinigung ohne Doppelte (Schlüssel profil|item|zeit|aufgabe); Profil, Auswahl, Stand, Übungsart und
+   Einheit/Station je Buch: neuerer Zeitstempel; beide ohne Zeitstempel (Altdaten): die Datei. Sessions der Woche und Punkte
+   je Gerät, angezeigt wird die Summe über alle Geräte; so zählt beim mehrfachen Holen nichts doppelt. */
+const Lernstand = (function () {
+  const SCHEMA = "lern-lernstand/1";
+  const ID_RE = /^[A-Za-z0-9_-]{1,64}$/, BUCH_RE = /^[A-Za-z0-9_-]{1,40}$/;
+  const MODI = ["sprechen", "schreiben", "mix"];
+  const MSG = {
+    kaputt: "Diese Datei ist beschädigt oder keine Lern!-Datei. Es wurde nichts geändert.",
+    fremd: "Das ist kein Lernstand aus Lern!. Es wurde nichts geändert.",
+    paket: "Das ist ein Lernpaket, kein Lernstand. Lernpakete lädst du auf der Startseite unter „Lernpakete verwalten“. Es wurde nichts geändert.",
+    verlauf: "Das ist ein Lernverlauf-Export für die Eltern, kein Lernstand. Bitte eine Datei „Lern_Name_Datum.json“ wählen. Es wurde nichts geändert.",
+    neuer: "Dieser Lernstand kommt aus einer neueren Version von Lern!. Bitte zuerst die App aktualisieren. Es wurde nichts geändert.",
+    leer: "In dieser Datei steckt kein Kind mit Lernstand. Es wurde nichts geändert.",
+    anders: "Dieser Lernstand gehört zu einem anderen Kind."
+  };
+  const num = (v, d) => typeof v === "number" && isFinite(v) ? v : d;
+  const str = (v, max) => typeof v === "string" ? v.slice(0, max || 200) : null;
+  const clone = o => o == null ? o : JSON.parse(JSON.stringify(o));
+  const uniq = a => Array.from(new Set(a));
+  /* kanonische Form (Schlüssel sortiert): Vergleich und fester Gleichstand */
+  function kanon(o) {
+    if (Array.isArray(o)) return "[" + o.map(kanon).join(",") + "]";
+    if (o && typeof o === "object") return "{" + Object.keys(o).sort().filter(k => o[k] !== undefined).map(k => JSON.stringify(k) + ":" + kanon(o[k])).join(",") + "}";
+    return JSON.stringify(o === undefined ? null : o);
+  }
+  const wochenZahl = w => { const m = /^(\d{4})-W(\d{1,2})$/.exec(String(w || "")); return m ? +m[1] * 100 + +m[2] : 0; };
+  const evKey = e => [e.profil, e.item, e.zeit, e.aufgabe].map(x => x == null ? "" : String(x)).join("|");
+  /* a = dieses Gerät, b = Datei. Neuerer gewinnt; beide ohne Zeit: Datei; gleich alt: fest nach Inhalt (A+B = B+A) */
+  function neuer(a, b, zt) {
+    if (a == null) return b; if (b == null) return a;
+    const ta = num(zt(a), 0), tb = num(zt(b), 0);
+    if (ta !== tb) return ta > tb ? a : b;
+    if (!ta) return b;
+    return kanon(a) >= kanon(b) ? a : b;
+  }
+
+  /* ---------- Zähler je Gerät ---------- */
+  function saubereZaehler(z) {
+    const out = {};
+    if (z && typeof z === "object" && !Array.isArray(z)) Object.keys(z).slice(0, 50).forEach(d => {
+      const e = z[d]; if (!ID_RE.test(d) || !e || typeof e !== "object") return;
+      out[d] = {week: str(e.week, 12) || "", sessions: Math.max(0, Math.floor(num(e.sessions, 0))), points: Math.max(0, num(e.points, 0))};
+    });
+    return out;
+  }
+  /* Altstand (v11, ohne zaehler): bisherige Sessions/Punkte gehören diesem Gerät */
+  function mitZaehler(o, geraet) {
+    if (!o || typeof o !== "object") return o;
+    const z = saubereZaehler(o.zaehler);
+    if (!Object.keys(z).length && (num(o.sessions, 0) || num(o.points, 0)) && ID_RE.test(geraet || ""))
+      z[geraet] = {week: str(o.week, 12) || "", sessions: Math.max(0, Math.floor(num(o.sessions, 0))), points: Math.max(0, num(o.points, 0))};
+    o.zaehler = z;
+    return o;
+  }
+  /* Summe über alle Geräte: Punkte gesamt, Sessions der Woche (ohne woche: die neueste vorkommende) */
+  function zaehlerSumme(z, woche) {
+    const list = Object.keys(z || {}).map(d => z[d]);
+    let w = woche ? wochenZahl(woche) : 0, wTxt = woche || "";
+    if (!woche) list.forEach(e => { const n = wochenZahl(e.week); if (n > w) { w = n; wTxt = e.week; } });
+    let sessions = 0, points = 0;
+    list.forEach(e => { points += num(e.points, 0); if (w && wochenZahl(e.week) === w) sessions += num(e.sessions, 0); });
+    return {week: wTxt, sessions, points};
+  }
+  function zaehlerMerge(a, b) {
+    const out = {};
+    uniq(Object.keys(a || {}).concat(Object.keys(b || {}))).sort().forEach(d => {
+      const x = a && a[d], y = b && b[d];
+      if (!x || !y) { out[d] = clone(x || y); return; }
+      const wx = wochenZahl(x.week), wy = wochenZahl(y.week);
+      const s = wx > wy ? x : wy > wx ? y : (x.sessions >= y.sessions ? x : y);
+      out[d] = {week: s.week, sessions: s.sessions, points: Math.max(x.points, y.points)};
+    });
+    return out;
+  }
+  /* nach einer Session: eigenes Gerät hochzählen, Anzeige (week, sessions, points) neu rechnen */
+  function zaehlerPlus(o, geraet, woche, punkte) {
+    mitZaehler(o, geraet);
+    const e = o.zaehler[geraet] || (o.zaehler[geraet] = {week: woche, sessions: 0, points: 0});
+    if (wochenZahl(e.week) !== wochenZahl(woche)) { e.week = woche; e.sessions = 0; }
+    e.sessions++; e.points += Math.max(0, num(punkte, 0));
+    const s = zaehlerSumme(o.zaehler, woche);
+    o.week = woche; o.sessions = s.sessions; o.points = s.points;
+    return o;
+  }
+
+  /* ---------- Prüfen und säubern (fremde Daten nie ungeprüft übernehmen) ---------- */
+  const FOTO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+  const saubereFoto = f => typeof f === "string" && f.length < 700000 && FOTO_RE.test(f) ? f : null;
+  const standWert = v => typeof v === "string" ? v.slice(0, 60) : typeof v === "number" && isFinite(v) ? v : null;
+  function saubereProfil(p) {
+    if (!p || typeof p !== "object" || !ID_RE.test(p.id || "")) return null;
+    const name = (str(p.name, 30) || "").replace(/\s+/g, " ").trim();
+    if (!name) return null;
+    const o = {id: p.id, name, farbe: str(p.farbe, 20) || "lavendel", jgst: num(p.jgst, null),
+      en: BUCH_RE.test(p.en || "") ? p.en : null, fr: BUCH_RE.test(p.fr || "") ? p.fr : null};
+    if (p.nameFehlt) o.nameFehlt = true;
+    if (p.sample) o.sample = true;
+    if (p.migriert) o.migriert = true;
+    o.geaendert = Math.max(0, num(p.geaendert, 0));
+    o.auch = Array.isArray(p.auch) ? uniq(p.auch.filter(x => typeof x === "string" && ID_RE.test(x) && x !== p.id)).sort().slice(0, 20) : [];
+    return o;
+  }
+  function saubereBuch(b) {
+    if (!b || typeof b !== "object" || !b.boxes || typeof b.boxes !== "object") return null;
+    const o = {boxes: {}, boxT: {}};
+    Object.keys(b.boxes).slice(0, 50000).forEach(id => {
+      const f = b.boxes[id]; if (id.length > 120 || typeof f !== "number" || !(f >= 1 && f <= 5)) return;
+      o.boxes[id] = Math.round(f);
+      const t = b.boxT && b.boxT[id]; if (typeof t === "number" && t > 0) o.boxT[id] = t;
+    });
+    ["einheit", "station", "unit"].forEach(k => { if (k in b) o[k] = standWert(b[k]); });
+    if (num(b.standZeit, 0) > 0) o.standZeit = b.standZeit;
+    if (num(b.resetZeit, 0) > 0) o.resetZeit = b.resetZeit;
+    o.week = str(b.week, 12) || ""; o.sessions = Math.max(0, Math.floor(num(b.sessions, 0))); o.points = Math.max(0, num(b.points, 0));
+    o.zaehler = b.zaehler;
+    mitZaehler(o, "alt");   // Datei ohne Zähler (sollte nicht vorkommen): Werte als Gerät „alt“
+    return o;
+  }
+  function saubereEreignis(e) {
+    if (!e || typeof e !== "object" || typeof e.item !== "string" || typeof e.zeit !== "string") return null;
+    const o = {};
+    Object.keys(e).slice(0, 40).forEach(k => {
+      if (k === "nr") return;
+      const v = e[k];
+      if (typeof v === "string") o[k] = v.slice(0, 500); else if ((typeof v === "number" && isFinite(v)) || typeof v === "boolean" || v === null) o[k] = v;
+    });
+    return o;
+  }
+  function sauberesKind(k) {
+    if (!k || typeof k !== "object") return null;
+    const profil = saubereProfil(k.profil); if (!profil) return null;
+    const m = k.modus, a = k.auswahl, s = k.stand;
+    const out = {profil, foto: saubereFoto(k.foto),
+      modus: m && typeof m === "object" && MODI.includes(m.wert) ? {wert: m.wert, zeit: Math.max(0, num(m.zeit, 0))} : null,
+      auswahl: a && typeof a === "object" && BUCH_RE.test(a.book || "") ? {book: a.book, zeit: Math.max(0, num(a.zeit, 0))} : null,
+      stand: s && typeof s === "object" && BUCH_RE.test(s.book || "") ? {pid: profil.id, book: s.book, unit: standWert(s.unit), station: standWert(s.station), zeit: Math.max(0, num(s.zeit, 0))} : null,
+      buecher: {}, verlauf: []};
+    if (k.buecher && typeof k.buecher === "object") Object.keys(k.buecher).slice(0, 40).forEach(id => { if (!BUCH_RE.test(id)) return; const b = saubereBuch(k.buecher[id]); if (b) out.buecher[id] = b; });
+    if (Array.isArray(k.verlauf)) out.verlauf = k.verlauf.slice(-25000).map(saubereEreignis).filter(Boolean);
+    return out;
+  }
+
+  /* ---------- Zuordnung ---------- */
+  const gleichesKind = (a, b) => !!a && !!b && (a.id === b.id || (a.auch || []).includes(b.id) || (b.auch || []).includes(a.id));
+  /* profile: Profile dieses Geräts; dp: Profil aus der Datei. Gleiche id, sonst früher zugeordnete id (auch), sonst null */
+  const passendesProfil = (profile, dp) => (profile || []).find(p => p.id === dp.id) || (profile || []).find(p => gleichesKind(p, dp)) || null;
+  /* Lernstand unter anderer id: Stand und Lernverlauf zeigen dann auf diese id */
+  function mitId(k, id) {
+    const o = clone(k); o.profil.id = id;
+    if (o.stand) o.stand.pid = id;
+    o.verlauf.forEach(e => { e.profil = id; });
+    o.profil.auch = (o.profil.auch || []).filter(x => x !== id);
+    return o;
+  }
+  const sortVerlauf = list => list.sort((x, y) => x.zeit < y.zeit ? -1 : x.zeit > y.zeit ? 1 : (evKey(x) < evKey(y) ? -1 : evKey(x) > evKey(y) ? 1 : 0));
+  function ohneDoppelte(list) { const seen = new Set(), out = []; list.forEach(e => { const k = evKey(e); if (!seen.has(k)) { seen.add(k); out.push(e); } }); return out; }
+
+  function fertigBuch(o) { const s = zaehlerSumme(o.zaehler); o.week = s.week || o.week || ""; o.sessions = s.sessions; o.points = s.points; return o; }
+  function buchMerge(a, b) {
+    if (!a || !b) return fertigBuch(clone(a || b));
+    const reset = Math.max(a.resetZeit || 0, b.resetZeit || 0), o = {boxes: {}, boxT: {}};
+    uniq(Object.keys(a.boxes).concat(Object.keys(b.boxes))).sort().forEach(id => {
+      const fa = a.boxes[id], fb = b.boxes[id], ta = a.boxT[id] || 0, tb = b.boxT[id] || 0;
+      let f, t;
+      if (fa == null) { f = fb; t = tb; } else if (fb == null) { f = fa; t = ta; }
+      else if (ta !== tb) { f = ta > tb ? fa : fb; t = Math.max(ta, tb); }
+      else { f = Math.max(fa, fb); t = ta; }
+      if (reset && t <= reset) return;   // vor dem Zurücksetzen geübt
+      o.boxes[id] = f; if (t) o.boxT[id] = t;
+    });
+    const st = x => { const s = {}; ["einheit", "station", "unit", "standZeit"].forEach(k => { if (k in x) s[k] = x[k]; }); return s; };
+    Object.assign(o, neuer(st(a), st(b), x => x.standZeit));
+    if (reset) o.resetZeit = reset;
+    o.zaehler = zaehlerMerge(a.zaehler, b.zaehler);
+    return fertigBuch(o);
+  }
+
+  /* lokal: Kind dieses Geräts (oder null = neues Kind), datei: Kind aus der Datei.
+     opts.zuordnen: Eltern haben die Datei ausdrücklich diesem Kind zugeordnet (andere id): Profil dieses Geräts bleibt.
+     Liefert {kind, stat: {kartenAktualisiert, kartenBehalten, verlaufNeu: [Ereignisse], profilAktualisiert, standAktualisiert, neu}} oder {fehler}. */
+  function mergeKind(lokal, datei, opts) {
+    opts = opts || {};
+    const d0 = sauberesKind(datei); if (!d0) return {fehler: MSG.leer};
+    const stat = {kartenAktualisiert: 0, kartenBehalten: 0, verlaufNeu: [], profilAktualisiert: false, standAktualisiert: false, neu: !lokal};
+    if (!lokal) {
+      const k = opts.id && opts.id !== d0.profil.id ? mitId(d0, opts.id) : d0;
+      Object.keys(k.buecher).forEach(b => { k.buecher[b] = fertigBuch(k.buecher[b]); stat.kartenAktualisiert += Object.keys(k.buecher[b].boxes).length; });
+      k.verlauf = sortVerlauf(ohneDoppelte(k.verlauf));
+      stat.verlaufNeu = k.verlauf.slice(); stat.profilAktualisiert = stat.standAktualisiert = true;
+      return {kind: k, stat};
+    }
+    const l = sauberesKind(lokal); if (!l) return {fehler: MSG.leer};
+    const gleich = gleichesKind(l.profil, d0.profil);
+    if (!gleich && !opts.zuordnen) return {fehler: MSG.anders, anderesKind: true};
+    const d = mitId(d0, l.profil.id), ohneAuch = p => { const c = clone(p); delete c.auch; return c; };
+    let profil, foto;
+    if (!gleich) {   // ausdrücklich zugeordnet: Profil dieses Geräts bleibt, nur Lücken füllen
+      profil = ohneAuch(l.profil); foto = l.foto;
+      if (profil.nameFehlt && !d.profil.nameFehlt) { profil.name = d.profil.name; delete profil.nameFehlt; }
+      if (!foto && d.foto) foto = d.foto;
+    } else {
+      const A = {p: ohneAuch(l.profil), f: l.foto}, B = {p: ohneAuch(d.profil), f: d.foto};
+      // Platzhaltername („Kind 1“) nie über einen echten Namen
+      const w = A.p.nameFehlt && !B.p.nameFehlt ? B : B.p.nameFehlt && !A.p.nameFehlt ? A : neuer(A, B, x => x.p.geaendert);
+      profil = clone(w.p); foto = w.f;
+      if (!foto && !w.p.geaendert) foto = (w === A ? B : A).f || null;   // nie bearbeitet: Foto der anderen Seite
+    }
+    profil.id = l.profil.id;
+    profil.auch = uniq((l.profil.auch || []).concat(d0.profil.auch || [], d0.profil.id !== l.profil.id ? [d0.profil.id] : [])).filter(x => x !== profil.id).sort();
+    stat.profilAktualisiert = kanon(profil) !== kanon(l.profil) || foto !== l.foto;
+    const out = {profil, foto,
+      modus: neuer(l.modus, d.modus, x => x.zeit), auswahl: neuer(l.auswahl, d.auswahl, x => x.zeit), stand: neuer(l.stand, d.stand, x => x.zeit),
+      buecher: {}, verlauf: []};
+    stat.standAktualisiert = kanon([out.stand, out.auswahl, out.modus]) !== kanon([l.stand, l.auswahl, l.modus]);
+    uniq(Object.keys(l.buecher).concat(Object.keys(d.buecher))).sort().forEach(id => {
+      const a = l.buecher[id], b = d.buecher[id], r = buchMerge(a, b);
+      out.buecher[id] = r;
+      if (a && !b) return;
+      Object.keys(r.boxes).forEach(c => { if (!a || a.boxes[c] !== r.boxes[c]) stat.kartenAktualisiert++; });
+      if (a && b) Object.keys(b.boxes).forEach(c => { if (b.boxes[c] !== a.boxes[c] && r.boxes[c] === a.boxes[c]) stat.kartenBehalten++; });
+      if (kanon([a && a.einheit, a && a.station, a && a.unit]) !== kanon([r.einheit, r.station, r.unit])) stat.standAktualisiert = true;
+    });
+    const keys = new Set(l.verlauf.map(evKey));
+    d.verlauf.forEach(e => { const k = evKey(e); if (!keys.has(k)) { keys.add(k); stat.verlaufNeu.push(e); } });
+    out.verlauf = sortVerlauf(ohneDoppelte(l.verlauf.concat(stat.verlaufNeu)));
+    return {kind: out, stat};
+  }
+
+  /* Datei lesen: Text oder Objekt -> {kinder, gesichert, geraet, uebersprungen} oder {fehler} (verständlich, nichts wird geändert) */
+  function lies(input) {
+    let o = input;
+    if (typeof input === "string") { try { o = JSON.parse(input.replace(/^﻿/, "")); } catch (e) { return {fehler: MSG.kaputt}; } }
+    if (!o || typeof o !== "object" || Array.isArray(o)) return {fehler: MSG.fremd};
+    const s = String(o.schema || "");
+    if (s === "lernpaket/1" || s === "lernpaket-sammlung/1") return {fehler: MSG.paket};
+    if (s === "kk-lernverlauf/1") return {fehler: MSG.verlauf};
+    const m = /^lern-lernstand\/(\d+)$/.exec(s);
+    if (!m) return {fehler: MSG.fremd};
+    if (+m[1] > 1) return {fehler: MSG.neuer};
+    if (!Array.isArray(o.kinder) || !o.kinder.length) return {fehler: MSG.leer};
+    const kinder = [];
+    o.kinder.slice(0, 30).map(sauberesKind).filter(Boolean).forEach(k => {
+      const i = kinder.findIndex(x => x.profil.id === k.profil.id);   // dasselbe Kind zweimal in einer Sammeldatei
+      if (i < 0) kinder.push(k); else { const r = mergeKind(kinder[i], k); if (r.kind) kinder[i] = r.kind; }
+    });
+    if (!kinder.length) return {fehler: MSG.leer};
+    return {kinder, gesichert: str(o.gesichert, 40), geraet: str(o.geraet, 64), uebersprungen: o.kinder.length - kinder.length};
+  }
+  /* Dateiinhalt bauen (info: {zeit: ISO, geraet}) */
+  function datei(kinder, info) {
+    info = info || {};
+    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v12", geraet: info.geraet || "",
+      hinweis: "Lernstand zum Weiterlernen auf einem anderen Gerät. In Lern! unter Profil › „Lernstand holen“ öffnen. Enthält Eingaben des Kindes.",
+      kinder: (kinder || []).map(sauberesKind).filter(Boolean)};
+  }
+  /* Lern_<Name>_JJJJ-MM-TT.json (Name aus dem Profil, nur Zeichen, die jedes Dateisystem verträgt) */
+  function dateiname(name, d) {
+    d = d || new Date();
+    const n = String(name || "").normalize("NFC").replace(/[\\/:*?"<>|#%&{}$!'@+`=.,;]+/g, "").trim().replace(/\s+/g, "_").slice(0, 30) || "Kind";
+    return `Lern_${n}_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.json`;
+  }
+  return {SCHEMA, MSG, lies, datei, dateiname, mergeKind, sauberesKind, passendesProfil, gleichesKind, mitId, kanon, evKey,
+          mitZaehler, zaehlerSumme, zaehlerPlus, zaehlerMerge, wochenZahl};
+})();
 
 /* ---------- Lernpakete (Format lernpaket/1) ---------- */
 const LK = (function () {
@@ -1516,7 +1805,7 @@ const LK = (function () {
   }
   return {validate, metaOf, countCards, indexPaket, position, pools, buildSession, makeTask, boxStats, unitStats, capacity,
           meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles,
-          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, migriereProfile, BEKANNTE_BUECHER};
+          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, migriereProfile, BEKANNTE_BUECHER, Lernstand};
 })();
 </script>
 <script>
@@ -1639,11 +1928,23 @@ function loadProfile(pid) {
   let p = store.get(sampleKey(pid));
   if (!p || typeof p !== "object" || !p.boxes) p = seedProfile();
   ITEMS.forEach(it => { if (!p.boxes[it.id]) p.boxes[it.id] = 1; });
-  const wk = isoWeek(new Date());
-  if (p.week !== wk) { p.week = wk; p.sessions = 0; }
+  zaehlerLaden(p);
   P = p;
 }
 function saveProfile() { if (CUR) store.set(CUR.sample ? sampleKey(CUR.pr.id) : CUR.key, P); renderStoreInfo(); }
+/* v12: Sessions der Woche und Punkte je Gerät (für den Abgleich), angezeigt wird die Summe aller Geräte */
+const GERAET_KEY = "kk.v1.geraet";
+function geraetId() {
+  let g = store.get(GERAET_KEY);
+  if (typeof g !== "string" || !/^[A-Za-z0-9_-]{4,64}$/.test(g)) { g = "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); store.set(GERAET_KEY, g); }
+  return g;
+}
+function zaehlerLaden(p) {
+  const wk = isoWeek(new Date());
+  LK.Lernstand.mitZaehler(p, geraetId());
+  const s = LK.Lernstand.zaehlerSumme(p.zaehler, wk);
+  p.week = wk; p.sessions = s.sessions; p.points = s.points;
+}
 
 /* ---------- Hilfen ---------- */
 const $ = id => document.getElementById(id);
@@ -2295,6 +2596,15 @@ const Verlauf = (function () {
       mem.push(ev); if (mem.length > VERLAUF_MAX) mem.splice(0, mem.length - VERLAUF_MAX);
     },
     count,
+    /* v12: viele Ereignisse auf einmal (Lernstand holen), eine Transaktion */
+    async addMany(list) {
+      if (!list || !list.length) return;
+      const db = await open();
+      if (db) {
+        try { await req(db, "readwrite", st => { list.forEach(ev => st.add(ev)); return null; }); await trim(db); return; } catch (e) {}
+      }
+      list.forEach(ev => mem.push(ev)); if (mem.length > VERLAUF_MAX) mem.splice(0, mem.length - VERLAUF_MAX);
+    },
     async all() {
       const db = await open(); let a = [];
       if (db) { try { a = (await req(db, "readonly", st => st.getAll())) || []; } catch (e) { a = []; } }
@@ -2544,8 +2854,7 @@ function loadPackProgress(pid, meta) {
   let p = store.get(packKey(pid, meta.id));
   if (!p || typeof p !== "object" || !p.boxes) p = {einheit: meta.einheiten[0].id, station: null, boxes: {}, week: isoWeek(new Date()), sessions: 0, points: 0};
   if (!meta.einheiten.some(e => e.id === p.einheit)) { p.einheit = meta.einheiten[0].id; p.station = null; }
-  const wk = isoWeek(new Date());
-  if (p.week !== wk) { p.week = wk; p.sessions = 0; }
+  zaehlerLaden(p);
   return p;
 }
 function standNoteSample(u) {
@@ -2567,6 +2876,8 @@ const MODI = [
   {id: "mix", ic: "🔀", t: "Mix", s: "von allem etwas"}
 ];
 const modusKey = pid => "kk.v1.modus." + pid;
+const modusZeitKey = pid => "kk.v1.modusZeit." + pid;   // v12: wann die Übungsart zuletzt gewählt wurde (Abgleich)
+const sicherKey = pid => "kk.v1.sicherung." + pid;      // v12: {zeit: zuletzt gesichert, offen: Sessions seitdem}, nur dieses Gerät
 function modusFor(pid) {
   const m = store.get(modusKey(pid));
   if (m === "sprechen" && !speakAvail()) return "schreiben";
@@ -2588,7 +2899,7 @@ function wireModes(host, onPick) {
   host.querySelectorAll("[data-modus]").forEach(b => b.onclick = () => {
     if (b.disabled) return;
     unlockSpeech(); try { Fun.unlock(); } catch (e) {}
-    store.set(modusKey(b.dataset.pid), b.dataset.modus);
+    store.set(modusKey(b.dataset.pid), b.dataset.modus); store.set(modusZeitKey(b.dataset.pid), Date.now());
     onPick(b.dataset.modus, b);
   });
 }
@@ -2603,9 +2914,12 @@ async function startFor(pr, modus, btn) {
 function renderProfiles() {
   const h1 = $("profileH1"); if (h1) h1.textContent = PROFILES.length ? "Wer lernt heute?" : "Wer lernt?";
   const add = `<button type="button" class="add-card" id="btnAddProfile"><span class="plus" aria-hidden="true">+</span>${PROFILES.length ? "Kind hinzufügen" : "Erstes Profil anlegen"}<span class="note">${PROFILES.length ? "Name, Foto, Farbe und Bücher" : "Los geht's: Name, Klasse und Bücher eintragen"}</span></button>`;
-  $("profiles").innerHTML = PROFILES.map(profileCard).join("") + add;
+  // v12: frisches Gerät – Lernstand eines anderen Geräts holen statt neu anlegen
+  const holen = PROFILES.length ? "" : `<button type="button" class="add-card" id="btnHolenLeer"><span class="plus" aria-hidden="true">📥</span>Lernstand von einem anderen Gerät holen<span class="note">Datei „Lern_Name_Datum.json“ aus iCloud Drive › Lern wählen</span></button>`;
+  $("profiles").innerHTML = PROFILES.map(profileCard).join("") + add + holen;
   PROFILES.forEach(wireProfile);
   $("btnAddProfile").onclick = () => openEdit(null);
+  if ($("btnHolenLeer")) $("btnHolenLeer").onclick = () => holenStarten();
 }
 function profileCard(pr) {
   const book = chosenBook(pr), meta = METAS.find(m => m.id === book);
@@ -2638,7 +2952,7 @@ function wireProfile(pr) {
   const sb = $("selBook-" + pr.id);
   // jede Änderung der Auswahl gilt sofort als „letzter Stand“ dieses Kindes
   const keepLast = (unit, station) => { store.set(LKEY + "." + pr.id, {pid: pr.id, book, unit, station, zeit: Date.now()}); renderStand(pr); };
-  if (sb) { sb.value = book; sb.onchange = () => { store.set("kk.v1.sel." + pr.id, {book: sb.value}); store.del(LKEY + "." + pr.id); renderProfiles(); }; }
+  if (sb) { sb.value = book; sb.onchange = () => { store.set("kk.v1.sel." + pr.id, {book: sb.value, zeit: Date.now()}); store.del(LKEY + "." + pr.id); renderProfiles(); }; }
   const su = $("selUnit-" + pr.id), ss = $("selStation-" + pr.id), note = $("standNote-" + pr.id);
   if (book === SAMPLE_ID) {
     loadProfile(pr.id); const prog = P;
@@ -2650,8 +2964,8 @@ function wireProfile(pr) {
       ss.value = st[prog.station] ? String(prog.station) : "1"; ss.disabled = false;
       note.textContent = standNoteSample(+su.value);
     };
-    su.onchange = () => { prog.unit = +su.value; fillSt(); prog.station = +ss.value; store.set(sampleKey(pr.id), prog); keepLast(prog.unit, prog.station); };
-    ss.onchange = () => { prog.station = +ss.value; store.set(sampleKey(pr.id), prog); keepLast(prog.unit, prog.station); };
+    su.onchange = () => { prog.unit = +su.value; fillSt(); prog.station = +ss.value; prog.standZeit = Date.now(); store.set(sampleKey(pr.id), prog); keepLast(prog.unit, prog.station); };
+    ss.onchange = () => { prog.station = +ss.value; prog.standZeit = Date.now(); store.set(sampleKey(pr.id), prog); keepLast(prog.unit, prog.station); };
     fillSt();
   } else {
     const meta = METAS.find(m => m.id === book), prog = loadPackProgress(pr.id, meta);
@@ -2665,7 +2979,7 @@ function wireProfile(pr) {
       } else { ss.innerHTML = `<option value="">ganze Einheit</option>`; ss.value = ""; ss.disabled = true; }
       note.textContent = standNotePack(meta, e);
     };
-    const save = () => { prog.einheit = su.value; prog.station = ss.value || null; store.set(packKey(pr.id, book), prog); keepLast(prog.einheit, prog.station); };
+    const save = () => { prog.einheit = su.value; prog.station = ss.value || null; prog.standZeit = Date.now(); store.set(packKey(pr.id, book), prog); keepLast(prog.einheit, prog.station); };
     su.onchange = () => { fillSt(); save(); };
     ss.onchange = save;
     fillSt();
@@ -2714,7 +3028,11 @@ function renderEdit() {
     <p class="note">Das gewählte Buch ist der aktuelle Stand. Frühere Bände derselben Reihe kommen automatisch als Wiederholung dazu.</p>
     <p class="msg-bad" id="edMsg" role="status" aria-live="polite"></p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="edCancel">${PROFILES.length ? "Abbrechen" : "Zurück"}</button><button type="button" class="btn btn-primary" id="edSave">Speichern</button></div>
-    ${EDIT.neu ? "" : `<div class="row" style="justify-content:flex-start;border-top:1px solid var(--line);padding-top:14px"><button type="button" class="btn btn-ghost btn-small danger" id="edDel">Profil löschen</button></div>
+    ${EDIT.neu ? "" : `<div class="sync" aria-labelledby="edSyncH"><h2 id="edSyncH">Auf anderen Geräten weiterlernen</h2>
+      <p class="note">Zuletzt gesichert: <b id="edSichZeit">${esc(gesichertText(p.id))}</b>. Sichere den Lernstand nach iCloud Drive und hol ihn auf dem anderen Gerät hier mit „Lernstand holen“.</p>
+      <div class="row"><button type="button" class="btn btn-ghost btn-small sich-btn" id="edSichern">💾 Lernstand sichern</button><button type="button" class="btn btn-ghost btn-small" id="edHolen">📥 Lernstand holen</button></div>
+      ${PROFILES.length > 1 ? `<button type="button" class="link" id="edSichernAlle" style="align-self:flex-start">Alle Kinder in einer Datei sichern</button>` : ""}</div>
+    <div class="row" style="justify-content:flex-start;border-top:1px solid var(--line);padding-top:14px"><button type="button" class="btn btn-ghost btn-small danger" id="edDel">Profil löschen</button></div>
     <div class="card" id="edDelAsk" hidden style="background:var(--bad-bg);border-color:var(--bad)"><p><b>Profil ${esc(p.name)} wirklich löschen?</b></p>
       <p class="muted" style="margin-block:6px 12px">Karteikasten, Fortschritt, letzter Stand und Foto dieses Profils werden auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen. Der Lernverlauf bleibt, bis du ihn unten in der Fußzeile löschst.</p>
       <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="edDelNo">Nein, behalten</button><button type="button" class="btn btn-primary" id="edDelYes" style="background:var(--bad);color:#2A0D10">Ja, löschen</button></div></div>`}`;
@@ -2731,6 +3049,11 @@ function renderEdit() {
   $("edCancel").onclick = () => { EDIT = null; renderProfiles(); show("scrProfile"); };
   $("edSave").onclick = saveEdit;
   if (!EDIT.neu) {
+    const alleIds = () => PROFILES.map(x => x.id);
+    vorbereiten([p.id]);
+    $("edSichern").onclick = () => sichern([p.id], $("edSichern"));
+    $("edHolen").onclick = () => holenStarten();
+    if ($("edSichernAlle")) $("edSichernAlle").onclick = () => sichern(alleIds(), $("edSichernAlle"));
     $("edDel").onclick = () => { $("edDelAsk").hidden = false; $("edDel").hidden = true; $("edDelNo").focus(); };
     $("edDelNo").onclick = () => { $("edDelAsk").hidden = true; $("edDel").hidden = false; };
     $("edDelYes").onclick = async () => { const id = p.id, name = p.name; await deleteProfile(id); EDIT = null; renderProfiles(); renderPacks(); show("scrProfile"); toast(`Profil ${name} gelöscht.`); };
@@ -2741,13 +3064,13 @@ async function saveEdit() {
   const p = EDIT.p, name = $("edName").value.replace(/\s+/g, " ").trim();
   if (!name) { $("edMsg").textContent = "Bitte einen Namen eintragen."; $("edName").focus(); return; }
   const old = PROFILES.find(x => x.id === p.id);
-  p.name = name; delete p.nameFehlt;
+  p.name = name; delete p.nameFehlt; p.geaendert = Date.now();   // v12: Änderungszeit fürs Abgleichen
   p.jgst = +$("edJgst").value || null; p.en = $("edEn").value || null; p.fr = $("edFr").value || null;
   if (old) PROFILES = PROFILES.map(x => x.id === p.id ? p : x); else PROFILES.push(p);
   saveProfiles();
   // neues Buch gewählt: Karte zeigt es gleich an
   const neuBuch = (p.en !== (old && old.en) && p.en) || (p.fr !== (old && old.fr) && p.fr);
-  if (neuBuch && METAS.some(m => m.id === neuBuch)) { store.set("kk.v1.sel." + p.id, {book: neuBuch}); store.del(LKEY + "." + p.id); }
+  if (neuBuch && METAS.some(m => m.id === neuBuch)) { store.set("kk.v1.sel." + p.id, {book: neuBuch, zeit: Date.now()}); store.del(LKEY + "." + p.id); }
   if (EDIT.bild === null) { delete AVATARS[p.id]; await AvatarDB.del(p.id); }
   else if (typeof EDIT.bild === "string") {
     AVATARS[p.id] = EDIT.bild; const wo = await AvatarDB.put(p.id, EDIT.bild);
@@ -2761,7 +3084,7 @@ async function saveEdit() {
 async function deleteProfile(pid) {
   PROFILES = PROFILES.filter(p => p.id !== pid); saveProfiles();
   delete AVATARS[pid]; try { await AvatarDB.del(pid); } catch (e) {}
-  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k.startsWith("kk.v1.recent." + pid + ".");
+  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k.startsWith("kk.v1.recent." + pid + ".");
   lsKeys().filter(mine).forEach(k => store.del(k));
   const g = store.get(LKEY); if (g && g.pid === pid) store.del(LKEY);
   if (CUR && CUR.pr.id === pid) CUR = null;
@@ -2777,6 +3100,178 @@ async function ladeProfile() {
   PROFILES = LK.migriereProfile(lsKeys(), k => store.get(k), namen, bilder);
   saveProfiles();
 }
+
+/* ---------- Lernstand sichern / holen (v12): je Kind eine Datei, Abgleich über iCloud Drive, kein Server, kein Konto ----------
+   Sichern: iPad über das Teilen-Menü (Web Share mit Datei) → „In Dateien sichern“ → iCloud Drive › Lern; sonst Download-Link,
+   im Artifact über die downloads-Schnittstelle. Holen: Dateiauswahl, Zusammenführen mit LK.Lernstand.mergeKind (nichts Neueres
+   wird überschrieben). Automatisches Sichern gibt es nicht (der Browser erlaubt Dateien nur nach einem Tipp). */
+const SICHER_HINWEIS_KEY = "kk.v1.hinweis.sichern";
+function gesichertText(pid) {
+  const s = store.get(sicherKey(pid)); if (!s || !s.zeit) return "noch nie";
+  const tag = t => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+  const n = Math.round((tag(Date.now()) - tag(s.zeit)) / 864e5);
+  return n <= 0 ? "heute" : n === 1 ? "gestern" : `vor ${n} Tagen`;
+}
+/* Speicherschlüssel der Bücher eines Kindes: kk.v1.<id>.<buch>, Beispielkarten kk.v1.<id> */
+function buchSchluessel(pid) {
+  const out = {}, pre = "kk.v1." + pid + ".";
+  lsKeys().forEach(k => { if (k.startsWith(pre)) { const b = k.slice(pre.length); if (/^[A-Za-z0-9_-]{1,40}$/.test(b)) out[b] = k; } });
+  if (store.get(sampleKey(pid))) out[SAMPLE_ID] = sampleKey(pid);
+  return out;
+}
+/* Lernstand eines Kindes aus dem Speicher dieses Geräts (Format lern-lernstand/1, ein Eintrag in „kinder“) */
+function sammleKind(pid, alle) {
+  const pr = PROFILES.find(p => p.id === pid); if (!pr) return null;
+  const dev = geraetId(), buecher = {};
+  Object.entries(buchSchluessel(pid)).forEach(([b, k]) => { const o = store.get(k); if (o && typeof o === "object" && o.boxes) buecher[b] = LK.Lernstand.mitZaehler(JSON.parse(JSON.stringify(o)), dev); });
+  const g = store.get(LKEY), last = store.get(LKEY + "." + pid) || (g && g.pid === pid ? g : null), mw = store.get(modusKey(pid));
+  return {profil: Object.assign({}, pr), foto: AVATARS[pid] || null, modus: mw ? {wert: mw, zeit: store.get(modusZeitKey(pid)) || 0} : null,
+    auswahl: store.get("kk.v1.sel." + pid), stand: last, buecher,
+    verlauf: (alle || []).filter(e => e && e.profil === pid).map(e => { const c = Object.assign({}, e); delete c.nr; return c; })};
+}
+/* zusammengeführten Lernstand speichern (neu: nur die neuen Lernverlauf-Einträge) */
+async function schreibeKind(k, neu) {
+  const id = k.profil.id, p = Object.assign({}, k.profil), i = PROFILES.findIndex(x => x.id === id);
+  if (i >= 0) PROFILES[i] = p; else PROFILES.push(p);
+  saveProfiles();
+  if (k.foto && k.foto !== AVATARS[id]) { AVATARS[id] = k.foto; try { await AvatarDB.put(id, k.foto); } catch (e) {} }
+  else if (!k.foto && AVATARS[id]) { delete AVATARS[id]; try { await AvatarDB.del(id); } catch (e) {} }
+  if (k.modus) { store.set(modusKey(id), k.modus.wert); store.set(modusZeitKey(id), k.modus.zeit || 0); }
+  if (k.auswahl) store.set("kk.v1.sel." + id, k.auswahl);
+  if (k.stand) store.set(LKEY + "." + id, k.stand);
+  Object.keys(k.buecher).forEach(b => store.set(b === SAMPLE_ID ? sampleKey(id) : packKey(id, b), k.buecher[b]));
+  if (neu && neu.length) { try { await Verlauf.addMany(neu); } catch (e) {} renderVerlaufTools(); }
+}
+/* Datei vorab bauen: das Teilen-Menü muss direkt im Tipp aufgehen, langes Warten davor verbietet Safari */
+let SICHER = null;   // {key, t, fertig: {json, fname, pids}}
+async function baueSicherung(pids) {
+  let alle = []; try { alle = await Verlauf.all(); } catch (e) {}
+  const kinder = pids.map(id => sammleKind(id, alle)).filter(Boolean), d = new Date();
+  const data = LK.Lernstand.datei(kinder, {zeit: d.toISOString(), geraet: geraetId()});
+  return {pids, json: JSON.stringify(data), fname: LK.Lernstand.dateiname(kinder.length === 1 ? kinder[0].profil.name : "Alle", d), n: data.kinder.length};
+}
+function vorbereiten(pids) {
+  const key = pids.join(","), t = Date.now(), me = {key, t, fertig: null};
+  SICHER = me;
+  baueSicherung(pids).then(f => { me.fertig = f; }, () => {});
+}
+const artifactDownloads = () => { try { return !!(window.claude && typeof window.claude.use === "function"); } catch (e) { return false; } };
+function dateiObjekt(f) { try { return new File([f.json], f.fname, {type: "application/json"}); } catch (e) { return null; } }
+function kannTeilen(f) { try { const file = dateiObjekt(f); return !!(file && navigator.share && navigator.canShare && navigator.canShare({files: [file]})); } catch (e) { return false; } }
+/* Datei weitergeben: "geteilt" | "geladen" | "abgebrochen" | "nochmal" */
+async function gibDatei(f) {
+  if (artifactDownloads()) {
+    let dl = null; try { dl = await window.claude.use("downloads"); } catch (e) { dl = null; }
+    if (dl) {
+      try { await dl.save({filename: f.fname, data: f.json}); return "geladen"; }
+      catch (e) { if (e && e.code === "declined") return "abgebrochen"; throw e; }
+    }
+  }
+  if (kannTeilen(f)) {
+    // ohne title/text: sonst legt iOS zusätzlich eine Textdatei ab
+    try { await navigator.share({files: [dateiObjekt(f)]}); return "geteilt"; }
+    catch (e) { if (e && e.name === "AbortError") return "abgebrochen"; if (e && e.name === "NotAllowedError") return "nochmal"; }
+  }
+  const url = URL.createObjectURL(new Blob([f.json], {type: "application/json"})), a = document.createElement("a");
+  a.href = url; a.download = f.fname; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 4000);
+  return "geladen";
+}
+async function sichern(pids, btn) {
+  if (!pids.length) return;
+  const key = pids.join(",");
+  let f = SICHER && SICHER.key === key && Date.now() - SICHER.t < 5 * 60000 ? SICHER.fertig : null;
+  if (!f) { if (btn) btn.disabled = true; try { f = await baueSicherung(pids); } finally { if (btn) btn.disabled = false; } SICHER = {key, t: Date.now(), fertig: f}; }
+  if (!f || !f.n) { toast("Kein Lernstand zum Sichern gefunden."); return; }
+  // beim ersten Mal kurz erklären, wohin (der Tipp auf „Verstanden“ öffnet dann das Teilen-Menü)
+  if (!artifactDownloads() && kannTeilen(f) && !store.get(SICHER_HINWEIS_KEY)) {
+    const w = await dialog({titel: "Lernstand sichern",
+      html: `<p>Gleich geht das Teilen-Menü auf. Wähle <b>„In Dateien sichern“</b> und den Ordner <b>iCloud Drive › Lern</b>.</p>
+        <p class="note">Gibt es den Ordner noch nicht: oben rechts auf das Ordner-Zeichen tippen und „Lern“ nennen. Auf dem anderen iPad dann im Profil „Lernstand holen“ tippen und die Datei aus diesem Ordner wählen.</p>`,
+      knoepfe: [{t: "Abbrechen", wert: null}, {t: "Verstanden, sichern", wert: "ok", primary: true}]});
+    if (w !== "ok") return;
+    store.set(SICHER_HINWEIS_KEY, 1);
+  }
+  let r;
+  try { r = await gibDatei(f); } catch (e) { toast("Sichern hat nicht geklappt: " + (e && e.message ? e.message : "unbekannt")); return; }
+  if (r === "abgebrochen") return;
+  if (r === "nochmal") { toast("Bitte noch einmal auf „Lernstand sichern“ tippen."); return; }
+  const jetzt = Date.now();
+  pids.forEach(id => store.set(sicherKey(id), {zeit: jetzt, offen: 0}));
+  const namen = pids.map(id => (PROFILES.find(p => p.id === id) || {}).name).filter(Boolean).join(", ");
+  toast(r === "geteilt" ? `Lernstand von ${namen} weitergegeben.` : `Lernstand von ${namen} gespeichert: ${f.fname}`);
+  if (btn) { btn.classList.remove("is-hot"); btn.textContent = "✓ Gesichert"; }
+  const z = $("edSichZeit"); if (z && EDIT) z.textContent = gesichertText(EDIT.p.id);
+}
+
+/* kleiner Dialog: {titel, html, knoepfe: [{t, wert, primary?, html?}]} -> Promise(wert) */
+function dialog(o) {
+  return new Promise(res => {
+    const back = $("dlgBack"), box = $("dlg");
+    box.innerHTML = `<h2 id="dlgH">${esc(o.titel)}</h2>${o.html || ""}<div class="row" style="justify-content:flex-end;flex-wrap:wrap">${(o.knoepfe || []).map((k, i) => `<button type="button" class="btn ${k.primary ? "btn-primary" : "btn-ghost"}${k.cls ? " " + k.cls : ""}" data-dlg="${i}"${k.style ? ` style="${k.style}"` : ""}>${k.html || esc(k.t)}</button>`).join("")}</div>`;
+    back.hidden = false;
+    const done = v => { back.hidden = true; box.innerHTML = ""; document.removeEventListener("keydown", esc_); res(v); };
+    const esc_ = e => { if (e.key === "Escape") done(null); };
+    document.addEventListener("keydown", esc_);
+    box.querySelectorAll("[data-dlg]").forEach(b => b.onclick = () => done(o.knoepfe[+b.dataset.dlg].wert));
+    setTimeout(() => { const b = box.querySelector(".btn-primary") || box.querySelector("button"); if (b) try { b.focus({preventScroll: true}); } catch (e) {} }, 30);
+  });
+}
+/* Datei ohne passende Profil-id: Eltern fragen, zu welchem Kind sie gehört -> Profil-id | "neu" | null */
+function frageZuordnung(dk, gesichert) {
+  const wann = gesichert ? new Date(gesichert) : null, wannTxt = wann && !isNaN(wann) ? ` vom ${wann.toLocaleDateString("de-DE")}` : "";
+  const kids = PROFILES.map(p => ({t: p.name, wert: p.id, cls: "pick-kid", style: farbStyle(p), html: `<span class="avatar" aria-hidden="true">${avatarInner(p)}</span>${esc(p.name)}`}));
+  return dialog({titel: "Zu welchem Kind gehört dieser Lernstand?",
+    html: `<p>In der Datei: <b>${esc(dk.profil.name)}</b>${esc(wannTxt)}. Auf diesem Gerät gibt es kein Profil, das schon dazugehört.</p>
+      <p class="note">Wählst du ein Kind, bleiben Name, Foto und Farbe dieses Geräts; Karteikasten und Lernverlauf werden zusammengeführt. Beim nächsten Mal erkennt Lern! das Kind von selbst.</p>`,
+    knoepfe: kids.concat([{t: "Als neues Kind anlegen", wert: "neu"}, {t: "Abbrechen", wert: null}])});
+}
+function holenStarten() { const inp = $("lernstandIn"); inp.value = ""; inp.click(); }
+function leseText(file) {
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onerror = () => rej(fr.error || new Error("lesen")); fr.onload = () => res(String(fr.result)); fr.readAsText(file, "utf-8"); });
+}
+async function holeDatei(file) {
+  if (!file) return;
+  const fehler = t => dialog({titel: "Lernstand holen", html: `<p>${esc(t)}</p>`, knoepfe: [{t: "OK", wert: null, primary: true}]});
+  if (file.size > 60 * 1024 * 1024) return fehler("Diese Datei ist viel zu groß für einen Lernstand. Es wurde nichts geändert.");
+  let text;
+  try { text = await leseText(file); } catch (e) { return fehler("Die Datei ließ sich nicht lesen. Liegt sie schon auf dem Gerät (nicht nur in der Cloud)? Es wurde nichts geändert."); }
+  const r = LK.Lernstand.lies(text);
+  if (r.fehler) return fehler(r.fehler);
+  return uebernehmeLernstand(r);
+}
+/* gelesene Datei übernehmen: je Kind zuordnen (id, sonst fragen), zusammenführen, speichern, Ergebnis zeigen */
+async function uebernehmeLernstand(r) {
+  let alle = []; try { alle = await Verlauf.all(); } catch (e) {}
+  const berichte = [], leer = !PROFILES.length;   // frisches Gerät: alle Kinder der Datei ohne Rückfrage anlegen
+  for (const dk of r.kinder) {
+    let lokal = LK.Lernstand.passendesProfil(PROFILES, dk.profil);
+    const opts = {};
+    if (!lokal && !leer) {
+      const w = await frageZuordnung(dk, r.gesichert);
+      if (w == null) { berichte.push({name: dk.profil.name, aus: true}); continue; }
+      if (w !== "neu") { lokal = PROFILES.find(p => p.id === w) || null; opts.zuordnen = true; }
+    }
+    const m = LK.Lernstand.mergeKind(lokal ? sammleKind(lokal.id, alle) : null, dk, opts);
+    if (m.fehler) { berichte.push({name: dk.profil.name, fehler: m.fehler}); continue; }
+    try { await schreibeKind(m.kind, m.stat.verlaufNeu); } catch (e) { berichte.push({name: dk.profil.name, fehler: "Speichern hat nicht geklappt."}); continue; }
+    berichte.push({name: m.kind.profil.name, stat: m.stat, fremdName: opts.zuordnen ? dk.profil.name : ""});
+  }
+  CUR = null; EDIT = null; SICHER = null;
+  renderProfiles(); renderPacks(); show("scrProfile");
+  const zeile = b => {
+    if (b.aus) return `<li><b>${esc(b.name)}</b>: nicht übernommen.</li>`;
+    if (b.fehler) return `<li><b>${esc(b.name)}</b>: ${esc(b.fehler)} Es wurde nichts geändert.</li>`;
+    const s = b.stat, v = s.verlaufNeu.length;
+    if (s.neu) return `<li><b>${esc(b.name)}</b>: neu angelegt mit ${fmt(s.kartenAktualisiert)} Karten und ${fmt(v)} Einträgen im Lernverlauf.</li>`;
+    const nichts = !s.kartenAktualisiert && !v && !s.profilAktualisiert && !s.standAktualisiert;
+    const fremd = b.fremdName && b.fremdName !== b.name ? ` (aus der Datei von ${esc(b.fremdName)})` : "";
+    return `<li><b>${esc(b.name)}</b>${fremd}: ${nichts ? "war schon auf dem neuesten Stand." : `${fmt(s.kartenAktualisiert)} Karten aktualisiert, ${fmt(v)} neue Einträge, nichts überschrieben, was neuer war.`}${s.kartenBehalten ? ` ${fmt(s.kartenBehalten)} Karten waren hier neuer und bleiben.` : ""}</li>`;
+  };
+  const fehlt = PROFILES.some(p => fehlendeBuecher(p).length) ? `<p class="note">Fehlt auf diesem Gerät noch ein Lernpaket, steht das in der Profilkarte. Der Karteikasten ist trotzdem schon gespeichert.</p>` : "";
+  await dialog({titel: "Lernstand geholt", html: `<ul>${berichte.map(zeile).join("")}</ul>${fehlt}`, knoepfe: [{t: "Fertig", wert: null, primary: true}]});
+}
+$("lernstandIn").onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; holeDatei(f).catch(() => toast("Holen hat nicht geklappt. Es wurde nichts geändert.")); };
 
 async function getPaket(id) {
   if (PAK[id]) return PAK[id];
@@ -3283,10 +3778,15 @@ function interstitial() {
 
 /* ---------- Ende ---------- */
 function endSession() {
-  S.moves.forEach(m => { P.boxes[m.it.id] = m.to; });
+  const jetzt = Date.now();
+  S.moves.forEach(m => { P.boxes[m.it.id] = m.to; (P.boxT || (P.boxT = {}))[m.it.id] = jetzt; });   // v12: Änderungszeit je Karte
   recentAdd(S.moves.map(m => m.it.id).concat(S.queue.filter(t => t.t === "qa").map(t => t.id)));
-  P.sessions++; P.points = (P.points || 0) + S.points;
+  LK.Lernstand.zaehlerPlus(P, geraetId(), isoWeek(new Date()), S.points);
   saveProfile();
+  const sich = store.get(sicherKey(CUR.pr.id)) || {zeit: null, offen: 0};
+  sich.offen = (sich.offen || 0) + 1; store.set(sicherKey(CUR.pr.id), sich);
+  // hervorgehoben: noch nie gesichert oder schon eine Session vor dieser ungesichert
+  const sichHot = !sich.zeit || sich.offen >= 2;
   const total = S.mainLen || 10;
   const rate = S.points / (total * 10);
   const stars = rate >= 0.85 ? 3 : rate >= 0.6 ? 2 : 1;
@@ -3320,10 +3820,14 @@ function endSession() {
       <p class="muted" style="margin-block:4px 8px">${fresh.length ? fresh.length + " neue Karten im Kasten, " : ""}${up.length} Karten rauf, ${stay.length} bleiben, ${down.length} zurück in Fach 1.</p>
       <div class="moves">${S.moves.map(moveRow).join("")}</div>
     </div>
-    <div class="row" style="justify-content:flex-end">
-      <button class="btn btn-ghost" id="btnHome">Home</button>
-      <button class="btn btn-primary" id="btnAgain">Nochmal</button>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn btn-ghost btn-small sich-btn${sichHot ? " is-hot" : ""}" id="btnSichern" title="Zuletzt gesichert: ${esc(gesichertText(CUR.pr.id))}">💾 Lernstand sichern</button>
+      <span class="row"><button class="btn btn-ghost" id="btnHome">Home</button>
+      <button class="btn btn-primary" id="btnAgain">Nochmal</button></span>
     </div>`;
+  const pidEnd = CUR.pr.id;
+  vorbereiten([pidEnd]);
+  $("btnSichern").onclick = () => sichern([pidEnd], $("btnSichern"));
   $("btnHome").onclick = () => { renderHome(); show("scrHome"); };
   $("btnAgain").onclick = () => startSession(S.modus);
   show("scrEnd");
@@ -3380,7 +3884,7 @@ $("btnQuitYes").onclick = () => { if (S) recentAdd(S.queue.slice(0, S.i + 1).map
   b.onclick = () => {
     if (!CUR) { toast("Erst ein Profil wählen, dann geht Zurücksetzen."); return; }
     if (!armed) { armed = true; b.textContent = "Wirklich? Nochmal tippen."; setTimeout(() => { armed = false; b.textContent = label(); }, 3500); return; }
-    if (!CUR.sample) { store.del(CUR.key); P = loadPackProgress(CUR.pr.id, CUR.meta); }
+    if (!CUR.sample) { store.del(CUR.key); P = loadPackProgress(CUR.pr.id, CUR.meta); P.resetZeit = Date.now(); }   // resetZeit: ältere Karten anderer Geräte kommen beim Abgleich nicht zurück
     else { store.del(sampleKey(CUR.pr.id)); loadProfile(CUR.pr.id); }
     saveProfile(); armed = false; b.textContent = label(); toast("Zurückgesetzt.");
     if (!$("scrHome").hidden) renderHome(); else renderProfiles();
