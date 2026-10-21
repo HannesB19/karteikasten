@@ -384,6 +384,21 @@ details.pack > * + * { margin-top: 14px; }
 .memo button.paar { border-color: var(--good); opacity: .7; }
 .tools-edit { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
 .tools-edit h2 { font-size: 1.15rem; }
+/* v13.1: Mutmach-Karte (freundliches Monster + Spruch); in der Session nie über Eingaben: oben schwebend (nach der Antwort) oder unter dem Antwortbereich (Start) */
+.mut-fix { position: fixed; left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 57; width: min(calc(100% - 32px), 440px); transform: translateX(-50%); pointer-events: none; }
+.mut-fix .mut { pointer-events: auto; }
+.mut-fb { margin-top: 14px; }
+.mut-fb .mut { max-width: 460px; }
+.mut { display: flex; align-items: center; gap: 12px; background: var(--card); border: 3px solid var(--accent); border-radius: 20px; padding: 8px 16px 8px 8px; box-shadow: var(--shadow); transform: rotate(-1deg); cursor: pointer; animation: mutin .4s cubic-bezier(.3,1.4,.5,1); transition: opacity .45s; }
+.mut.aus { opacity: 0; }
+.mut-fig { width: 64px; height: 64px; flex: none; }
+.mut-fig svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.mut-fig .idle { animation: bossbob 2.4s ease-in-out infinite; transform-origin: 50% 92%; }
+.mut-text { margin: 0; font-family: var(--f-display); font-weight: 800; text-transform: uppercase; letter-spacing: .03em; line-height: 1.2; font-size: clamp(.92rem, 3.5vw, 1.15rem); overflow-wrap: break-word; text-wrap: balance; }
+.mut-end { cursor: default; margin: 4px auto; max-width: 480px; width: 100%; animation: none; }
+.mut-end .mut-fig { width: 84px; height: 84px; }
+.mut-end .mut-text { font-size: clamp(1.02rem, 3.9vw, 1.3rem); }
+@keyframes mutin { 0% { transform: translateY(-12px) scale(.9) rotate(-1deg); opacity: 0; } 100% { transform: rotate(-1deg); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -510,7 +525,7 @@ details.pack > * + * { margin-top: 14px; }
     <span id="storeInfo"></span>
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
-    <span id="appVersion">Lern! v13</span>
+    <span id="appVersion">Lern! v13.1</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -1281,7 +1296,7 @@ const Lernstand = (function () {
   /* Dateiinhalt bauen (info: {zeit: ISO, geraet}) */
   function datei(kinder, info) {
     info = info || {};
-    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v13", geraet: info.geraet || "",
+    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v13.1", geraet: info.geraet || "",
       hinweis: "Lernstand zum Weiterlernen auf einem anderen Gerät. In Lern! unter Profil › „Lernstand holen“ öffnen. Enthält Eingaben des Kindes.",
       kinder: (kinder || []).map(sauberesKind).filter(Boolean)};
   }
@@ -2045,10 +2060,91 @@ const LK = (function () {
     K.verbs.forEach(c => { if (makeTask(K, c, "vmc")) n.vmc++; if (makeTask(K, c, "vtype")) n.vtype++; });
     return n;
   }
+  /* ---------- v13.1: Mutmach-Sprüche (DOM-frei) ----------
+     Eigene kurze Sätze in Du-Form, gruppiert nach Situation. Auswahl, Dosierung und Wiederholungsschutz stehen hier, die Anzeige im UI-Skript.
+     Zustand je Session (st): {seit, fehlerFolge, serieOk, gezeigt, zuletzt[]}; zuletzt wird je Profil gespeichert (kein Satz in den letzten MUT.MERKEN Anzeigen doppelt).
+     Dosierung in der Session: höchstens ein Spruch je MUT.ABSTAND Aufgaben, höchstens MUT.MAX je Session (inkl. Start), nur bei einem Anlass und nie sicher:
+       2 Fehler in Folge 80 %, 1 Fehler 20 %, Fehlerserie (4 in Folge) immer, Comeback nach ≥ 2 Fehlern 70 %, nach 1 Fehler 25 %, 5er-Serie 80 %, Start 50 %, Rückkehr nach ≥ 3 Tagen immer.
+     Ergebnisseite und Bossende zeigen immer einen Satz (die Anzeige dort gehört zur Seite, nicht zur Dosierung). rng ist austauschbar (Tests). */
+  const MUT = {
+    ABSTAND: 4, MAX: 3, MERKEN: 3, PAUSE_TAGE: 3,
+    SPRUECHE: {
+      start: ["Schön, dass du da bist. Los geht's!", "Ein Schritt nach dem anderen. Du schaffst das.", "Heute wird dein Kopf wieder ein Stück schlauer.",
+        "Fang einfach an. Der Rest kommt von allein.", "Du darfst Fehler machen. So lernt man.", "Kleine Runde, große Wirkung. Auf geht's!", "Ich bin dabei. Du machst das schon."],
+      fehler: ["Fehler sind okay. Sie zeigen dir den Weg.", "Das klappt noch nicht. Aber bald.", "Nicht schlimm. Dein Gehirn lernt gerade.",
+        "Jeder macht Fehler. Dranbleiben ist stark.", "Tief durchatmen. Die nächste Aufgabe ist ein neuer Start.", "Aus Fehlern wird man klug. Du wirst gerade klüger.",
+        "Noch nicht heißt nicht nie.", "Auch ein Fehler bringt dich weiter."],
+      fehlerserie: ["Gerade läuft's zäh. Das ist okay.", "Es ist okay, wenn es heute schwer ist. Du gibst nicht auf.", "Schwere Runde? Du bleibst dran, und das zählt.",
+        "Ein schlechter Moment ist kein schlechter Tag.", "Du musst nicht alles sofort können. Üben reicht.", "Atme durch. Schritt für Schritt kommst du an."],
+      comeback: ["Und zurück im Spiel! Das war stark.", "Wieder richtig. Genau so geht Dranbleiben.", "Da ist sie, deine Stärke!", "Fehler gehabt, weitergemacht, geklappt. Super!",
+        "Du hast dich nicht entmutigen lassen. Klasse.", "Siehst du? Es geht doch.", "Das war ein Comeback. High five!"],
+      serie: ["Fünf in Folge. Du bist richtig in Fahrt!", "Starke Serie! Darauf darfst du stolz sein.", "Du rockst das gerade.", "Läuft bei dir. Mach einfach weiter.",
+        "Das sitzt. Dein Kopf arbeitet super.", "Stark! Üben wirkt, und du übst richtig gut.", "Die Serie gehört dir. High five!"],
+      ende: ["Geschafft. Du wächst mit jeder Runde.", "Gut gemacht! Dranbleiben macht den Unterschied.", "Stolz sein darfst du. Das war Arbeit.", "Jede Runde bringt dich weiter. High five!",
+        "Du hast heute etwas dazugelernt. Das ist viel wert.", "Feierabend für den Kopf. Verdient!", "Schön, dass du drangeblieben bist."],
+      endeSchwer: ["Das war eine harte Runde. Dass du durchgehalten hast, zählt.", "Du hast dich angestrengt, und das sieht man.", "Schwere Tage gehören dazu. Morgen ist neu.",
+        "Nicht das Ergebnis zählt, sondern dein Einsatz.", "Auch das war Training. Du wirst Schritt für Schritt besser.", "Es ist okay, wenn nicht alles klappt. Du bist drangeblieben.",
+        "Durchhalten ist ein großer Teil vom Lernen."],
+      bossVerloren: ["Der Boss war stark. Du wirst noch stärker.", "Noch nicht besiegt. Nächstes Mal klappt es.", "Mutig gekämpft! Verlieren gehört zum Lernen.",
+        "Auch Helden brauchen manchmal zwei Anläufe.", "Du warst nah dran. Probier es einfach nochmal.", "Kopf hoch! Jeder Kampf macht dich besser."],
+      sieg: ["Boss besiegt! Das hast du dir verdient.", "Wow, das war richtig stark!", "Du hast gekämpft und gewonnen. Wie cool ist das?", "Alles gewusst. Du kannst stolz auf dich sein!",
+        "Großartig! Dein Üben hat sich gelohnt.", "High five! Das war Spitzenklasse.", "Du bist ein Wortprofi. Genau so geht das."],
+      pause: ["Schön, dass du wieder da bist!", "Willkommen zurück. Ganz in Ruhe geht's weiter.", "Eine Pause ist okay. Jetzt wärmen wir den Kopf wieder auf.",
+        "Du bist zurück. Das ist schon der halbe Weg.", "Nach einer Pause fühlt sich vieles neu an. Das ist normal.", "Schön, dich zu sehen. Ohne Druck, in deinem Tempo."],
+      allgemein: ["Du schaffst das.", "Du musst nicht wie die anderen sein. Du bist du.", "Mit jeder Aufgabe wirst du ein bisschen besser.", "Trau dich. Du kannst mehr, als du denkst.",
+        "Aus „Ich kann das nicht“ wird mit Übung „Ich kann das“.", "Dein Tempo ist das richtige Tempo.", "Du bist mehr als eine Note.", "Neugier macht schlau. Bleib neugierig!",
+        "Lernen darf auch Spaß machen.", "Ein bisschen Mut, ein bisschen Übung, und es klappt."]
+    },
+    neu(zuletzt) { return {seit: MUT.ABSTAND, fehlerFolge: 0, serieOk: 0, gezeigt: 0, zuletzt: Array.isArray(zuletzt) ? zuletzt.filter(x => typeof x === "string").slice(-MUT.MERKEN) : []}; },
+    /* Satz zur Situation wählen: nicht aus den zuletzt gezeigten; ist die Gruppe damit leer, aus „allgemein“, zuletzt nur den allerletzten meiden */
+    waehle(sit, zuletzt, rng) {
+      rng = rng || Math.random; zuletzt = zuletzt || [];
+      let pool = MUT.SPRUECHE[sit] || MUT.SPRUECHE.allgemein;
+      if (sit === "start" && rng() < 0.25) pool = MUT.SPRUECHE.allgemein;
+      let frei = pool.filter(t => !zuletzt.includes(t));
+      if (!frei.length) frei = MUT.SPRUECHE.allgemein.filter(t => !zuletzt.includes(t));
+      if (!frei.length) frei = pool.filter(t => t !== zuletzt[zuletzt.length - 1]);
+      if (!frei.length) frei = pool;
+      return frei[Math.min(frei.length - 1, Math.floor(rng() * frei.length))];
+    },
+    /* Anzeige festhalten: Wiederholungsschutz fortschreiben, Abstand neu zählen */
+    zeige(st, sit, rng) {
+      const text = MUT.waehle(sit, st.zuletzt, rng);
+      st.zuletzt = st.zuletzt.concat([text]).slice(-MUT.MERKEN); st.seit = 0; st.gezeigt++;
+      return {sit, text};
+    },
+    /* Sessionstart: nach ≥ 3 Tagen Pause immer, sonst in der Hälfte der Fälle */
+    start(st, o) {
+      o = o || {}; const rng = o.rng || Math.random;
+      if (o.pauseTage != null && o.pauseTage >= MUT.PAUSE_TAGE) return MUT.zeige(st, "pause", rng);
+      return rng() < 0.5 ? MUT.zeige(st, "start", rng) : null;
+    },
+    /* nach jeder Aufgabe der normalen Session: res ok | half | bad. Liefert {sit, text} oder null */
+    nach(st, res, rng) {
+      rng = rng || Math.random; st.seit++;
+      let sit = null, p = 0;
+      if (res === "bad") {
+        st.fehlerFolge++; st.serieOk = 0;
+        if (st.fehlerFolge >= 4) { sit = "fehlerserie"; p = 1; } else if (st.fehlerFolge === 2) { sit = "fehler"; p = 0.8; } else if (st.fehlerFolge === 1) { sit = "fehler"; p = 0.2; }
+      } else {
+        const vorher = st.fehlerFolge; st.fehlerFolge = 0;
+        if (res === "ok") st.serieOk++;
+        if (vorher >= 2) { sit = "comeback"; p = 0.7; } else if (vorher === 1) { sit = "comeback"; p = 0.25; }
+        else if (res === "ok" && st.serieOk > 0 && st.serieOk % 5 === 0) { sit = "serie"; p = 0.8; }
+      }
+      if (!sit || st.seit < MUT.ABSTAND || st.gezeigt >= MUT.MAX || !(rng() < p)) return null;
+      return MUT.zeige(st, sit, rng);
+    },
+    /* Ergebnisseite: alles beim ersten Versuch (oder Einheit zu 100 %) = sieg, weniger als die Hälfte beim ersten Versuch = endeSchwer */
+    endeSit(firstOk, total, voll) {
+      if (voll || (total > 0 && firstOk >= total)) return "sieg";
+      return total > 0 && firstOk * 2 < total ? "endeSchwer" : "ende";
+    }
+  };
   return {validate, metaOf, countCards, indexPaket, position, pools, buildSession, makeTask, boxStats, unitStats, capacity,
           meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles,
           MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, umfang, grenzeVon, migriereProfile, BEKANNTE_BUECHER, Lernstand,
-          BOSS_AB, BOSS_HP, BOSS_HERZEN, bossKarten, bossAufgaben, bossStart, bossZug};
+          BOSS_AB, BOSS_HP, BOSS_HERZEN, bossKarten, bossAufgaben, bossStart, bossZug, MUT};
 })();
 </script>
 <script>
@@ -2198,6 +2294,7 @@ function toast(msg) {
 }
 function show(id) {
   try { spAbort(); } catch (e) {}
+  try { mutWeg(); } catch (e) {}
   if (id !== "scrSpiel") { try { Spiele.stop(); } catch (e) {} }   // v13: kein Spiel läuft unsichtbar weiter
   ["scrProfile","scrHome","scrSession","scrEnd","scrEdit","scrSpiel"].forEach(s => $(s).hidden = s !== id);
   window.scrollTo(0, 0);
@@ -2290,7 +2387,9 @@ function renderOptTools() {
   const host = $("optTools"); if (!host) return;
   host.innerHTML = `<label class="opt-tog"><input type="checkbox" id="optSay"${OPT.get("autosay") ? " checked" : ""}> Antworten vorlesen</label>
     <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>
-    <label class="opt-tog"><input type="checkbox" id="optMusik"${OPT.get("musik") ? " checked" : ""}> Siegesmusik</label>`;
+    <label class="opt-tog"><input type="checkbox" id="optMusik"${OPT.get("musik") ? " checked" : ""}> Siegesmusik</label>
+    <label class="opt-tog"><input type="checkbox" id="optMut"${OPT.get("mut") ? " checked" : ""}> Mutmach-Sprüche</label>`;
+  $("optMut").onchange = e => { OPT.set("mut", e.target.checked); if (!e.target.checked) mutWeg(); };
   $("optMusik").onchange = e => { OPT.set("musik", e.target.checked); if (e.target.checked) Fun.unlock(); else Fun.songStop(); };
   $("optSay").onchange = e => OPT.set("autosay", e.target.checked);
   $("optFun").onchange = e => { OPT.set("fun", e.target.checked); if (e.target.checked) Fun.unlock(); };
@@ -2657,11 +2756,11 @@ const Fun = (function () {
     } catch (e) {}
   }
   // nach dem Auflösen: Ton, dann höchstens eine Überraschung; liefert, was gezeigt wurde
-  api.afterReveal = (it, res, streak) => {
+  api.afterReveal = (it, res, streak, stumm) => {
     seq++;
     if (!api.on()) return null;
     if (res === "ok") { if (streak > 0 && streak % 5 === 0) api.triad(); else api.pling(); }
-    if (res === "bad" || seq - lastAt < 2) return null;
+    if (res === "bad" || stumm || seq - lastAt < 2) return null;   // stumm: gerade erscheint ein Mutmach-Spruch an derselben Stelle
     const em = api.emojiFor(it);
     if (em && api.rng() < 0.25) {
       lastAt = seq; api.shown.push({kind: "bild", e: em.e});
@@ -3462,7 +3561,7 @@ async function saveEdit() {
 async function deleteProfile(pid) {
   PROFILES = PROFILES.filter(p => p.id !== pid); saveProfiles();
   delete AVATARS[pid]; try { await AvatarDB.del(pid); } catch (e) {}
-  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k === erfolgeKey(pid) || k === rekordKey(pid) || k.startsWith("kk.v1.recent." + pid + ".");
+  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k === erfolgeKey(pid) || k === rekordKey(pid) || k === MUT_KEY(pid) || k.startsWith("kk.v1.recent." + pid + ".");
   lsKeys().filter(mine).forEach(k => store.del(k));
   const g = store.get(LKEY); if (g && g.pid === pid) store.del(LKEY);
   if (CUR && CUR.pr.id === pid) CUR = null;
@@ -3787,15 +3886,64 @@ function bossSvg(look, zustand) {
     `<path d="M18 90V46C18 24 33 12 50 12C67 12 82 24 82 46V90L73 82L64 90L55 82L46 90L37 82L28 90Z"/>`,
     `<path d="M22 72C14 84 20 94 28 88M38 78C34 92 44 96 46 86M62 78C66 92 56 96 54 86M78 72C86 84 80 94 72 88" fill="none" stroke="${d}" stroke-width="7" stroke-linecap="round"/><path d="M50 12C74 12 86 30 86 50C86 70 72 82 50 82C28 82 14 70 14 50C14 30 26 12 50 12Z"/>`
   ][look.form % 4];
-  const augen = zustand === "schlaf" ? `<path d="M30 50Q37 55 44 50M56 50Q63 55 70 50" fill="none" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><text x="74" y="26" font-size="14" fill="${d}" font-weight="700">z</text><text x="84" y="16" font-size="10" fill="${d}" font-weight="700">z</text>`
+  const augen = zustand === "froh" ? `<circle cx="37" cy="49" r="9" fill="#fff"/><circle cx="63" cy="49" r="9" fill="#fff"/><circle cx="39" cy="50" r="4.4" fill="${d}"/><circle cx="61" cy="50" r="4.4" fill="${d}"/><circle cx="40.5" cy="48.5" r="1.5" fill="#fff"/><circle cx="62.5" cy="48.5" r="1.5" fill="#fff"/>`
+    : zustand === "schlaf" ? `<path d="M30 50Q37 55 44 50M56 50Q63 55 70 50" fill="none" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><text x="74" y="26" font-size="14" fill="${d}" font-weight="700">z</text><text x="84" y="16" font-size="10" fill="${d}" font-weight="700">z</text>`
     : zustand === "besiegt" ? `<path d="M31 44l11 10M42 44l-11 10M58 44l11 10M69 44l-11 10" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><text x="10" y="18" font-size="13">⭐</text><text x="76" y="16" font-size="11">✨</text>`
     : `<circle cx="37" cy="49" r="9" fill="#fff"/><circle cx="63" cy="49" r="9" fill="#fff"/><circle cx="39" cy="51" r="4.2" fill="${d}"/><circle cx="61" cy="51" r="4.2" fill="${d}"/><circle cx="40.5" cy="49.5" r="1.4" fill="#fff"/><circle cx="62.5" cy="49.5" r="1.4" fill="#fff"/><path d="M27 37l10 4M73 37l-10 4" stroke="${d}" stroke-width="3" stroke-linecap="round"/>`;
-  const mund = zustand === "besiegt" ? `<ellipse cx="50" cy="69" rx="6" ry="5" fill="${d}"/>` : zustand === "schlaf" ? `<path d="M44 68Q50 71 56 68" fill="none" stroke="${d}" stroke-width="3" stroke-linecap="round"/>`
+  const mund = zustand === "froh" ? `<path d="M36 63Q50 79 64 63" fill="none" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` : zustand === "besiegt" ? `<ellipse cx="50" cy="69" rx="6" ry="5" fill="${d}"/>` : zustand === "schlaf" ? `<path d="M44 68Q50 71 56 68" fill="none" stroke="${d}" stroke-width="3" stroke-linecap="round"/>`
     : `<path d="M38 65Q50 76 62 65" fill="${d}"/><path d="M44 66l2 4 2-4M52 66l2 4 2-4" fill="#fff"/>`;
-  return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(look.name)}"><g class="${zustand === "kampf" ? "idle" : ""}"><g fill="${c}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round">${koerper}</g>
+  return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(look.name)}"><g class="${zustand === "kampf" || zustand === "froh" ? "idle" : ""}"><g fill="${c}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round">${koerper}</g>
     <ellipse cx="38" cy="28" rx="9" ry="5" fill="${w}" opacity=".7"/><circle cx="27" cy="62" r="5" fill="#F2A7B8" opacity=".55"/><circle cx="73" cy="62" r="5" fill="#F2A7B8" opacity=".55"/>${augen}${mund}</g></svg>`;
 }
 const herzHtml = k => Array.from({length: k.maxHerzen}, (_, i) => `<span class="${i < k.herzen ? "" : "weg"}">❤️</span>`).join("");
+/* ---------- v13.1: Mutmach-Sprüche (Logik und Texte: LK.MUT) ----------
+   Je Profil gemerkt (kk.v1.mut.<id>): zuletzt gezeigte Sätze (Wiederholungsschutz) und der Tag der letzten Session (Rückkehr nach Pause). Schalter „Mutmach-Sprüche“ (kk.v1.opt.mut, Standard an). */
+const MUT_KEY = pid => "kk.v1.mut." + pid;
+const mutAn = () => OPT.get("mut");
+function mutGespeichert() { const v = CUR && store.get(MUT_KEY(CUR.pr.id)); return v && typeof v === "object" ? v : {}; }
+function mutMerken(st) { if (!CUR || !st) return; const v = mutGespeichert(); v.zuletzt = st.zuletzt.slice(-LK.MUT.MERKEN); store.set(MUT_KEY(CUR.pr.id), v); }
+/* neuer Dosierungszustand je Session; liefert auch die Tage seit der letzten Session des Profils (null = unbekannt) */
+function mutSessionNeu() {
+  const v = mutGespeichert(), st = LK.MUT.neu(v.zuletzt), jetzt = Date.now();
+  const tage = typeof v.tag === "number" && v.tag > 0 ? Math.max(0, (jetzt - v.tag) / 86400000) : null;
+  v.tag = jetzt; v.zuletzt = st.zuletzt; store.set(MUT_KEY(CUR.pr.id), v);
+  return {st, tage};
+}
+let mutTimer = 0;
+function mutWeg() { clearTimeout(mutTimer); mutTimer = 0; document.querySelectorAll(".mut-fix, .mut-fb").forEach(n => n.remove()); }
+function mutLook(text) {
+  let h = 0; for (const c of String(text)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  let b = {hue: 200}; try { if (CUR) b = bossLook(); } catch (e) {}
+  return {hue: (b.hue + (h % 5) * 61) % 360, form: (h >>> 3) % 4, name: "Freundliches Monster"};
+}
+const mutKarte = (text, cls) => `<div class="mut${cls ? " " + cls : ""}" role="status"><div class="mut-fig" aria-hidden="true">${bossSvg(mutLook(text), "froh")}</div><p class="mut-text">${esc(text)}</p></div>`;
+/* nur vorlesen, wenn „Antworten vorlesen“ an ist, Schreiben geübt wird (Mikro nie im Spiel) und das Gerät eine deutsche Stimme hat; sonst schweigt es */
+function mutLesen(text) {
+  try {
+    if (!OPT.get("autosay") || !S || S.boss || S.modus !== "schreiben" || !window.speechSynthesis) return;
+    const v = voices.find(x => /^de/i.test(x.lang) && !voiceBad(x)); if (!v) return;
+    const u = new SpeechSynthesisUtterance(text); u.lang = v.lang.replace("_", "-"); u.voice = v; u.rate = 0.95;
+    speechSynthesis.cancel(); speechSynthesis.resume(); speechSynthesis.speak(u);
+  } catch (e) {}
+}
+/* Karte einblenden, ca. 4 s, Antippen schließt; wo: "fix" schwebt oben (nach der Antwort), "fb" steht unter dem Antwortbereich (Sessionstart) */
+function mutZeigen(r, wo, lesen) {
+  mutWeg();
+  const host = document.createElement("div"); host.className = wo === "fix" ? "mut-fix" : "mut-fb";
+  host.innerHTML = mutKarte(r.text);
+  if (wo === "fix") document.body.appendChild(host); else { const fb = $("fbWrap"); if (!fb) return; fb.appendChild(host); }
+  const k = host.firstElementChild;
+  const zu = () => { clearTimeout(mutTimer); k.classList.add("aus"); mutTimer = setTimeout(() => { try { host.remove(); } catch (e) {} }, 480); };
+  k.onclick = zu; mutTimer = setTimeout(zu, 3800);
+  mutMerken(S && S.mut);
+  if (lesen) mutLesen(r.text);
+}
+/* feste Karte auf Ergebnis-/Bossende-Seite */
+function mutEndeKarte(sit) {
+  if (!S || !S.mut || !mutAn()) return "";
+  const r = LK.MUT.zeige(S.mut, sit); mutMerken(S.mut); S.mutEnde = r.text;
+  return mutKarte(r.text, "mut-end");
+}
 const MODUS_NAME = {sprechen: "Sprechen", schreiben: "Schreiben", mix: "Mix"};
 function bossModus() { let m = modusFor(CUR.pr.id); if ((m === "sprechen" || m === "mix") && !speakAvail()) m = "schreiben"; return m; }
 function renderBossCard() {
@@ -3847,6 +3995,7 @@ function startBoss(modus) {
   const nKarten = CUR.sample ? ITEMS.filter(it => it.src === "u1").length : LK.bossKarten(CUR.K, P.einheit).length;
   S = {modus, queue, boxes: P.boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: "",
     boss: {key: bossKey(), look: bossLook(), kampf: LK.bossStart(nKarten), gestellt: [], hpAlt: null}};
+  S.mut = mutSessionNeu().st;
   Fun.reset();
   show("scrSession");
   $("quitConfirm").hidden = true;
@@ -3882,6 +4031,7 @@ function bossEnde() {
       <div class="boss-fig" aria-hidden="true">${bossSvg(B.look, "besiegt")}</div>
       <p class="eyebrow">Bosskampf ${esc(bn)}</p>
       <h1>Boss besiegt! 🏆</h1>
+      ${mutEndeKarte("sieg")}
       <p class="muted">${k.treffer} Treffer in ${k.zuege} Zügen, noch <span class="hearts" style="font-size:1.1rem">${herzHtml(k)}</span> übrig.</p>
       <div class="lohn" role="status"><div class="ticket">🏆 Trophäe ${esc(bn)}</div>
         ${lohn.neu ? `<p><b>🎟 +${lohn.tickets} Bonus-Tickets</b> für deinen ersten Sieg in ${esc(bn)}.</p>` : lohn.besser ? "<p>Neues Bestergebnis mit mehr Herzen!</p>" : "<p>Die Trophäe hattest du schon. Tickets gibt es für den ersten Sieg je Einheit.</p>"}
@@ -3892,6 +4042,7 @@ function bossEnde() {
       <div class="boss-fig" aria-hidden="true">${bossSvg(B.look, "kampf")}</div>
       <p class="eyebrow">Bosskampf ${esc(bn)}</p>
       <h1>Knapp! Boss ${esc(B.look.name)} war diesmal stärker.</h1>
+      ${mutEndeKarte("bossVerloren")}
       <p class="muted">Du hast ${k.treffer} Treffer gelandet, es fehlen nur noch ${k.hp} von ${k.max} Lebenspunkten. Eine Übungsrunde, dann klappt's. Du kannst jederzeit wieder antreten.</p>
     </div>
     <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="btnHome">Home</button><button type="button" class="btn btn-ghost" id="btnUeben">Erst üben</button><button type="button" class="btn btn-primary" id="btnBossAgain">Nochmal kämpfen</button></div>`;
@@ -4009,11 +4160,13 @@ function startSession(modus) {
   } else queue = buildSession(modus);
   if (!queue.length) { toast(modus === "sprechen" ? "Für diese Einheit gibt es nichts zum Sprechen. Probier Schreiben." : "Für diese Einheit gibt es noch keine Karten."); renderHome(); show("scrHome"); return; }
   S = {modus, queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: ""};
+  const mut = mutSessionNeu(); S.mut = mut.st;
   Fun.reset();
   show("scrSession");
   $("quitConfirm").hidden = true;
   renderBossHud();
   renderTask();
+  if (mutAn()) { const r = LK.MUT.start(S.mut, {pauseTage: mut.tage}); if (r) mutZeigen(r, "fb", true); }
 }
 function totalSteps() { return S.queue.length; }
 /* eine Aufgabe ans Ende der Session hängen (Preis der Hilfe) */
@@ -4038,6 +4191,7 @@ function skipSpeakTask() {
   renderTask();
 }
 function renderTask() {
+  mutWeg();
   if (S.micBlocked && S.queue[S.i] && (S.queue[S.i].t === "speak" || S.queue[S.i].t === "qa")) return skipSpeakTask();
   const it = S.queue[S.i]; S.current = it; S.tries = 0; S.t0 = Date.now(); S.locked = false;
   try { spAbort(); } catch (e) {}
@@ -4282,7 +4436,9 @@ function finishTask(res, info) {
   const sayKey = S.phase + ":" + S.i;
   if ((OPT.get("autosay") || info.forceSay) && info.speak && S.saidFor !== sayKey) { S.saidFor = sayKey; speak(String(info.speak), L); }
   S.streak = res === "ok" ? (S.streak || 0) + 1 : 0;
-  try { Fun.afterReveal(it, res, S.streak); } catch (e) {}
+  let mr = null; try { if (S.mut && !B && mutAn()) mr = LK.MUT.nach(S.mut, res); } catch (e) {}
+  try { Fun.afterReveal(it, res, S.streak, !!mr); } catch (e) {}
+  if (mr) mutZeigen(mr, "fix");
   setTimeout(() => { const n = $("btnNext"); if (n) { n.focus({preventScroll: true}); n.scrollIntoView({block: "nearest", behavior: "smooth"}); } }, 80);
 }
 document.addEventListener("keydown", e => {
@@ -4355,6 +4511,7 @@ function endSession() {
       <h1>${stars === 3 ? "Stark gespielt." : stars === 2 ? "Solide Runde." : "Geschafft. Das zählt."}</h1>
       <p class="muted">${esc(effort)}</p>
     </div>
+    ${mutEndeKarte(LK.MUT.endeSit(S.firstOk, total, lohn.zeilen.some(z => z.indexOf("💯") === 0)))}
     ${lohnHtml}
     <div class="stats">
       <div class="stat"><b>${S.points}</b>Punkte</div>
@@ -4384,6 +4541,7 @@ function endSession() {
   // Belohnung: Siegessong (abschaltbar), sonst die kurze Fanfare
   if (lohn.zeilen.length) { if (!Fun.song() && fun) Fun.fanfare(); } else if (fun) Fun.fanfare();
   confetti(lohn.zeilen.length ? 3 : stars);
+  if (S.mutEnde && !lohn.zeilen.length) { const t = S.mutEnde; setTimeout(() => { if (!$("scrEnd").hidden) mutLesen(t); }, 1600); }   // nicht über Siegesmusik
 }
 
 function cardName(it) { if (it.card) return it.card; if (it.t === "speak") return it.target; return it.t === "mc" || it.t === "type" ? it.en : it.t === "build" ? it.ans[0] : it.c[0] + " (" + it.s.split(" ")[it.w] + ")"; }

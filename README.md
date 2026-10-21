@@ -39,4 +39,12 @@ Beide Einstellungen wandern mit „Lernstand sichern/holen“ mit (die neuere Pr
 - **Siegesmusik:** eigene kurze Melodie, Schalter „Siegesmusik“ in der Fußzeile; folgt auf dem iPad dem Stummschalter.
 - Trophäen und Tickets wandern mit „Lernstand sichern/holen“ mit (beide Geräte werden zusammengeführt, nichts geht verloren). Spielrekorde bleiben auf dem Gerät.
 - **Verschoben:** „Lernverlauf exportieren/löschen“ und „Übungsstand zurücksetzen“ stehen jetzt im Profil (Tipp aufs Bild → „Profil bearbeiten“ → „Lernverlauf und Übungsstand“) und gelten nur für dieses Kind. Der Test-Knopf neben der Stimmauswahl entfällt; die Stimme liest beim Wechsel selbst eine Probe vor.
-- Ausrollen: `index.html` und `sw.js` (VERSION 9) hochladen.
+- Ausrollen: `index.html` und `sw.js` (VERSION 10) hochladen.
+
+## Mutmach-Sprüche (ab v13.1)
+- **Was:** kurze, warme Sätze in Du-Form auf einer kleinen Karte mit einem freundlichen Monster (eigene Grafik, Formen und Farben wie die Bosse, aber lächelnd). 78 eigene Sätze, nach Situation gruppiert: Start, nach Fehlern (tröstend, „noch nicht“), Fehlerserie, Comeback, Serie richtiger Antworten, Ergebnis normal, Ergebnis schwierig (Anstrengung loben), Bosskampf verloren, Sieg (Boss gewonnen oder alles beim ersten Versuch), Rückkehr nach Pause, allgemein.
+- **Anzeige:** In der Session nie über Eingaben: nach einer Antwort schwebt die Karte oben (ca. 4 s, Antippen schließt, nächste Aufgabe blendet sie sofort aus); beim Start steht sie unter dem Antwortbereich. Auf der Ergebnisseite und nach dem Bosskampf steht sie fest als Karte.
+- **Dosierung:** höchstens ein Spruch je 4 Aufgaben und höchstens 3 je Session (Start eingerechnet), nur bei einem Anlass und nie sicher (2 Fehler in Folge 80 %, 1 Fehler 20 %, 4 Fehler in Folge immer, Comeback 70 %/25 %, 5 richtige in Folge 80 %, Start 50 %, Rückkehr nach mindestens 3 Tagen immer). Kein Satz aus den letzten drei Anzeigen des Kindes (gemerkt je Profil, `kk.v1.mut.<id>`, zusammen mit dem Tag der letzten Session).
+- **Schalter** „Mutmach-Sprüche“ in der Fußzeile (Standard an, `kk.v1.opt.mut`).
+- **Vorlesen:** nur beim Start und auf der Ergebnisseite, nur mit „Antworten vorlesen“ an, nur bei der Übungsart Schreiben, nur mit deutscher Stimme auf dem Gerät und nicht über die Siegesmusik; sonst schweigt die Karte.
+- Ausrollen: `index.html` und `sw.js` (VERSION 10) hochladen.
