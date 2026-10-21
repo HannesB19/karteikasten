@@ -327,6 +327,63 @@ details.pack > * + * { margin-top: 14px; }
 .dlg .pick-kid .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: var(--accent); color: var(--accent-ink); font-weight: 800; flex: none; }
 .dlg .pick-kid .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .dlg ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+/* v13: Übungsart-Knöpfe in jeder Breite (Container-Abfrage: schmal = untereinander, Symbol links) */
+.modes-cq { container-type: inline-size; min-width: 0; }
+.mode { min-width: 0; font-size: clamp(.95rem, 3.4vw, 1.08rem); overflow-wrap: anywhere; hyphens: auto; }
+.mode small { font-size: .74rem; line-height: 1.2; }
+@container (max-width: 340px) {
+  .modes { grid-template-columns: 1fr; gap: 6px; }
+  .mode { flex-direction: row; justify-content: flex-start; text-align: left; min-height: 52px; gap: 10px; padding: 8px 14px; }
+  .mode .ic { font-size: 1.35rem; }
+  .mode small { margin-left: auto; text-align: right; max-width: 45%; }
+}
+/* v13: Bosskampf */
+.boss-top { display: flex; align-items: center; gap: 14px; }
+.boss-fig { position: relative; width: 84px; height: 84px; flex: none; }
+.boss-fig svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.boss-fig.schlaf svg { filter: grayscale(.75); opacity: .75; }
+.boss-fig .idle { animation: bossbob 2.4s ease-in-out infinite; transform-origin: 50% 92%; }
+@keyframes bossbob { 50% { transform: translateY(-3px) scale(1.03, .97); } }
+.boss-fig.hit svg { animation: bosshit .55s ease; }
+@keyframes bosshit { 0% { transform: none; filter: brightness(1.8); } 25% { transform: translateX(-9px) rotate(-7deg); } 50% { transform: translateX(8px) rotate(6deg); } 75% { transform: translateX(-4px); } 100% { transform: none; } }
+.boss-fig .dmg { position: absolute; right: -6px; top: -8px; font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; color: var(--star); animation: dmg 1s ease-out forwards; pointer-events: none; }
+@keyframes dmg { from { transform: translateY(6px); opacity: 0; } 20% { opacity: 1; } to { transform: translateY(-26px); opacity: 0; } }
+.boss-go { width: 100%; min-height: 58px; font-family: var(--f-display); font-size: 1.15rem; }
+.shelf { display: flex; flex-wrap: wrap; gap: 6px; }
+.shelf:empty { display: none; }
+.trophy-pill { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--star); color: var(--star); border-radius: 999px; padding: 3px 10px; font-size: .85rem; font-weight: 700; }
+.boss-hud { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; box-shadow: var(--shadow); }
+.boss-hud .boss-fig { width: clamp(64px, 18vw, 104px); height: clamp(64px, 18vw, 104px); }
+.hud-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.boss-name { font-family: var(--f-display); font-size: 1.1rem; }
+.hp { height: 16px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
+.hp > span { display: block; height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--margin), var(--star)); transition: width .6s ease; }
+.hearts { font-size: 1.45rem; letter-spacing: 2px; line-height: 1; }
+.hearts .weg { filter: grayscale(1); opacity: .3; }
+.hearts.ouch { animation: ouch .55s ease; }
+@keyframes ouch { 30% { transform: scale(1.25) rotate(-4deg); } }
+.boss-end { text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.boss-end .boss-fig { width: 150px; height: 150px; }
+.lohn { display: flex; flex-direction: column; gap: 8px; align-items: center; background: var(--paper); border: 2px dashed var(--star); border-radius: 14px; padding: 12px 16px; text-align: center; }
+.lohn p { margin: 0; }
+.ticket { font-family: var(--f-display); font-weight: 800; font-size: 1.25rem; color: var(--star); }
+.bonus { display: flex; flex-direction: column; gap: 10px; }
+/* v13: Bonus-Spiele */
+.spiel { display: flex; flex-direction: column; gap: 12px; }
+.spiel-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.spiel-feld { position: relative; width: 100%; display: flex; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.spiel-feld canvas { display: block; border-radius: 14px; background: #161C27; touch-action: none; }
+.spiel-wahl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px; }
+.spiel-btn { flex-direction: column; min-height: 120px; font-family: var(--f-display); font-size: 1.15rem; text-align: center; }
+.spiel-btn .ic { font-size: 2.4rem; line-height: 1; }
+.spiel-btn small { font-family: var(--f-body); font-weight: 400; font-size: .8rem; opacity: .85; }
+.spiel-ende { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 14, 22, .8); border-radius: 14px; text-align: center; padding: 16px; z-index: 2; }
+.memo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: min(100%, 480px); }
+.memo button { aspect-ratio: 1; border-radius: 12px; border: 1.5px solid var(--line); background: var(--accent); font-size: clamp(1.6rem, 8vw, 2.6rem); line-height: 1; transition: transform .2s, background .2s; }
+.memo button.offen, .memo button.paar { background: var(--card); transform: rotateY(180deg) scaleX(-1); }
+.memo button.paar { border-color: var(--good); opacity: .7; }
+.tools-edit { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.tools-edit h2 { font-size: 1.15rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -383,18 +440,26 @@ details.pack > * + * { margin-top: 14px; }
               </div>
             </div>
           </section>
-          <div><p class="note" style="margin-bottom:8px">Neue Session (ca. 8 min):</p><div class="modes" id="homeModes"></div></div>
+          <div><p class="note" style="margin-bottom:8px">Neue Session (ca. 8 min):</p><div id="homeModes"></div></div>
           <p class="note" id="mixNote">10 Aufgaben: 6 × Unit 1, 2 × Band 3, 2 × Wiederholung Band 1–2.</p>
+          <section class="card bonus" id="bonusCard">
+            <div class="row" style="justify-content:space-between"><h3>Bonus-Spiele</h3><span class="pill" id="ticketPill"></span></div>
+            <p class="note" id="bonusText"></p>
+            <button type="button" class="btn btn-ghost" id="btnBonus">🎮 Bonus-Spiel aussuchen</button>
+          </section>
         </div>
         <div class="stack-col">
           <section class="card">
             <div class="row" style="justify-content:space-between"><h2>Dein Karteikasten</h2><span class="pill" id="boxTotal"></span></div>
             <div class="boxes" id="boxes"></div>
           </section>
-          <section class="card boss">
+          <section class="card boss" id="bossCard">
             <div class="row" style="justify-content:space-between"><h3 id="bossTitle">Bosskampf Unit 1</h3><span class="pill" id="bossPill"></span></div>
-            <div class="meter" aria-hidden="true"><span id="bossBar"></span><i class="mark" style="left:80%"></i></div>
-            <p id="bossText" class="muted"></p>
+            <div class="boss-top"><div class="boss-fig" id="bossFig" aria-hidden="true"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding-top:14px"><div class="meter" aria-hidden="true"><span id="bossBar"></span><i class="mark" style="left:80%"></i></div>
+              <p id="bossText" class="muted"></p></div></div>
+            <div id="bossActions"></div>
+            <div class="shelf" id="bossShelf" aria-label="Trophäen"></div>
           </section>
           <section class="card uprog" id="unitCard" hidden>
             <div class="row" style="justify-content:space-between"><h3 id="unitTitle">Wortschatz</h3><span class="pill" id="unitPill"></span></div>
@@ -414,8 +479,9 @@ details.pack > * + * { margin-top: 14px; }
         <div class="progress" aria-hidden="true"><span id="progBar"></span></div>
         <span class="count" id="progText">1/10</span>
       </div>
+      <div class="boss-hud" id="bossHud" hidden></div>
       <div class="confirm" id="quitConfirm" hidden>
-        <span>Abbrechen? Diese Session zählt dann nicht.</span>
+        <span id="quitText">Abbrechen? Diese Session zählt dann nicht.</span>
         <button class="btn btn-ghost btn-small" id="btnQuitNo">Weitermachen</button>
         <button class="btn btn-primary btn-small" id="btnQuitYes">Abbrechen</button>
       </div>
@@ -434,13 +500,17 @@ details.pack > * + * { margin-top: 14px; }
     <section class="card edit" id="editCard" aria-labelledby="editH"></section>
   </main>
 
+  <!-- BONUS-SPIELE (v13) -->
+  <main id="scrSpiel" hidden>
+    <section class="card spiel" id="spielCard"></section>
+  </main>
+
   <footer>
     <span id="footNote">Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.</span>
     <span id="storeInfo"></span>
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
-    <span class="foot-tools" id="verlaufTools"></span>
-    <span id="appVersion">Lern! v12.1</span>
+    <span id="appVersion">Lern! v13</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -1042,7 +1112,7 @@ const Lernstand = (function () {
       modus: m && typeof m === "object" && MODI.includes(m.wert) ? {wert: m.wert, zeit: Math.max(0, num(m.zeit, 0))} : null,
       auswahl: a && typeof a === "object" && BUCH_RE.test(a.book || "") ? {book: a.book, zeit: Math.max(0, num(a.zeit, 0))} : null,
       stand: s && typeof s === "object" && BUCH_RE.test(s.book || "") ? {pid: profil.id, book: s.book, unit: standWert(s.unit), station: standWert(s.station), zeit: Math.max(0, num(s.zeit, 0))} : null,
-      buecher: {}, verlauf: []};
+      buecher: {}, verlauf: [], erfolge: erfolgeSauber(k.erfolge)};
     if (k.buecher && typeof k.buecher === "object") Object.keys(k.buecher).slice(0, 40).forEach(id => { if (!BUCH_RE.test(id)) return; const b = saubereBuch(k.buecher[id]); if (b) out.buecher[id] = b; });
     if (Array.isArray(k.verlauf)) out.verlauf = k.verlauf.slice(-25000).map(saubereEreignis).filter(Boolean);
     return out;
@@ -1089,12 +1159,12 @@ const Lernstand = (function () {
   function mergeKind(lokal, datei, opts) {
     opts = opts || {};
     const d0 = sauberesKind(datei); if (!d0) return {fehler: MSG.leer};
-    const stat = {kartenAktualisiert: 0, kartenBehalten: 0, verlaufNeu: [], profilAktualisiert: false, standAktualisiert: false, neu: !lokal};
+    const stat = {kartenAktualisiert: 0, kartenBehalten: 0, verlaufNeu: [], profilAktualisiert: false, standAktualisiert: false, neu: !lokal, erfolgeNeu: 0};
     if (!lokal) {
       const k = opts.id && opts.id !== d0.profil.id ? mitId(d0, opts.id) : d0;
       Object.keys(k.buecher).forEach(b => { k.buecher[b] = fertigBuch(k.buecher[b]); stat.kartenAktualisiert += Object.keys(k.buecher[b].boxes).length; });
       k.verlauf = sortVerlauf(ohneDoppelte(k.verlauf));
-      stat.verlaufNeu = k.verlauf.slice(); stat.profilAktualisiert = stat.standAktualisiert = true;
+      stat.verlaufNeu = k.verlauf.slice(); stat.profilAktualisiert = stat.standAktualisiert = true; stat.erfolgeNeu = erfolgeZahl(k.erfolge);
       return {kind: k, stat};
     }
     const l = sauberesKind(lokal); if (!l) return {fehler: MSG.leer};
@@ -1118,7 +1188,8 @@ const Lernstand = (function () {
     stat.profilAktualisiert = kanon(profil) !== kanon(l.profil) || foto !== l.foto;
     const out = {profil, foto,
       modus: neuer(l.modus, d.modus, x => x.zeit), auswahl: neuer(l.auswahl, d.auswahl, x => x.zeit), stand: neuer(l.stand, d.stand, x => x.zeit),
-      buecher: {}, verlauf: []};
+      buecher: {}, verlauf: [], erfolge: erfolgeMerge(l.erfolge, d.erfolge)};
+    stat.erfolgeNeu = erfolgeZahl(out.erfolge) - erfolgeZahl(l.erfolge);
     stat.standAktualisiert = kanon([out.stand, out.auswahl, out.modus]) !== kanon([l.stand, l.auswahl, l.modus]);
     uniq(Object.keys(l.buecher).concat(Object.keys(d.buecher))).sort().forEach(id => {
       const a = l.buecher[id], b = d.buecher[id], r = buchMerge(a, b);
@@ -1133,6 +1204,59 @@ const Lernstand = (function () {
     out.verlauf = sortVerlauf(ohneDoppelte(l.verlauf.concat(stat.verlaufNeu)));
     return {kind: out, stat};
   }
+
+
+  /* ---------- v13: Erfolge (Boss-Trophäen, Einheit zu 100 %, Bonus-Tickets) ----------
+     {boss: {"<buch>|<einheit>": {zeit, herzen}}, voll: {"<buch>|<einheit>": zeit}, tickets: {<id>: {zeit, grund, info}}, eingeloest: {<id>: {zeit, spiel}}}
+     Nur wachsende Mengen: Trophäe = frühester Sieg und bestes Ergebnis (meiste Herzen übrig), Ticket-ids eindeutig
+     (Boss b:<schlüssel>:1|2 und Einheit v:<schlüssel>:1|2 je einmal, perfekte Session p:<JJJJ-MM-TT> einmal am Tag),
+     Einlösen = eigene Menge (eingeloest). Offen = tickets ohne eingeloest. Zusammenführen = Vereinigung: kommutativ, idempotent. */
+  const EKEY_RE = /^[A-Za-z0-9_|:.-]{1,100}$/;
+  const GRUENDE = ["boss", "voll", "perfekt"], SPIELE = ["flipper", "ballons", "memory"];
+  function erfolgeSauber(e) {
+    const o = {boss: {}, voll: {}, tickets: {}, eingeloest: {}};
+    if (!e || typeof e !== "object" || Array.isArray(e)) return o;
+    const each = (src, max, fn) => { if (src && typeof src === "object" && !Array.isArray(src)) Object.keys(src).slice(0, max).forEach(k => { if (EKEY_RE.test(k)) fn(k, src[k]); }); };
+    each(e.boss, 500, (k, v) => { if (v && typeof v === "object" && num(v.zeit, 0) > 0) o.boss[k] = {zeit: v.zeit, herzen: Math.max(0, Math.min(9, Math.floor(num(v.herzen, 0))))}; });
+    each(e.voll, 500, (k, v) => { if (num(v, 0) > 0) o.voll[k] = v; });
+    each(e.tickets, 3000, (k, v) => { if (v && typeof v === "object" && num(v.zeit, 0) > 0 && GRUENDE.includes(v.grund)) o.tickets[k] = {zeit: v.zeit, grund: v.grund, info: str(v.info, 100) || ""}; });
+    each(e.eingeloest, 3000, (k, v) => { if (v && typeof v === "object" && num(v.zeit, 0) > 0) o.eingeloest[k] = {zeit: v.zeit, spiel: SPIELE.includes(v.spiel) ? v.spiel : ""}; });
+    return o;
+  }
+  const frueher = (a, b) => !a ? b : !b ? a : a.zeit !== b.zeit ? (a.zeit < b.zeit ? a : b) : (kanon(a) <= kanon(b) ? a : b);
+  function erfolgeMerge(a, b) {
+    a = erfolgeSauber(a); b = erfolgeSauber(b);
+    const o = {boss: {}, voll: {}, tickets: {}, eingeloest: {}}, keys = (x, y) => uniq(Object.keys(x).concat(Object.keys(y))).sort();
+    keys(a.boss, b.boss).forEach(k => { const x = a.boss[k], y = b.boss[k]; o.boss[k] = !x || !y ? clone(x || y) : {zeit: Math.min(x.zeit, y.zeit), herzen: Math.max(x.herzen, y.herzen)}; });
+    keys(a.voll, b.voll).forEach(k => { const x = a.voll[k], y = b.voll[k]; o.voll[k] = x && y ? Math.min(x, y) : (x || y); });
+    keys(a.tickets, b.tickets).forEach(k => { o.tickets[k] = clone(frueher(a.tickets[k], b.tickets[k])); });
+    keys(a.eingeloest, b.eingeloest).forEach(k => { o.eingeloest[k] = clone(frueher(a.eingeloest[k], b.eingeloest[k])); });
+    return o;
+  }
+  /* offene Tickets, ältestes zuerst */
+  const ticketsOffen = e => { const t = (e && e.tickets) || {}, x = (e && e.eingeloest) || {}; return Object.keys(t).filter(k => !x[k]).sort((p, q) => (t[p].zeit - t[q].zeit) || (p < q ? -1 : p > q ? 1 : 0)); };
+  function ticketGeben(e, id, grund, info, zeit) {
+    if (!EKEY_RE.test(id) || !GRUENDE.includes(grund) || e.tickets[id]) return false;
+    e.tickets[id] = {zeit: zeit || Date.now(), grund, info: String(info || "").slice(0, 100)}; return true;
+  }
+  function ticketEinloesen(e, spiel, zeit) { const id = ticketsOffen(e)[0]; if (!id) return null; e.eingeloest[id] = {zeit: zeit || Date.now(), spiel: SPIELE.includes(spiel) ? spiel : ""}; return id; }
+  /* Sieg im Bosskampf: Trophäe für die Einheit; beim ersten Sieg zwei Tickets, danach nur ein besseres Ergebnis */
+  function bossSieg(e, key, herzen, zeit) {
+    zeit = zeit || Date.now(); herzen = Math.max(0, Math.min(9, Math.floor(num(herzen, 0))));
+    const alt = e.boss[key], neu = !alt;
+    e.boss[key] = alt ? {zeit: alt.zeit, herzen: Math.max(alt.herzen, herzen)} : {zeit, herzen};
+    const t = neu ? [1, 2].filter(n => ticketGeben(e, "b:" + key + ":" + n, "boss", key, zeit)).length : 0;
+    return {neu, tickets: t, besser: !!alt && herzen > alt.herzen};
+  }
+  /* Einheit zum ersten Mal zu 100 % sicher (alle Karten ab Fach 3): zwei Tickets */
+  function einheitVoll(e, key, zeit) {
+    if (e.voll[key]) return {neu: false, tickets: 0};
+    zeit = zeit || Date.now(); e.voll[key] = zeit;
+    return {neu: true, tickets: [1, 2].filter(n => ticketGeben(e, "v:" + key + ":" + n, "voll", key, zeit)).length};
+  }
+  /* perfekte Session (alles beim ersten Versuch richtig): ein Ticket, höchstens eins am Tag */
+  const perfekt = (e, tag, zeit) => ticketGeben(e, "p:" + tag, "perfekt", tag, zeit) ? 1 : 0;
+  const erfolgeZahl = e => Object.keys(e.boss).length + Object.keys(e.voll).length + Object.keys(e.tickets).length + Object.keys(e.eingeloest).length;
 
   /* Datei lesen: Text oder Objekt -> {kinder, gesichert, geraet, uebersprungen} oder {fehler} (verständlich, nichts wird geändert) */
   function lies(input) {
@@ -1157,7 +1281,7 @@ const Lernstand = (function () {
   /* Dateiinhalt bauen (info: {zeit: ISO, geraet}) */
   function datei(kinder, info) {
     info = info || {};
-    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v12.1", geraet: info.geraet || "",
+    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v13", geraet: info.geraet || "",
       hinweis: "Lernstand zum Weiterlernen auf einem anderen Gerät. In Lern! unter Profil › „Lernstand holen“ öffnen. Enthält Eingaben des Kindes.",
       kinder: (kinder || []).map(sauberesKind).filter(Boolean)};
   }
@@ -1168,7 +1292,8 @@ const Lernstand = (function () {
     return `Lern_${n}_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.json`;
   }
   return {SCHEMA, MSG, lies, datei, dateiname, mergeKind, sauberesKind, passendesProfil, gleichesKind, mitId, kanon, evKey,
-          mitZaehler, zaehlerSumme, zaehlerPlus, zaehlerMerge, wochenZahl};
+          mitZaehler, zaehlerSumme, zaehlerPlus, zaehlerMerge, wochenZahl,
+          erfolgeSauber, erfolgeMerge, ticketsOffen, ticketGeben, ticketEinloesen, bossSieg, einheitVoll, perfekt};
 })();
 
 /* ---------- Lernpakete (Format lernpaket/1) ---------- */
@@ -1838,6 +1963,61 @@ const LK = (function () {
     return arrange(tasks);
   }
 
+
+  /* ---------- v13: Bosskampf ----------
+     Freigabe ab BOSS_AB % der Einheit sicher (unitStats().boss, Karten ab Fach 3). Aufgaben ausschließlich aus dieser Einheit
+     (alle Stationen; Wiederholungseinheiten mit „umfasst“: deren Einheiten), dieselben Aufgabentypen wie in der Session.
+     Übungsart: schreiben = keine Sprechaufgaben, mix ≈ 40 % Sprechen, sprechen = alle sprechbaren Karten als Sprechaufgabe
+     (nicht sprechbare, z. B. Auslassungen, kommen schriftlich). Keine Frage–Antwort-Aufgaben (gehören zu keiner Einheit).
+     Leitner: Der Kampf ändert keine Fächer (Entscheidung v13). Er prüft, was schon sitzt; Fehler werfen keine Karte zurück,
+     und Siege lassen sich nicht zum Hochstufen nutzen. Antworten landen nur im Lernverlauf (phase "boss").
+     Kampf: Boss mit BOSS_HP Trefferpunkten (kleine Einheit: so viele wie Karten, mindestens 4), Kind mit BOSS_HERZEN Herzen.
+     richtig = 1 Treffer, fast richtig = 1 Treffer, falsch = 1 Herz weg, jede 4. richtige Antwort in Folge = Doppeltreffer. Kein Zeitdruck. */
+  const BOSS_AB = 80, BOSS_HP = 10, BOSS_HERZEN = 3;
+  function bossKarten(K, eid) {
+    const e = K.byId[eid] || K.E[0];
+    const units = e.umfasst ? e.umfasst.map(id => K.byId[id]).filter(Boolean) : [e];
+    return units.reduce((a, u) => a.concat(K.byEinheit[u.i] || []), []);
+  }
+  /* n Aufgaben aus der Einheit; opts = {modus, ohne: [ids zuletzt gestellt], bis, fak}; prev wie bei buildSession (nur für Ablenker) */
+  function bossAufgaben(K, boxes, eid, n, prev, opts) {
+    opts = opts || {}; n = n || 14;
+    const modus = opts.modus || "schreiben", e = K.byId[eid] || K.E[0];
+    const A = allowFn(K, {ei: e.i, si: Math.max(0, e.stations.length - 1), eid: e.id}, prev, opts);
+    const bx = c => (boxes && boxes[c.id]) || 0, ohne = new Set(opts.ohne || []);
+    const karten = shuffle(bossKarten(K, e.id)).sort((a, b) => (ohne.has(a.id) ? 1 : 0) - (ohne.has(b.id) ? 1 : 0));
+    const wantSpeak = modus === "sprechen" ? Infinity : modus === "mix" ? Math.round(n * 0.4) : 0;
+    const out = [], txt = new Set();
+    let sp = 0;
+    for (const c of karten) {
+      if (out.length >= n) break;
+      const tk = K.nrm(cleanEn(c.en, K.lang)); if (txt.has(tk)) continue;
+      let t = null;
+      if (sp < wantSpeak && speakOk(c)) { t = makeTask(K, c, "speak", "cur", A); if (t) { t.fallback = speakFallback(K, c, bx(c), "cur", A) || null; sp++; } }
+      if (!t) t = makeTaskAuto(K, c, bx(c), "cur", A);
+      if (!t) continue;
+      txt.add(tk); t.boss = true; out.push(t);
+    }
+    return arrange(out);
+  }
+  function bossStart(nKarten) {
+    const hp = Math.max(4, Math.min(BOSS_HP, nKarten == null ? BOSS_HP : nKarten));
+    return {hp, max: hp, herzen: BOSS_HERZEN, maxHerzen: BOSS_HERZEN, serie: 0, treffer: 0, fehler: 0, zuege: 0, ende: null};
+  }
+  /* ein Zug: res = ok | half | bad; liefert {schaden, herz, superschlag}; s.ende = "sieg" | "niederlage" | null */
+  function bossZug(s, res) {
+    if (s.ende) return {schaden: 0, herz: false, superschlag: false};
+    s.zuege++;
+    let schaden = 0, herz = false, sup = false;
+    if (res === "ok" || res === "half") {
+      s.serie = res === "ok" ? s.serie + 1 : 0;
+      schaden = res === "ok" && s.serie % 4 === 0 ? 2 : 1; sup = schaden === 2;
+      s.hp = Math.max(0, s.hp - schaden); s.treffer++;
+    } else { s.serie = 0; s.herzen = Math.max(0, s.herzen - 1); s.fehler++; herz = true; }
+    if (s.hp <= 0) s.ende = "sieg"; else if (s.herzen <= 0) s.ende = "niederlage";
+    return {schaden, herz, superschlag: sup};
+  }
+
   /* ---------- Statistik ---------- */
   function boxStats(K, boxes) {
     const fach = [0, 0, 0, 0, 0]; let total = 0, neu = 0;
@@ -1867,7 +2047,8 @@ const LK = (function () {
   }
   return {validate, metaOf, countCards, indexPaket, position, pools, buildSession, makeTask, boxStats, unitStats, capacity,
           meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles,
-          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, umfang, grenzeVon, migriereProfile, BEKANNTE_BUECHER, Lernstand};
+          MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, umfang, grenzeVon, migriereProfile, BEKANNTE_BUECHER, Lernstand,
+          BOSS_AB, BOSS_HP, BOSS_HERZEN, bossKarten, bossAufgaben, bossStart, bossZug};
 })();
 </script>
 <script>
@@ -2017,7 +2198,8 @@ function toast(msg) {
 }
 function show(id) {
   try { spAbort(); } catch (e) {}
-  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit"].forEach(s => $(s).hidden = s !== id);
+  if (id !== "scrSpiel") { try { Spiele.stop(); } catch (e) {} }   // v13: kein Spiel läuft unsichtbar weiter
+  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit","scrSpiel"].forEach(s => $(s).hidden = s !== id);
   window.scrollTo(0, 0);
   renderTop(id);
 }
@@ -2092,9 +2274,9 @@ function renderVoicePicker() {
   const lang = curLang(), list = voicesFor(lang);
   if (!list.length) { host.innerHTML = ""; return; }
   const cur = pickVoice(lang);
-  host.innerHTML = `<label class="muted" for="selVoice">Stimme ${esc(sprache(lang).name)}:</label> <select id="selVoice" style="min-height:34px;padding:4px 28px 4px 8px;width:auto;font-size:.82rem">${list.map(v => `<option value="${esc(v.voiceURI)}"${cur && v.voiceURI === cur.voiceURI ? " selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select> <button class="link" id="btnVoiceTest">Test</button>`;
+  host.innerHTML = `<label class="muted" for="selVoice">Stimme ${esc(sprache(lang).name)}:</label> <select id="selVoice" style="min-height:34px;padding:4px 28px 4px 8px;width:auto;font-size:.82rem">${list.map(v => `<option value="${esc(v.voiceURI)}"${cur && v.voiceURI === cur.voiceURI ? " selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select>`;
+  // Beim Wechsel liest die neue Stimme sofort eine Probe vor (v13: eigener Test-Knopf entfällt)
   document.getElementById("selVoice").onchange = e => { store.set(VKEY(lang), e.target.value); speak(VTEST[lang][0], lang); };
-  document.getElementById("btnVoiceTest").onclick = () => speak(VTEST[lang][1], lang);
 }
 const sayBtn = (text, label, lang) => `<button class="say" data-say="${esc(text)}" data-lang="${esc(lang || "en")}" aria-label="${esc(label || "Vorlesen")}">🔊</button>`;
 document.addEventListener("click", e => { const b = e.target.closest("[data-say]"); if (b) speak(b.dataset.say, b.dataset.lang); });
@@ -2107,7 +2289,9 @@ const OPT = {
 function renderOptTools() {
   const host = $("optTools"); if (!host) return;
   host.innerHTML = `<label class="opt-tog"><input type="checkbox" id="optSay"${OPT.get("autosay") ? " checked" : ""}> Antworten vorlesen</label>
-    <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>`;
+    <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>
+    <label class="opt-tog"><input type="checkbox" id="optMusik"${OPT.get("musik") ? " checked" : ""}> Siegesmusik</label>`;
+  $("optMusik").onchange = e => { OPT.set("musik", e.target.checked); if (e.target.checked) Fun.unlock(); else Fun.songStop(); };
   $("optSay").onchange = e => OPT.set("autosay", e.target.checked);
   $("optFun").onchange = e => { OPT.set("fun", e.target.checked); if (e.target.checked) Fun.unlock(); };
 }
@@ -2393,6 +2577,8 @@ const Fun = (function () {
   function ctx() {
     try {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+      // iOS 16.4+: „ambient“ = Töne folgen dem Stummschalter und unterbrechen keine Musik anderer Apps
+      try { if (navigator.audioSession && navigator.audioSession.type !== "ambient") navigator.audioSession.type = "ambient"; } catch (e) {}
       if (!ac) ac = new C();
       if (ac.state === "suspended" && ac.resume) { const r = ac.resume(); if (r && r.catch) r.catch(() => {}); }
       return ac;
@@ -2414,6 +2600,38 @@ const Fun = (function () {
   api.pling = () => { tone(1318.5, 0, 0.22, 0.05); tone(2637, 0, 0.12, 0.012); };
   api.triad = () => [523.25, 659.25, 783.99].forEach((f, i) => tone(f, i * 0.09, 0.3, 0.045, "triangle"));
   api.fanfare = () => [392, 523.25, 659.25, 783.99].forEach((f, i) => tone(f, i * 0.14, i === 3 ? 0.7 : 0.18, 0.05, "triangle"));
+  /* v13: Siegessong, selbst komponiert (C-Dur, ca. 5,5 s): Melodie Dreieck, Bass Sinus, eigener Lautstärkeregler zum Abbrechen.
+     Schalter „Siegesmusik“ in der Fußzeile (Standard an); folgt dem Stummschalter (audioSession ambient). */
+  const NOTE = {G3: 196, A3: 220, C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392, A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, C6: 1046.5};
+  const MELODIE = [["G4", 0, .5], ["C5", .5, .5], ["E5", 1, .5], ["G5", 1.5, 1], ["E5", 2.5, .5], ["G5", 3, 1.5],
+    ["F5", 5, .5], ["E5", 5.5, .5], ["D5", 6, .5], ["E5", 6.5, .5], ["F5", 7, 1], ["D5", 8, 1],
+    ["E5", 9, .5], ["D5", 9.5, .5], ["C5", 10, .5], ["D5", 10.5, .5], ["E5", 11, .5], ["G5", 11.5, .5], ["A5", 12, 1],
+    ["G5", 13, .5], ["E5", 13.5, .5], ["C6", 14, 2.5]];
+  const BASS = [["C4", 0, 2], ["G3", 2, 1], ["C4", 3, 2], ["F4", 5, 2], ["G4", 7, 2], ["C4", 9, 2], ["F4", 11, 1], ["A4", 12, 1], ["G4", 13, 1], ["C4", 14, 2.5]];
+  let songGain = null;
+  api.songStop = () => { if (songGain) { try { songGain.disconnect(); } catch (e) {} songGain = null; } };
+  api.song = () => {
+    api.lastSong = 0;
+    if (!OPT.get("musik")) return false;
+    const c = ctx(); if (!c) return false;
+    try {
+      api.songStop();
+      const g = c.createGain(); g.gain.value = 1; g.connect(c.destination); songGain = g;
+      const B = 0.33, t0 = c.currentTime + 0.05;
+      const n = (f, at, d, vol, type) => {
+        const o = c.createOscillator(), e = c.createGain(), t = t0 + at * B, end = t + d * B;
+        o.type = type; o.frequency.setValueAtTime(f, t);
+        e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(vol, t + 0.02); e.gain.exponentialRampToValueAtTime(0.0001, end);
+        o.connect(e); e.connect(g); o.start(t); o.stop(end + 0.05);
+      };
+      MELODIE.forEach(([k, at, d]) => n(NOTE[k], at, d, 0.06, "triangle"));
+      BASS.forEach(([k, at, d]) => n(NOTE[k] / 2, at, d, 0.05, "sine"));
+      api.lastSong = (14 + 2.5) * B;
+      return true;
+    } catch (e) { return false; }
+  };
+  /* kurze Töne für die Bonus-Spiele (nur mit „Überraschungen“) */
+  api.blip = (f, d) => { if (api.on()) tone(f || 880, 0, d || 0.08, 0.035, "sine"); };
   api.key = (w, lang) => {
     let k = String(w).toLowerCase().normalize("NFC").replace(/[’‘`´]/g, "'").replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim();
     k = lang === "fr" ? k.replace(/^(de la |de l'|le |la |les |l'|un |une |des |du )/, "") : k.replace(/^(a |an |the |to )/, "");
@@ -2677,6 +2895,14 @@ const Verlauf = (function () {
       if (db) { try { await req(db, "readwrite", st => st.clear()); } catch (e) {} }
       mem = [];
     },
+    /* v13: nur die Einträge eines Profils löschen (Profil-Editor) */
+    async clearProfil(pid) {
+      const db = await open();
+      if (db) {
+        try { await req(db, "readwrite", st => { const c = st.openCursor(); c.onsuccess = () => { const cur = c.result; if (!cur) return; if (cur.value && cur.value.profil === pid) cur.delete(); cur.continue(); }; return null; }); } catch (e) {}
+      }
+      mem = mem.filter(e => !e || e.profil !== pid);
+    },
     persistent: async () => !!(await open())
   };
 })();
@@ -2699,16 +2925,18 @@ function logEvent(it, res, info) {
   } catch (e) {}
 }
 const ymd = d => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-async function exportVerlauf() {
-  const list = await Verlauf.all();
+/* v13: Export im Profil-Editor, nur die Einträge dieses Profils (ohne pid: alle, wie bis v12.1) */
+async function exportVerlauf(pid) {
+  const list = (await Verlauf.all()).filter(e => !pid || (e && e.profil === pid));
   if (!list.length) { toast("Noch keine Lernereignisse gespeichert."); return; }
+  const prName = pid ? ((PROFILES.find(p => p.id === pid) || {}).name || "") : "";
   const d = new Date(), namen = {};
-  PROFILES.forEach(p => { namen[p.id] = p.name; });
+  PROFILES.forEach(p => { if (!pid || p.id === pid) namen[p.id] = p.name; });
   // Profile, die es nicht mehr gibt, behalten im Export ihren letzten Namen aus dem Verlauf
   list.forEach(e => { if (e && e.profil && !(e.profil in namen) && e.profil_name) namen[e.profil] = e.profil_name; });
   const data = {schema: "kk-lernverlauf/1", erzeugt: d.toISOString(), anzahl: list.length, obergrenze: VERLAUF_MAX, profile: namen,
     hinweis: "Lokal erzeugt, nur zur Auswertung durch die Eltern. Enthält Eingaben der Kinder.", ereignisse: list};
-  const json = JSON.stringify(data, null, 1), fname = `lern_lernverlauf_${ymd(d)}.json`;
+  const json = JSON.stringify(data, null, 1), fname = `lern_lernverlauf_${prName ? LK.Lernstand.dateiname(prName, d).replace(/^Lern_|_\d{4}-\d\d-\d\d\.json$/g, "") + "_" : ""}${ymd(d)}.json`;
   // Im Artifact-Viewer läuft der Download über die Viewer-Schnittstelle (Bestätigung durch den Nutzer),
   // außerhalb (lokale Datei, Safari) über einen normalen Download-Link.
   let dl = null;
@@ -2724,21 +2952,40 @@ async function exportVerlauf() {
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
   toast(`${fmt(list.length)} Lernereignisse exportiert.`);
 }
+/* v13: Lernverlauf exportieren/löschen und Übungsstand zurücksetzen stehen im Profil-Editor (vorher Fußzeile/Übersicht).
+   Anzeige der Zahl nur, solange der Editor offen ist. */
 async function renderVerlaufTools() {
-  const host = $("verlaufTools"); if (!host) return;
-  let n = 0; try { n = await Verlauf.count(); } catch (e) {}
-  if (!host.dataset.wired) {
-    host.dataset.wired = "1";
-    host.innerHTML = `<span id="verlaufN"></span> <button class="link" id="btnVerlaufExp">Lernverlauf exportieren</button> <button class="link" id="btnVerlaufDel">Lernverlauf löschen</button>`;
-    $("btnVerlaufExp").onclick = () => { exportVerlauf().catch(() => toast("Export hat nicht geklappt.")); };
-    const del = $("btnVerlaufDel"); let armed = false;
-    del.onclick = async () => {
-      if (!armed) { armed = true; del.textContent = "Wirklich alles löschen? Nochmal tippen."; setTimeout(() => { armed = false; del.textContent = "Lernverlauf löschen"; }, 3500); return; }
-      armed = false; del.textContent = "Lernverlauf löschen";
-      await Verlauf.clear(); toast("Lernverlauf gelöscht. Der Karteikasten bleibt."); renderVerlaufTools();
-    };
-  }
-  $("verlaufN").textContent = `Lernverlauf: ${fmt(n)} Antworten`;
+  const el = $("edVerlaufN"); if (!el || !EDIT) return;
+  const pid = EDIT.p.id;
+  let n = 0; try { n = (await Verlauf.all()).filter(e => e && e.profil === pid).length; } catch (e) {}
+  if ($("edVerlaufN") === el) el.textContent = fmt(n);
+}
+/* zweistufig: erster Tipp schärft (3,5 s), zweiter führt aus */
+function zweiTipp(btn, frage, fn) {
+  const label = btn.textContent; let armed = false, tm = 0;
+  btn.onclick = async () => {
+    if (!armed) { armed = true; btn.textContent = frage; tm = setTimeout(() => { armed = false; btn.textContent = label; }, 3500); return; }
+    clearTimeout(tm); armed = false; btn.textContent = label;
+    await fn();
+  };
+}
+/* Übungsstand eines Buchs zurücksetzen (wie bis v12.1 in der Fußzeile, jetzt für das bearbeitete Profil) */
+function resetBuch(pid, book) {
+  const aktiv = CUR && CUR.pr.id === pid && CUR.book === book;
+  if (book === SAMPLE_ID) { store.del(sampleKey(pid)); if (aktiv) { loadProfile(pid); saveProfile(); } return true; }
+  const meta = METAS.find(m => m.id === book); if (!meta) return false;
+  store.del(packKey(pid, book));
+  const p = loadPackProgress(pid, meta); p.resetZeit = Date.now();   // resetZeit: ältere Karten anderer Geräte kommen beim Abgleich nicht zurück
+  store.set(packKey(pid, book), p);
+  if (aktiv) P = p;
+  return true;
+}
+/* Bücher mit Übungsstand (oder gewählt) eines Profils, für die Zurücksetzen-Knöpfe */
+function resetBuecher(pr) {
+  const ids = new Set(Object.keys(buchSchluessel(pr.id)));
+  booksFor(pr).forEach(b => ids.add(b.id));
+  return [...ids].filter(id => id === SAMPLE_ID || METAS.some(m => m.id === id))
+    .map(id => ({id, titel: id === SAMPLE_ID ? "Beispielkarten" : buchTitel(id)}));
 }
 
 /* ---------- Profile (v11) ----------
@@ -2950,6 +3197,12 @@ const MODI = [
 const modusKey = pid => "kk.v1.modus." + pid;
 const modusZeitKey = pid => "kk.v1.modusZeit." + pid;   // v12: wann die Übungsart zuletzt gewählt wurde (Abgleich)
 const sicherKey = pid => "kk.v1.sicherung." + pid;      // v12: {zeit: zuletzt gesichert, offen: Sessions seitdem}, nur dieses Gerät
+/* v13: Erfolge je Kind (Trophäen, 100 %-Einheiten, Bonus-Tickets), wandern mit „Lernstand sichern/holen“; Spielrekorde nur auf dem Gerät */
+const erfolgeKey = pid => "kk.v1.erfolge." + pid;
+const rekordKey = pid => "kk.v1.rekord." + pid;
+const erfolgeVon = pid => LK.Lernstand.erfolgeSauber(store.get(erfolgeKey(pid)));
+const erfolgeSetzen = (pid, e) => store.set(erfolgeKey(pid), e);
+const ticketsVon = pid => LK.Lernstand.ticketsOffen(erfolgeVon(pid)).length;
 function modusFor(pid) {
   const m = store.get(modusKey(pid));
   if (m === "sprechen" && !speakAvail()) return "schreiben";
@@ -2957,11 +3210,11 @@ function modusFor(pid) {
 }
 function modeButtons(pid) {
   const cur = modusFor(pid), mic = speakAvail();
-  return `<div class="modes" role="group" aria-label="Übungsart wählen und loslegen">${MODI.map(m => {
+  return `<div class="modes-cq"><div class="modes" role="group" aria-label="Übungsart wählen und loslegen">${MODI.map(m => {
     const dis = m.id === "sprechen" && !mic, on = m.id === cur;
     const sub = dis ? "geht hier nicht" : m.id === "mix" && !mic ? "wie Schreiben" : m.s;
     return `<button type="button" class="btn mode ${on ? "btn-primary is-last" : "btn-ghost"}" data-modus="${m.id}" data-pid="${esc(pid)}"${dis ? " disabled" : ""}${on ? ' aria-current="true"' : ""}><span class="ic" aria-hidden="true">${m.ic}</span>${m.t}<small>${sub}</small></button>`;
-  }).join("")}</div>${mic ? "" : `<p class="note">Auf diesem Gerät gibt es keine Spracherkennung. Sprechen geht hier nicht, Mix übt wie Schreiben.</p>`}`;
+  }).join("")}</div></div>${mic ? "" : `<p class="note">Auf diesem Gerät gibt es keine Spracherkennung. Sprechen geht hier nicht, Mix übt wie Schreiben.</p>`}`;
 }
 /* iOS: Sprachausgabe einmal direkt in der Tipp-Geste freischalten (danach darf die App selbst vorlesen, z. B. die Frage) */
 function unlockSpeech() {
@@ -3138,9 +3391,14 @@ function renderEdit() {
       <p class="note">Zuletzt gesichert: <b id="edSichZeit">${esc(gesichertText(p.id))}</b>. Sichere den Lernstand nach iCloud Drive und hol ihn auf dem anderen Gerät hier mit „Lernstand holen“.</p>
       <div class="row"><button type="button" class="btn btn-ghost btn-small sich-btn" id="edSichern">💾 Lernstand sichern</button><button type="button" class="btn btn-ghost btn-small" id="edHolen">📥 Lernstand holen</button></div>
       ${PROFILES.length > 1 ? `<button type="button" class="link" id="edSichernAlle" style="align-self:flex-start">Alle Kinder in einer Datei sichern</button>` : ""}</div>
+    <div class="tools-edit" aria-labelledby="edVerlaufH"><h2 id="edVerlaufH">Lernverlauf und Übungsstand</h2>
+      <p class="note">Lernverlauf von ${esc(p.name)}: <b id="edVerlaufN">…</b> Antworten, nur auf diesem Gerät. Der Export ist eine Datei zur Auswertung durch die Eltern.</p>
+      <div class="row"><button type="button" class="btn btn-ghost btn-small" id="btnVerlaufExp">Lernverlauf exportieren</button><button type="button" class="btn btn-ghost btn-small danger" id="btnVerlaufDel">Lernverlauf löschen</button></div>
+      ${(() => { const bs = resetBuecher(p); return bs.length ? `<p class="note">Übungsstand zurücksetzen: Karteikasten und Fortschritt des Buchs fangen von vorn an. Trophäen und Bonus-Tickets bleiben.</p>
+      <div class="row">${bs.map(b => `<button type="button" class="btn btn-ghost btn-small danger" data-reset="${esc(b.id)}">Übungsstand ${esc(b.titel)} zurücksetzen</button>`).join("")}</div>` : ""; })()}</div>
     <div class="row" style="justify-content:flex-start;border-top:1px solid var(--line);padding-top:14px"><button type="button" class="btn btn-ghost btn-small danger" id="edDel">Profil löschen</button></div>
     <div class="card" id="edDelAsk" hidden style="background:var(--bad-bg);border-color:var(--bad)"><p><b>Profil ${esc(p.name)} wirklich löschen?</b></p>
-      <p class="muted" style="margin-block:6px 12px">Karteikasten, Fortschritt, letzter Stand und Foto dieses Profils werden auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen. Der Lernverlauf bleibt, bis du ihn unten in der Fußzeile löschst.</p>
+      <p class="muted" style="margin-block:6px 12px">Karteikasten, Fortschritt, letzter Stand und Foto dieses Profils werden auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen. Der Lernverlauf bleibt, bis du ihn oben unter „Lernverlauf löschen“ löschst.</p>
       <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="edDelNo">Nein, behalten</button><button type="button" class="btn btn-primary" id="edDelYes" style="background:var(--bad);color:#2A0D10">Ja, löschen</button></div></div>`}`;
   renderEditAvatar();
   $("edName").oninput = () => { if (!EDIT.bild && !AVATARS[p.id]) renderEditAvatar(); };
@@ -3162,6 +3420,15 @@ function renderEdit() {
     $("edSichern").onclick = () => sichern([p.id], $("edSichern"));
     $("edHolen").onclick = () => holenStarten();
     if ($("edSichernAlle")) $("edSichernAlle").onclick = () => sichern(alleIds(), $("edSichernAlle"));
+    // v13: aus Fußzeile/Übersicht hierher verschoben, gilt für dieses Profil; zweistufige Bestätigung wie bisher
+    $("btnVerlaufExp").onclick = () => { exportVerlauf(p.id).catch(() => toast("Export hat nicht geklappt.")); };
+    zweiTipp($("btnVerlaufDel"), "Wirklich alles löschen? Nochmal tippen.", async () => {
+      await Verlauf.clearProfil(p.id); toast(`Lernverlauf von ${p.name} gelöscht. Der Karteikasten bleibt.`); renderVerlaufTools();
+    });
+    card.querySelectorAll("[data-reset]").forEach(b => zweiTipp(b, "Wirklich? Nochmal tippen.", async () => {
+      if (resetBuch(p.id, b.dataset.reset)) toast("Zurückgesetzt."); else toast("Das Lernpaket fehlt auf diesem Gerät.");
+    }));
+    renderVerlaufTools();
     $("edDel").onclick = () => { $("edDelAsk").hidden = false; $("edDel").hidden = true; $("edDelNo").focus(); };
     $("edDelNo").onclick = () => { $("edDelAsk").hidden = true; $("edDel").hidden = false; };
     $("edDelYes").onclick = async () => { const id = p.id, name = p.name; await deleteProfile(id); EDIT = null; renderProfiles(); renderPacks(); show("scrProfile"); toast(`Profil ${name} gelöscht.`); };
@@ -3195,7 +3462,7 @@ async function saveEdit() {
 async function deleteProfile(pid) {
   PROFILES = PROFILES.filter(p => p.id !== pid); saveProfiles();
   delete AVATARS[pid]; try { await AvatarDB.del(pid); } catch (e) {}
-  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k.startsWith("kk.v1.recent." + pid + ".");
+  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k === erfolgeKey(pid) || k === rekordKey(pid) || k.startsWith("kk.v1.recent." + pid + ".");
   lsKeys().filter(mine).forEach(k => store.del(k));
   const g = store.get(LKEY); if (g && g.pid === pid) store.del(LKEY);
   if (CUR && CUR.pr.id === pid) CUR = null;
@@ -3237,7 +3504,7 @@ function sammleKind(pid, alle) {
   Object.entries(buchSchluessel(pid)).forEach(([b, k]) => { const o = store.get(k); if (o && typeof o === "object" && o.boxes) buecher[b] = LK.Lernstand.mitZaehler(JSON.parse(JSON.stringify(o)), dev); });
   const g = store.get(LKEY), last = store.get(LKEY + "." + pid) || (g && g.pid === pid ? g : null), mw = store.get(modusKey(pid));
   return {profil: Object.assign({}, pr), foto: AVATARS[pid] || null, modus: mw ? {wert: mw, zeit: store.get(modusZeitKey(pid)) || 0} : null,
-    auswahl: store.get("kk.v1.sel." + pid), stand: last, buecher,
+    auswahl: store.get("kk.v1.sel." + pid), stand: last, buecher, erfolge: erfolgeVon(pid),
     verlauf: (alle || []).filter(e => e && e.profil === pid).map(e => { const c = Object.assign({}, e); delete c.nr; return c; })};
 }
 /* zusammengeführten Lernstand speichern (neu: nur die neuen Lernverlauf-Einträge) */
@@ -3251,6 +3518,7 @@ async function schreibeKind(k, neu) {
   if (k.auswahl) store.set("kk.v1.sel." + id, k.auswahl);
   if (k.stand) store.set(LKEY + "." + id, k.stand);
   Object.keys(k.buecher).forEach(b => store.set(b === SAMPLE_ID ? sampleKey(id) : packKey(id, b), k.buecher[b]));
+  if (k.erfolge) erfolgeSetzen(id, LK.Lernstand.erfolgeSauber(k.erfolge));
   if (neu && neu.length) { try { await Verlauf.addMany(neu); } catch (e) {} renderVerlaufTools(); }
 }
 /* Datei vorab bauen: das Teilen-Menü muss direkt im Tipp aufgehen, langes Warten davor verbietet Safari */
@@ -3375,9 +3643,9 @@ async function uebernehmeLernstand(r) {
     if (b.fehler) return `<li><b>${esc(b.name)}</b>: ${esc(b.fehler)} Es wurde nichts geändert.</li>`;
     const s = b.stat, v = s.verlaufNeu.length;
     if (s.neu) return `<li><b>${esc(b.name)}</b>: neu angelegt mit ${fmt(s.kartenAktualisiert)} Karten und ${fmt(v)} Einträgen im Lernverlauf.</li>`;
-    const nichts = !s.kartenAktualisiert && !v && !s.profilAktualisiert && !s.standAktualisiert;
+    const nichts = !s.kartenAktualisiert && !v && !s.profilAktualisiert && !s.standAktualisiert && !s.erfolgeNeu;
     const fremd = b.fremdName && b.fremdName !== b.name ? ` (aus der Datei von ${esc(b.fremdName)})` : "";
-    return `<li><b>${esc(b.name)}</b>${fremd}: ${nichts ? "war schon auf dem neuesten Stand." : `${fmt(s.kartenAktualisiert)} Karten aktualisiert, ${fmt(v)} neue Einträge, nichts überschrieben, was neuer war.`}${s.kartenBehalten ? ` ${fmt(s.kartenBehalten)} Karten waren hier neuer und bleiben.` : ""}</li>`;
+    return `<li><b>${esc(b.name)}</b>${fremd}: ${nichts ? "war schon auf dem neuesten Stand." : `${fmt(s.kartenAktualisiert)} Karten aktualisiert, ${fmt(v)} neue Einträge, nichts überschrieben, was neuer war.${s.erfolgeNeu ? " Trophäen und Bonus-Tickets ergänzt." : ""}`}${s.kartenBehalten ? ` ${fmt(s.kartenBehalten)} Karten waren hier neuer und bleiben.` : ""}</li>`;
   };
   const fehlt = PROFILES.some(p => fehlendeBuecher(p).length) ? `<p class="note">Fehlt auf diesem Gerät noch ein Lernpaket, steht das in der Profilkarte. Der Karteikasten ist trotzdem schon gespeichert.</p>` : "";
   await dialog({titel: "Lernstand geholt", html: `<ul>${berichte.map(zeile).join("")}</ul>${fehlt}`, knoepfe: [{t: "Fertig", wert: null, primary: true}]});
@@ -3502,6 +3770,161 @@ function bossPercent() {
   return Math.round(100 * u.filter(it => P.boxes[it.id] >= 3).length / u.length);
 }
 function bossName() { return CUR && !CUR.sample ? LK.short(CUR.K.byId[P.einheit] || CUR.K.E[0]) : "Unit 1"; }
+/* ---------- v13: Bosskampf (Ablauf siehe LK.bossAufgaben/bossZug) ---------- */
+const bossKey = () => CUR.sample ? SAMPLE_ID + "|u1" : CUR.book + "|" + P.einheit;
+const BOSS_NAMEN = ["Wortwurm", "Vokabel-Drache", "Grammatik-Golem", "Satzbau-Krake", "Buchstaben-Blob", "Kreidegeist", "Tintenmonster", "Fehlerteufelchen", "Lese-Yeti", "Plapper-Pilz"];
+function bossLook() {
+  const key = bossKey(), idx = CUR.sample ? 0 : (CUR.K.byId[P.einheit] || CUR.K.E[0]).i;
+  let h = 7; for (const ch of String(CUR.book)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return {key, hue: (h + idx * 67) % 360, form: (idx + (h >>> 4)) % 4, name: BOSS_NAMEN[(idx + (h >>> 2)) % BOSS_NAMEN.length]};
+}
+/* Boss-Grafik (SVG, freundlich): Form je Einheit (Blob, Hörner, Geist, Krake), Farbe je Buch/Einheit; zustand kampf | schlaf | besiegt */
+function bossSvg(look, zustand) {
+  const c = `hsl(${look.hue} 70% 72%)`, d = `hsl(${look.hue} 45% 28%)`, w = `hsl(${look.hue} 80% 88%)`;
+  const koerper = [
+    `<path d="M50 14C77 14 89 37 87 60C85 83 70 92 50 92C30 92 15 83 13 60C11 37 23 14 50 14Z"/>`,
+    `<path d="M24 30L18 8L38 22Z M76 30L82 8L62 22Z"/><path d="M50 18C76 18 88 39 86 62C84 84 70 92 50 92C30 92 16 84 14 62C12 39 24 18 50 18Z"/>`,
+    `<path d="M18 90V46C18 24 33 12 50 12C67 12 82 24 82 46V90L73 82L64 90L55 82L46 90L37 82L28 90Z"/>`,
+    `<path d="M22 72C14 84 20 94 28 88M38 78C34 92 44 96 46 86M62 78C66 92 56 96 54 86M78 72C86 84 80 94 72 88" fill="none" stroke="${d}" stroke-width="7" stroke-linecap="round"/><path d="M50 12C74 12 86 30 86 50C86 70 72 82 50 82C28 82 14 70 14 50C14 30 26 12 50 12Z"/>`
+  ][look.form % 4];
+  const augen = zustand === "schlaf" ? `<path d="M30 50Q37 55 44 50M56 50Q63 55 70 50" fill="none" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><text x="74" y="26" font-size="14" fill="${d}" font-weight="700">z</text><text x="84" y="16" font-size="10" fill="${d}" font-weight="700">z</text>`
+    : zustand === "besiegt" ? `<path d="M31 44l11 10M42 44l-11 10M58 44l11 10M69 44l-11 10" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><text x="10" y="18" font-size="13">⭐</text><text x="76" y="16" font-size="11">✨</text>`
+    : `<circle cx="37" cy="49" r="9" fill="#fff"/><circle cx="63" cy="49" r="9" fill="#fff"/><circle cx="39" cy="51" r="4.2" fill="${d}"/><circle cx="61" cy="51" r="4.2" fill="${d}"/><circle cx="40.5" cy="49.5" r="1.4" fill="#fff"/><circle cx="62.5" cy="49.5" r="1.4" fill="#fff"/><path d="M27 37l10 4M73 37l-10 4" stroke="${d}" stroke-width="3" stroke-linecap="round"/>`;
+  const mund = zustand === "besiegt" ? `<ellipse cx="50" cy="69" rx="6" ry="5" fill="${d}"/>` : zustand === "schlaf" ? `<path d="M44 68Q50 71 56 68" fill="none" stroke="${d}" stroke-width="3" stroke-linecap="round"/>`
+    : `<path d="M38 65Q50 76 62 65" fill="${d}"/><path d="M44 66l2 4 2-4M52 66l2 4 2-4" fill="#fff"/>`;
+  return `<svg viewBox="0 0 100 100" role="img" aria-label="${esc(look.name)}"><g class="${zustand === "kampf" ? "idle" : ""}"><g fill="${c}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round">${koerper}</g>
+    <ellipse cx="38" cy="28" rx="9" ry="5" fill="${w}" opacity=".7"/><circle cx="27" cy="62" r="5" fill="#F2A7B8" opacity=".55"/><circle cx="73" cy="62" r="5" fill="#F2A7B8" opacity=".55"/>${augen}${mund}</g></svg>`;
+}
+const herzHtml = k => Array.from({length: k.maxHerzen}, (_, i) => `<span class="${i < k.herzen ? "" : "weg"}">❤️</span>`).join("");
+const MODUS_NAME = {sprechen: "Sprechen", schreiben: "Schreiben", mix: "Mix"};
+function bossModus() { let m = modusFor(CUR.pr.id); if ((m === "sprechen" || m === "mix") && !speakAvail()) m = "schreiben"; return m; }
+function renderBossCard() {
+  const bp = bossPercent(), bn = bossName(), look = bossLook(), e = erfolgeVon(CUR.pr.id), tro = e.boss[look.key], offen = bp >= LK.BOSS_AB;
+  $("bossBar").style.width = bp + "%";
+  $("bossPill").textContent = bp + " %";
+  $("bossTitle").textContent = "Bosskampf " + bn;
+  $("bossFig").className = "boss-fig" + (offen ? "" : " schlaf");
+  $("bossFig").innerHTML = bossSvg(look, offen ? (tro ? "besiegt" : "kampf") : "schlaf");
+  $("bossText").textContent = !offen ? `Bosskampf ${bn} ab 80 %, aktuell ${bp} %. Zählt, wenn eine Karte ab Fach 3 liegt. Boss ${look.name} schläft noch.`
+    : tro ? `Besiegt am ${new Date(tro.zeit).toLocaleDateString("de-DE")} mit ${tro.herzen} von ${LK.BOSS_HERZEN} Herzen. Du kannst jederzeit wieder antreten.`
+    : `Das Boss-Tor ist offen! Boss ${look.name} wartet. Jede richtige Antwort ist ein Treffer, du hast ${LK.BOSS_HERZEN} Herzen. Keine Eile.`;
+  $("bossActions").innerHTML = offen ? `<button type="button" class="btn btn-primary boss-go" id="btnBoss">⚔️ Bosskampf starten</button>
+    <p class="note" style="margin-top:6px">Aufgaben nur aus ${esc(bn)}, Übungsart: ${MODUS_NAME[bossModus()]}. Der Kampf verändert deinen Karteikasten nicht.</p>` : "";
+  if ($("btnBoss")) $("btnBoss").onclick = () => { unlockSpeech(); try { Fun.unlock(); } catch (x) {} startBoss(bossModus()); };
+  const pre = (CUR.sample ? SAMPLE_ID : CUR.book) + "|";
+  const shelf = Object.keys(e.boss).filter(k => k.startsWith(pre)).map(k => {
+    const eid = k.slice(pre.length), u = CUR.sample ? null : CUR.K.byId[eid];
+    return `<span class="trophy-pill" title="Boss besiegt">🏆 ${esc(CUR.sample ? "Unit 1" : u ? LK.short(u) : eid)}</span>`;
+  }).concat(Object.keys(e.voll).filter(k => k.startsWith(pre)).map(k => {
+    const eid = k.slice(pre.length), u = CUR.sample ? null : CUR.K.byId[eid];
+    return `<span class="trophy-pill" title="Alle Karten ab Fach 3">💯 ${esc(CUR.sample ? "Unit 1" : u ? LK.short(u) : eid)}</span>`;
+  }));
+  $("bossShelf").innerHTML = shelf.join("");
+}
+function renderBonus() {
+  if (!CUR) return;
+  const n = ticketsVon(CUR.pr.id);
+  $("ticketPill").textContent = `🎟 ${n} ${n === 1 ? "Ticket" : "Tickets"}`;
+  $("bonusText").textContent = n ? "Löse ein Ticket ein: eine Runde Flipper, Ballon-Jagd oder Emoji-Memory."
+    : "Tickets gibt es für einen besiegten Boss (2), eine Einheit mit allen Karten ab Fach 3 (2) und eine perfekte Session (1, einmal am Tag).";
+  $("btnBonus").disabled = !n;
+}
+/* Aufgaben für den Kampf: Paket über den Lernkern, Beispielkarten direkt aus Unit 1 */
+function bossQueue(modus, ohne) {
+  if (!CUR.sample) return LK.bossAufgaben(CUR.K, P.boxes, P.einheit, 14, CUR.prev, Object.assign({modus, ohne}, umfangOpts(CUR.pr)));
+  const o = new Set(ohne || []);
+  const list = shuffle(ITEMS.filter(it => it.src === "u1")).sort((a, b) => (o.has(a.id) ? 1 : 0) - (o.has(b.id) ? 1 : 0)).slice(0, 14);
+  const want = modus === "sprechen" ? 99 : modus === "mix" ? 5 : 0; let sp = 0;
+  return list.map(it => sp < want && (it.t === "mc" || it.t === "type") && ++sp ? sampleSpeak(it) : it);
+}
+function startBoss(modus) {
+  if (!CUR || !P) return;
+  if (bossPercent() < LK.BOSS_AB) { toast("Das Boss-Tor öffnet bei 80 %."); return; }
+  modus = MODI.some(m => m.id === modus) ? modus : "schreiben";
+  if (modus !== "schreiben" && !speakAvail()) modus = "schreiben";
+  const queue = bossQueue(modus, []);
+  if (!queue.length) { toast("Für diese Einheit gibt es keine Aufgaben."); return; }
+  const nKarten = CUR.sample ? ITEMS.filter(it => it.src === "u1").length : LK.bossKarten(CUR.K, P.einheit).length;
+  S = {modus, queue, boxes: P.boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: "",
+    boss: {key: bossKey(), look: bossLook(), kampf: LK.bossStart(nKarten), gestellt: [], hpAlt: null}};
+  Fun.reset();
+  show("scrSession");
+  $("quitConfirm").hidden = true;
+  renderBossHud();
+  renderTask();
+}
+function renderBossHud(bz) {
+  const h = $("bossHud"); if (!h) return;
+  const B = S && S.boss;
+  if (!B) { h.hidden = true; h.innerHTML = ""; return; }
+  const k = B.kampf, alt = B.hpAlt == null ? k.hp : B.hpAlt;
+  h.hidden = false;
+  h.innerHTML = `<div class="boss-fig${bz && bz.schaden ? " hit" : ""}" id="hudFig">${bossSvg(B.look, k.ende === "sieg" ? "besiegt" : "kampf")}${bz && bz.schaden ? `<b class="dmg" aria-hidden="true">−${bz.schaden}</b>` : ""}</div>
+    <div class="hud-main"><div class="row" style="justify-content:space-between;gap:2px 10px"><b class="boss-name">${esc(B.look.name)}</b><span class="muted" id="hudHp">${k.hp}/${k.max} Lebenspunkte</span></div>
+      <div class="hp" role="img" aria-label="Boss: ${k.hp} von ${k.max} Lebenspunkten"><span id="hudBar" style="width:${100 * alt / k.max}%"></span></div>
+      <div class="row" style="justify-content:space-between;gap:2px 10px"><span class="hearts${bz && bz.herz ? " ouch" : ""}" role="img" aria-label="Du hast ${k.herzen} von ${k.maxHerzen} Herzen">${herzHtml(k)}</span><span class="muted">${bz && bz.superschlag ? "💥 Superschlag!" : k.serie >= 2 ? `🔥 ${k.serie} in Folge` : ""}</span></div></div>`;
+  B.hpAlt = k.hp;
+  requestAnimationFrame(() => { const b = $("hudBar"); if (b) b.style.width = (100 * k.hp / k.max) + "%"; });
+}
+function bossTitel(res, bz, k) {
+  if (res === "bad") return k.herzen ? "Autsch, ein Herz weg. Weiter geht's!" : "Oh, das letzte Herz.";
+  if (k.ende === "sieg") return "Volltreffer! Der Boss ist besiegt!";
+  if (bz.superschlag) return "Superschlag! Doppelter Treffer.";
+  return res === "half" ? "Fast! Zählt als Treffer." : pick(["Treffer!", "Bumm, getroffen!", "Volltreffer!", "Zack! Treffer."]);
+}
+const tagSchluessel = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function bossEnde() {
+  const B = S.boss, k = B.kampf, pid = CUR.pr.id, sieg = k.ende === "sieg", modus = S.modus, bn = bossName();
+  let lohn = null;
+  if (sieg) { const e = erfolgeVon(pid); lohn = LK.Lernstand.bossSieg(e, B.key, k.herzen, Date.now()); erfolgeSetzen(pid, e); merkeUngesichert(pid); }
+  const n = ticketsVon(pid);
+  $("endCard").innerHTML = sieg ? `<div class="boss-end">
+      <div class="boss-fig" aria-hidden="true">${bossSvg(B.look, "besiegt")}</div>
+      <p class="eyebrow">Bosskampf ${esc(bn)}</p>
+      <h1>Boss besiegt! 🏆</h1>
+      <p class="muted">${k.treffer} Treffer in ${k.zuege} Zügen, noch <span class="hearts" style="font-size:1.1rem">${herzHtml(k)}</span> übrig.</p>
+      <div class="lohn" role="status"><div class="ticket">🏆 Trophäe ${esc(bn)}</div>
+        ${lohn.neu ? `<p><b>🎟 +${lohn.tickets} Bonus-Tickets</b> für deinen ersten Sieg in ${esc(bn)}.</p>` : lohn.besser ? "<p>Neues Bestergebnis mit mehr Herzen!</p>" : "<p>Die Trophäe hattest du schon. Tickets gibt es für den ersten Sieg je Einheit.</p>"}
+        ${n ? `<button type="button" class="btn btn-primary" id="btnSpielEnd">🎮 Bonus-Spiel (${n} ${n === 1 ? "Ticket" : "Tickets"})</button>` : ""}</div>
+    </div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-ghost" id="btnHome">Home</button><button type="button" class="btn btn-ghost" id="btnBossAgain">Nochmal kämpfen</button></div>`
+  : `<div class="boss-end">
+      <div class="boss-fig" aria-hidden="true">${bossSvg(B.look, "kampf")}</div>
+      <p class="eyebrow">Bosskampf ${esc(bn)}</p>
+      <h1>Knapp! Boss ${esc(B.look.name)} war diesmal stärker.</h1>
+      <p class="muted">Du hast ${k.treffer} Treffer gelandet, es fehlen nur noch ${k.hp} von ${k.max} Lebenspunkten. Eine Übungsrunde, dann klappt's. Du kannst jederzeit wieder antreten.</p>
+    </div>
+    <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="btnHome">Home</button><button type="button" class="btn btn-ghost" id="btnUeben">Erst üben</button><button type="button" class="btn btn-primary" id="btnBossAgain">Nochmal kämpfen</button></div>`;
+  $("btnHome").onclick = () => { renderHome(); show("scrHome"); };
+  $("btnBossAgain").onclick = () => startBoss(modus);
+  if ($("btnUeben")) $("btnUeben").onclick = () => startSession(modus);
+  if ($("btnSpielEnd")) $("btnSpielEnd").onclick = () => openSpiele();
+  show("scrEnd");
+  if (sieg) { confetti(3); if (!Fun.song() && Fun.on()) Fun.fanfare(); }
+}
+/* nach Sieg/Belohnung: „Lernstand sichern“ wird hervorgehoben */
+function merkeUngesichert(pid) { const s = store.get(sicherKey(pid)) || {zeit: null, offen: 0}; s.offen = (s.offen || 0) + 1; store.set(sicherKey(pid), s); }
+/* nach einer normalen Session: Einheit zu 100 % (b) und perfekte Session (c) belohnen */
+function sessionBelohnung() {
+  const pid = CUR.pr.id, e = erfolgeVon(pid), jetzt = Date.now(), out = {tickets: 0, zeilen: [], perfekt: false};
+  const ids = new Set();
+  if (CUR.sample) { if (bossPercent() >= 100) ids.add("u1"); }
+  else { ids.add(P.einheit); S.moves.forEach(m => { const c = m.it.cardRef; if (c && c.K === CUR.K && c.einheit) ids.add(c.einheit); }); }
+  ids.forEach(eid => {
+    if (!CUR.sample && LK.unitStats(CUR.K, P.boxes, eid).boss < 100) return;
+    const r = LK.Lernstand.einheitVoll(e, (CUR.sample ? SAMPLE_ID : CUR.book) + "|" + eid, jetzt);
+    if (r.neu) { out.tickets += r.tickets; out.zeilen.push(`💯 ${CUR.sample ? "Unit 1" : LK.short(CUR.K.byId[eid])}: alle Karten ab Fach 3! +${r.tickets} Bonus-Tickets`); }
+  });
+  const n = S.mainLen || S.queue.length;
+  if (n >= 8 && S.firstOk >= n && !S.retry.length && !S.extraTasks) {
+    out.perfekt = true;
+    const t = LK.Lernstand.perfekt(e, tagSchluessel(new Date()), jetzt);
+    out.tickets += t;
+    out.zeilen.push(t ? "⭐ Perfekte Session, alles beim ersten Versuch! +1 Bonus-Ticket" : "⭐ Perfekte Session, alles beim ersten Versuch! (Das Ticket dafür gibt es einmal am Tag, heute hast du es schon.)");
+  }
+  if (out.tickets) { erfolgeSetzen(pid, e); }
+  return out;
+}
 function renderBoxes(counts, label) {
   const max = Math.max(...counts, 1);
   $("boxes").innerHTML = counts.map((c, i) => `
@@ -3518,11 +3941,7 @@ function renderHome() {
   $("ringFg").style.strokeDashoffset = String(C * (1 - done / GOAL));
   $("ringNum").textContent = `${P.sessions}/${GOAL}`;
   $("goalText").textContent = P.sessions >= GOAL ? "Ziel geschafft. Alles ab jetzt ist Bonus." : P.sessions === 0 ? "Diese Woche noch keine Session. Fang einfach an." : `Noch ${GOAL - P.sessions} bis zum Wochenziel.`;
-  const bp = bossPercent(), bn = bossName();
-  $("bossBar").style.width = bp + "%";
-  $("bossPill").textContent = bp + " %";
-  $("bossTitle").textContent = "Bosskampf " + bn;
-  $("bossText").textContent = bp >= 80 ? "Das Boss-Tor ist offen. Der Kampf kommt in der nächsten Version." : `Bosskampf ${bn} ab 80 %, aktuell ${bp} %. Zählt, wenn eine Karte ab Fach 3 liegt.`;
+  if (CUR) { renderBossCard(); renderBonus(); }
   const hm = $("homeModes");
   if (hm && CUR) { hm.innerHTML = modeButtons(CUR.pr.id); wireModes(hm, modus => startSession(modus)); }
   if (CUR && !CUR.sample) return renderHomePack();
@@ -3593,11 +4012,13 @@ function startSession(modus) {
   Fun.reset();
   show("scrSession");
   $("quitConfirm").hidden = true;
+  renderBossHud();
   renderTask();
 }
 function totalSteps() { return S.queue.length; }
 /* eine Aufgabe ans Ende der Session hängen (Preis der Hilfe) */
 function addExtraTask() {
+  if (S.boss) return;   // im Bosskampf kostet die Hilfe nichts extra
   const have = new Set(S.queue.map(t => t.id));
   let cand = [];
   try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus: S.modus, seen: recentSeen()}, umfangOpts(CUR.pr))) : buildSession(S.modus); } catch (e) { cand = []; }
@@ -3625,6 +4046,7 @@ function renderTask() {
   const n = S.i + 1, tot = totalSteps();
   $("progBar").style.width = (100 * S.i / tot) + "%";
   $("progText").textContent = S.phase === "retry" ? `Fehlerrunde ${n - S.mainLen}/${tot - S.mainLen}` : `${n}/${tot}`;
+  if (S.boss) { const k = S.boss.kampf; $("progBar").style.width = (100 * (1 - k.hp / k.max)) + "%"; $("progText").textContent = `Zug ${k.zuege + 1}`; }
   const label = it.label || (it.src === "u1" ? `Unit 1 · Station ${it.st}` : SRC_LABEL[it.src]);
   const pillCls = it.pillCls != null ? it.pillCls : it.src === "u1" ? "u1" : (it.src === "b3" ? "" : "rev");
   const meta = `<div class="task-meta"><span class="pill ${pillCls}">${esc(label)}</span>${it.dir ? `<span class="pill dir">${esc(it.dir)}</span>` : ""}<span class="pill">${esc(it.topic)}</span>${S.phase === "retry" ? '<span class="pill">Rückkehrer</span>' : ""}</div>`;
@@ -3813,9 +4235,13 @@ function renderTask() {
 
 const PRAISE_OK = ["Sitzt.", "Sauber.", "Genau so.", "Läuft.", "Treffer.", "Yes."];
 function finishTask(res, info) {
-  const it = S.current, L = it.lang || "en";
-  logEvent(it, res, info);
-  if (S.phase === "main" && it.noBox) {
+  const it = S.current, L = it.lang || "en", B = S.boss;
+  let bz = null;
+  logEvent(it, res, B ? Object.assign({}, info, {phase: "boss"}) : info);
+  if (B) {
+    // v13 Bosskampf: Treffer oder Herz, keine Fächeränderung, keine Fehlerrunde
+    bz = LK.bossZug(B.kampf, res); B.gestellt.push(it.id); S.results[it.id] = res; if (res === "ok") S.firstOk++;
+  } else if (S.phase === "main" && it.noBox) {
     // Frage–Antwort: zählt für Punkte, aber nicht im Karteikasten und ohne Fehlerrunde
     S.points += res === "ok" ? 10 : res === "half" ? 5 : 0;
     if (res === "ok") S.firstOk++;
@@ -3831,7 +4257,7 @@ function finishTask(res, info) {
   } else {
     if (res === "ok") { S.points += 5; S.rescued++; } else if (res === "half") { S.points += 3; S.rescued++; }
   }
-  const title = it.t === "qa" ? (res === "ok" ? pick(PRAISE_OK) : res === "half" ? "Gut! Halber Punkt." : "Noch nicht ganz.")
+  const title = B ? bossTitel(res, bz, B.kampf) : it.t === "qa" ? (res === "ok" ? pick(PRAISE_OK) : res === "half" ? "Gut! Halber Punkt." : "Noch nicht ganz.")
     : res === "ok" ? pick(PRAISE_OK) : res === "half" ? "Fast! Halber Punkt." : (S.phase === "main" ? "Nope. Kommt am Ende nochmal." : "Immer noch knifflig. Morgen wieder.");
   const lines = [];
   if (info.yours) lines.push(`<p class="muted">${it.t === "speak" || it.t === "qa" ? "Verstanden" : "Du"}: <span lang="${L}">${esc(info.yours)}</span></p>`);
@@ -3850,6 +4276,7 @@ function finishTask(res, info) {
     <div class="row"><button class="btn btn-primary" id="btnNext">Weiter</button></div></section>`;
   S.fbAt = Date.now();
   $("btnNext").onclick = nextTask;
+  if (B) { renderBossHud(bz); if (B.kampf.ende) $("btnNext").textContent = B.kampf.ende === "sieg" ? "Zum Sieg 🏆" : "Weiter"; }
   // Das Auflösen ist eine Nutzergeste (Tipp auf Antwort/Prüfen/Enter): direkt hier sprechen, sonst schweigt iOS.
   // Genau einmal je Aufgabe; „Weiter“ spricht nicht erneut.
   const sayKey = S.phase + ":" + S.i;
@@ -3864,6 +4291,13 @@ document.addEventListener("keydown", e => {
   if (n && Date.now() - S.fbAt > 250 && document.activeElement !== n) { e.preventDefault(); nextTask(); }
 });
 function nextTask() {
+  if (S.boss) {
+    if (S.boss.kampf.ende) return bossEnde();
+    S.i++;
+    if (S.i >= S.queue.length) S.queue = S.queue.concat(bossQueue(S.modus, S.boss.gestellt.slice(-8)));
+    if (S.i >= S.queue.length) return bossEnde();
+    return renderTask();
+  }
   S.i++;
   if (S.phase === "main" && S.i >= S.queue.length) {
     S.mainLen = S.queue.length;
@@ -3909,6 +4343,9 @@ function endSession() {
   const moveRow = (m) => `<div class="move"><span lang="${m.it.lang || "en"}">${esc(cardName(m.it))}</span><span class="${m.to > m.from ? "up" : m.to < m.from ? "down" : "stay"}">${m.from ? "Fach " + m.from : "neu"} → Fach ${m.to}</span></div>`;
   const bp = bossPercent();
   saveLast();
+  const lohn = sessionBelohnung(), nT = ticketsVon(CUR.pr.id);
+  const lohnHtml = lohn.zeilen.length ? `<div class="lohn" role="status"><div class="ticket">${lohn.tickets ? "🎟 Belohnung!" : "⭐ Perfekt!"}</div>${lohn.zeilen.map(z => `<p>${esc(z)}</p>`).join("")}
+      ${lohn.tickets && nT ? `<button type="button" class="btn btn-primary" id="btnSpielEnd">🎮 Bonus-Spiel (${nT} ${nT === 1 ? "Ticket" : "Tickets"})</button>` : ""}</div>` : "";
   const fun = Fun.on(), pics = fun ? Fun.collage(S.moves.map(m => m.it)) : [];
   const collage = pics.length ? `<div><h3>Bild deiner Wörter</h3><div class="collage">${pics.map(p => `<div><b aria-hidden="true">${p.e}</b><span lang="${p.lang}">${esc(p.w)}</span></div>`).join("")}</div></div>` : "";
   $("endCard").innerHTML = `
@@ -3918,6 +4355,7 @@ function endSession() {
       <h1>${stars === 3 ? "Stark gespielt." : stars === 2 ? "Solide Runde." : "Geschafft. Das zählt."}</h1>
       <p class="muted">${esc(effort)}</p>
     </div>
+    ${lohnHtml}
     <div class="stats">
       <div class="stat"><b>${S.points}</b>Punkte</div>
       <div class="stat"><b>${S.firstOk}/${total}</b>beim ersten Versuch</div>
@@ -3941,9 +4379,11 @@ function endSession() {
   $("btnSichern").onclick = () => sichern([pidEnd], $("btnSichern"));
   $("btnHome").onclick = () => { renderHome(); show("scrHome"); };
   $("btnAgain").onclick = () => startSession(S.modus);
+  if ($("btnSpielEnd")) $("btnSpielEnd").onclick = () => openSpiele();
   show("scrEnd");
-  if (fun) Fun.fanfare();
-  confetti(stars);
+  // Belohnung: Siegessong (abschaltbar), sonst die kurze Fanfare
+  if (lohn.zeilen.length) { if (!Fun.song() && fun) Fun.fanfare(); } else if (fun) Fun.fanfare();
+  confetti(lohn.zeilen.length ? 3 : stars);
 }
 
 function cardName(it) { if (it.card) return it.card; if (it.t === "speak") return it.target; return it.t === "mc" || it.t === "type" ? it.en : it.t === "build" ? it.ans[0] : it.c[0] + " (" + it.s.split(" ")[it.w] + ")"; }
@@ -3978,30 +4418,273 @@ function confetti(stars) {
   })(t0);
 }
 
-/* ---------- Abbrechen ---------- */
-$("btnQuit").onclick = () => { $("quitConfirm").hidden = false; };
-$("btnQuitNo").onclick = () => { $("quitConfirm").hidden = true; };
-$("btnQuitYes").onclick = () => { if (S) recentAdd(S.queue.slice(0, S.i + 1).map(t => t.id)); S = null; renderHome(); show("scrHome"); };
-
-
-// Footer: Zurücksetzen in zwei Schritten (kein confirm() nötig); betrifft das gerade gewählte Profil und Buch
-(function addReset() {
-  const f = document.querySelector("footer");
-  const b = document.createElement("button"); b.className = "link";
-  const label = () => CUR ? `Übungsstand ${CUR.pr.name}${CUR.sample ? " (Beispielkarten)" : ""} zurücksetzen` : "Übungsstand zurücksetzen";
-  let armed = false;
-  b.textContent = label();
-  document.addEventListener("click", e => { if (e.target !== b && !armed) b.textContent = label(); }, true);
-  b.onclick = () => {
-    if (!CUR) { toast("Erst ein Profil wählen, dann geht Zurücksetzen."); return; }
-    if (!armed) { armed = true; b.textContent = "Wirklich? Nochmal tippen."; setTimeout(() => { armed = false; b.textContent = label(); }, 3500); return; }
-    if (!CUR.sample) { store.del(CUR.key); P = loadPackProgress(CUR.pr.id, CUR.meta); P.resetZeit = Date.now(); }   // resetZeit: ältere Karten anderer Geräte kommen beim Abgleich nicht zurück
-    else { store.del(sampleKey(CUR.pr.id)); loadProfile(CUR.pr.id); }
-    saveProfile(); armed = false; b.textContent = label(); toast("Zurückgesetzt.");
-    if (!$("scrHome").hidden) renderHome(); else renderProfiles();
+/* ---------- v13: Bonus-Spiele (Belohnung, ohne Vokabeln): ein Ticket = eine Runde ----------
+   Canvas-Spiele rechnen in festen Spielkoordinaten und werden nur skaliert (Größenänderung/Drehen: neu einpassen, Physik bleibt gleich).
+   Genau eine Schleife per requestAnimationFrame; Spiele.stop() beendet sie samt aller Listener (Zurück, anderer Bildschirm, Spielende). */
+const Spiele = (function () {
+  let lauf = null;
+  const api = {frames: 0};
+  api.laeuft = () => !!lauf;
+  api.name = () => lauf ? lauf.name : null;
+  api.stop = () => { const l = lauf; lauf = null; if (l) { try { l.stop(); } catch (e) {} } };
+  api.start = (name, feld, fertig) => {
+    api.stop();
+    const g = GAMES[name]; if (!g) return false;
+    let l = null;
+    l = g(feld, punkte => { if (lauf === l) lauf = null; try { l.stop(); } catch (e) {} fertig(punkte); });
+    l.name = name; lauf = l; return true;
   };
-  f.appendChild(b);
+  const anzeigen = (zeit, punkte) => {
+    const z = $("spZeit"), p = $("spPunkte");
+    if (z && zeit != null) { const t = Math.max(0, Math.ceil(zeit)) + " s"; if (z.textContent !== t) z.textContent = t; }
+    if (p) { const t = fmt(Math.round(punkte)) + " Punkte"; if (p.textContent !== t) p.textContent = t; }
+  };
+  /* Leinwand in Spielkoordinaten W×H, eingepasst in Breite des Felds und maxVh der Fensterhöhe */
+  function leinwand(feld, W, H, maxVh) {
+    const cv = document.createElement("canvas"); feld.innerHTML = ""; feld.appendChild(cv);
+    const ctx = cv.getContext("2d"), o = {cv, ctx, W, H, s: 1};
+    let lw = 0, lh = 0;
+    o.fit = force => {
+      const w = Math.max(220, feld.clientWidth || 320), h = Math.max(260, Math.min(window.innerHeight * maxVh, 960));
+      if (!force && w === lw && h === lh) return; lw = w; lh = h;
+      const s = Math.min(w / W, h / H), dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.style.width = Math.round(W * s) + "px"; cv.style.height = Math.round(H * s) + "px";
+      cv.width = Math.round(W * s * dpr); cv.height = Math.round(H * s * dpr);
+      o.s = s; if (ctx) ctx.setTransform(s * dpr, 0, 0, s * dpr, 0, 0);
+    };
+    o.fit(true);
+    const onR = () => o.fit();
+    window.addEventListener("resize", onR); window.addEventListener("orientationchange", onR);
+    let ro = null; try { ro = new ResizeObserver(onR); ro.observe(feld); } catch (e) { ro = null; }
+    o.punkt = ev => { const r = cv.getBoundingClientRect(); return {x: (ev.clientX - r.left) / (r.width || 1) * W, y: (ev.clientY - r.top) / (r.height || 1) * H}; };
+    o.weg = () => { window.removeEventListener("resize", onR); window.removeEventListener("orientationchange", onR); if (ro) ro.disconnect(); };
+    return o;
+  }
+  /* eine Schleife; step(dt in s) liefert false = Ende. Verdeckte Seite: rAF ruht, dt ist gedeckelt (keine Zeitsprünge) */
+  /* Wächter: bleibt rAF bei sichtbarer Seite länger als 60 ms aus (gedrosselte Browser, Testumgebung), rechnet ein Timer weiter */
+  function schleife(step) {
+    let raf = 0, alt = 0, aktiv = true, wd = 0;
+    const waechter = () => { if (aktiv && !document.hidden) { cancelAnimationFrame(raf); f(); } else if (aktiv) wd = setTimeout(waechter, 60); };
+    const f = () => {
+      if (!aktiv) return;
+      clearTimeout(wd);
+      api.frames++;
+      const t = performance.now(), dt = alt ? Math.min(0.05, Math.max(0, (t - alt) / 1000)) : 1 / 60; alt = t;
+      if (step(dt) === false) { aktiv = false; return; }
+      raf = requestAnimationFrame(f);
+      wd = setTimeout(waechter, 60);
+    };
+    raf = requestAnimationFrame(f); wd = setTimeout(waechter, 60);
+    return () => { aktiv = false; cancelAnimationFrame(raf); clearTimeout(wd); };
+  }
+  const farbe = (v, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || d; } catch (e) { return d; } };
+
+  /* ---- Flipper: 75 s, Flipper links/rechts per Tipp auf die linke/rechte Hälfte (Mehrfingertippen), am Mac Pfeiltasten ---- */
+  function flipper(feld, fertig) {
+    const W = 400, H = 700, L = leinwand(feld, W, H, 0.68), ctx = L.ctx, cv = L.cv;
+    const DAUER = 75, R = 10, G = 950, VMAX = 1500;
+    let zeit = DAUER, punkte = 0, meldung = "Los!", meldT = 1.2, baelle = 1;
+    const ball = {x: 330, y: 80, vx: -80, vy: 0, warte: 0.8, still: 0};
+    const WAND = [[20, 70, 20, 520], [380, 70, 380, 520], [70, 20, 330, 20], [20, 70, 70, 20], [330, 20, 380, 70], [20, 520, 116, 602], [380, 520, 284, 602]];
+    const SCHLEUDER = [[62, 430, 62, 498], [62, 498, 104, 530], [338, 430, 338, 498], [338, 498, 296, 530]];
+    const KICK = [[62, 430, 104, 530, 1], [338, 430, 296, 530, -1]];
+    const BUMP = [{x: 130, y: 205, r: 26, b: 0}, {x: 270, y: 205, r: 26, b: 0}, {x: 200, y: 305, r: 28, b: 0}];
+    const STERN = [{x: 110, y: 112}, {x: 170, y: 88}, {x: 230, y: 88}, {x: 290, y: 112}].map(s => Object.assign(s, {an: false}));
+    const LEN = 72, DICK = 7, RUHE = 0.5, OBEN = -0.45, OMEGA = 24;
+    const FL = [{px: 120, py: 610, sg: 1, a: RUHE, w: 0, an: false}, {px: 280, py: 610, sg: -1, a: RUHE, w: 0, an: false}];
+    const tip = f => ({x: f.px + f.sg * LEN * Math.cos(f.a), y: f.py + LEN * Math.sin(f.a)});
+    const acc = farbe("--accent", "#C4B8F2"), star = farbe("--star", "#F5CF6B"), margin = farbe("--margin", "#F0A58F");
+    function seg(ax, ay, bx, by, e, dick, vel) {
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+      let t = ((ball.x - ax) * dx + (ball.y - ay) * dy) / l2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const qx = ax + t * dx, qy = ay + t * dy, rr = R + (dick || 0);
+      let nx = ball.x - qx, ny = ball.y - qy; const d = Math.hypot(nx, ny);
+      if (d >= rr) return false;
+      if (d < 1e-6) { nx = -dy; ny = dx; const n = Math.hypot(nx, ny) || 1; nx /= n; ny /= n; } else { nx /= d; ny /= d; }
+      ball.x = qx + nx * rr; ball.y = qy + ny * rr;
+      const sv = vel ? vel(t) : null, rvx = ball.vx - (sv ? sv.x : 0), rvy = ball.vy - (sv ? sv.y : 0), vn = rvx * nx + rvy * ny;
+      if (vn < 0) { ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; }
+      return {nx, ny};
+    }
+    function neuerBall() { Object.assign(ball, {x: 300 + Math.random() * 50, y: 70, vx: -60 - Math.random() * 120, vy: 0, warte: 0.9, still: 0}); baelle++; meldung = "Neuer Ball!"; meldT = 1; }
+    function schritt(h) {
+      FL.forEach(f => { const z = f.an ? OBEN : RUHE, alt = f.a, d = z - f.a; f.a += Math.sign(d) * Math.min(Math.abs(d), OMEGA * h); f.w = (f.a - alt) / h; });
+      if (ball.warte > 0) { ball.warte -= h; return; }
+      ball.vy += G * h; ball.x += ball.vx * h; ball.y += ball.vy * h;
+      WAND.forEach(s => seg(s[0], s[1], s[2], s[3], 0.45, 0));
+      SCHLEUDER.forEach(s => seg(s[0], s[1], s[2], s[3], 0.45, 0));
+      KICK.forEach(s => { const n = seg(s[0], s[1], s[2], s[3], 0.6, 0); if (n && ball.vx * s[4] < 300) { ball.vx += n.nx * 380; ball.vy += n.ny * 380; punkte += 10; Fun.blip(660); } });
+      BUMP.forEach(b => {
+        let nx = ball.x - b.x, ny = ball.y - b.y; const d = Math.hypot(nx, ny), rr = R + b.r;
+        if (d >= rr || d < 1e-6) return;
+        nx /= d; ny /= d; ball.x = b.x + nx * rr; ball.y = b.y + ny * rr;
+        const vn = ball.vx * nx + ball.vy * ny; if (vn < 0) { ball.vx -= 2 * vn * nx; ball.vy -= 2 * vn * ny; }
+        ball.vx += nx * 260; ball.vy += ny * 260; b.b = 0.18; punkte += 100; Fun.blip(990);
+      });
+      FL.forEach(f => { const t = tip(f); seg(f.px, f.py, t.x, t.y, 0.25, DICK, u => ({x: -f.sg * u * LEN * Math.sin(f.a) * f.w, y: u * LEN * Math.cos(f.a) * f.w})); });
+      STERN.forEach(s => { if (!s.an && Math.hypot(ball.x - s.x, ball.y - s.y) < R + 13) { s.an = true; punkte += 50; Fun.blip(1320, 0.12);
+        if (STERN.every(x => x.an)) { punkte += 500; meldung = "Alle Sterne! +500"; meldT = 1.4; setTimeout(() => STERN.forEach(x => { x.an = false; }), 900); } } });
+      const v = Math.hypot(ball.vx, ball.vy); if (v > VMAX) { ball.vx *= VMAX / v; ball.vy *= VMAX / v; }
+      if (v < 18 && ball.y < 590) { ball.still += h; if (ball.still > 2.2) { ball.vx = (Math.random() - 0.5) * 500; ball.vy = -450; ball.still = 0; } } else ball.still = 0;
+      if (ball.y > H + 30) neuerBall();
+    }
+    function zeichne() {
+      ctx.clearRect(0, 0, W, H);
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#202A3B"); g.addColorStop(1, "#141A25"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.lineCap = "round"; ctx.strokeStyle = "#6A7894"; ctx.lineWidth = 6;
+      WAND.forEach(s => { ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[2], s[3]); ctx.stroke(); });
+      ctx.strokeStyle = margin; ctx.lineWidth = 5;
+      [[62, 430, 62, 498, 104, 530], [338, 430, 338, 498, 296, 530]].forEach(s => { ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[2], s[3]); ctx.lineTo(s[4], s[5]); ctx.closePath(); ctx.stroke(); });
+      STERN.forEach(s => { ctx.fillStyle = s.an ? star : "#3D4759"; ctx.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 5.5 : 13, a = -Math.PI / 2 + i * Math.PI / 5; ctx.lineTo(s.x + r * Math.cos(a), s.y + r * Math.sin(a)); } ctx.closePath(); ctx.fill(); });
+      BUMP.forEach(b => { ctx.fillStyle = b.b > 0 ? star : acc; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); ctx.strokeStyle = "#E9EDF4"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(b.x, b.y, b.r - 7, 0, 7); ctx.stroke(); });
+      ctx.strokeStyle = acc; ctx.lineWidth = DICK * 2;
+      FL.forEach(f => { const t = tip(f); ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t.x, t.y); ctx.stroke(); });
+      const bg = ctx.createRadialGradient(ball.x - 3, ball.y - 4, 2, ball.x, ball.y, R); bg.addColorStop(0, "#FFFFFF"); bg.addColorStop(1, "#9AA6BA");
+      ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(ball.x, ball.y, R, 0, 7); ctx.fill();
+      if (meldT > 0) { ctx.fillStyle = star; ctx.font = "800 26px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(meldung, W / 2, 400); }
+    }
+    const druck = new Map(), tasten = {l: false, r: false};
+    const setz = () => { const v = [...druck.values()]; FL[0].an = v.includes(0) || tasten.l; FL[1].an = v.includes(1) || tasten.r; };
+    const down = ev => { ev.preventDefault(); druck.set(ev.pointerId, L.punkt(ev).x < W / 2 ? 0 : 1); try { cv.setPointerCapture(ev.pointerId); } catch (e) {} setz(); };
+    const up = ev => { druck.delete(ev.pointerId); setz(); };
+    const key = (ev, an) => {
+      const k = ev.key;
+      if (k === "ArrowLeft" || k === "a" || k === "A" || k === "y" || k === "Y") tasten.l = an; else if (k === "ArrowRight" || k === "l" || k === "L" || k === "m" || k === "M") tasten.r = an;
+      else if (k === " ") { tasten.l = tasten.r = an; } else return;
+      ev.preventDefault(); setz();
+    };
+    const kd = ev => key(ev, true), ku = ev => key(ev, false);
+    cv.addEventListener("pointerdown", down); cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up); cv.addEventListener("lostpointercapture", up);
+    document.addEventListener("keydown", kd); document.addEventListener("keyup", ku);
+    let ende = false;
+    const halt = schleife(dt => {
+      if (ende) return false;
+      zeit -= dt; meldT -= dt; BUMP.forEach(b => { b.b -= dt; });
+      for (let i = 0; i < 6; i++) schritt(dt / 6);
+      zeichne(); anzeigen(zeit, punkte);
+      if (zeit <= 0) { ende = true; setTimeout(() => fertig(punkte), 0); return false; }
+    });
+    return {stop() { ende = true; halt(); L.weg(); document.removeEventListener("keydown", kd); document.removeEventListener("keyup", ku); }, info: () => ({ball, zeit, punkte, baelle, FL, W, H})};
+  }
+
+  /* ---- Ballon-Jagd: 60 s, Ballons antippen; goldene zählen mehr; nichts geht verloren ---- */
+  function ballons(feld, fertig) {
+    const W = 400, H = 600, L = leinwand(feld, W, H, 0.68), ctx = L.ctx, cv = L.cv;
+    const DAUER = 60, FARBEN = ["#F4A3A3", "#93DDB4", "#A7CDF5", "#C4B8F2", "#F5BFA0", "#F2B6CF"];
+    let zeit = DAUER, punkte = 0, neu = 0, t = 0, ende = false;
+    const B = [], FUNKEN = [];
+    const spawn = () => { const gold = Math.random() < 0.1; B.push({x: 40 + Math.random() * (W - 80), y: H + 40, r: gold ? 24 : 28 + Math.random() * 8, vy: -(70 + Math.random() * 70) * (1 + t / 70), ph: Math.random() * 6, gold, c: gold ? "#F5CF6B" : FARBEN[Math.floor(Math.random() * FARBEN.length)]}); };
+    const down = ev => {
+      ev.preventDefault(); const p = L.punkt(ev);
+      for (let i = B.length - 1; i >= 0; i--) { const b = B[i]; if (Math.hypot(p.x - b.x, p.y - b.y) < b.r * 1.15) {
+        B.splice(i, 1); punkte += b.gold ? 50 : 10; Fun.blip(b.gold ? 1320 : 520 + Math.random() * 300, 0.07);
+        for (let k = 0; k < 10; k++) { const a = k * 0.63; FUNKEN.push({x: b.x, y: b.y, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160, l: 0.45, c: b.c}); }
+        return; } }
+    };
+    cv.addEventListener("pointerdown", down);
+    const halt = schleife(dt => {
+      if (ende) return false;
+      zeit -= dt; t += dt; neu -= dt;
+      if (neu <= 0) { spawn(); neu = Math.max(0.28, 0.6 - t / 150); }
+      for (let i = B.length - 1; i >= 0; i--) { const b = B[i]; b.y += b.vy * dt; b.ph += dt * 2; b.x += Math.sin(b.ph) * 18 * dt; if (b.y < -60) B.splice(i, 1); }
+      for (let i = FUNKEN.length - 1; i >= 0; i--) { const f = FUNKEN[i]; f.x += f.vx * dt; f.y += f.vy * dt; f.l -= dt; if (f.l <= 0) FUNKEN.splice(i, 1); }
+      ctx.clearRect(0, 0, W, H);
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#26324A"); g.addColorStop(1, "#1A2232"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      B.forEach(b => {
+        ctx.strokeStyle = "#AEB8C8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(b.x, b.y + b.r); ctx.quadraticCurveTo(b.x + 8, b.y + b.r + 22, b.x - 2, b.y + b.r + 44); ctx.stroke();
+        ctx.fillStyle = b.c; ctx.beginPath(); ctx.ellipse(b.x, b.y, b.r * 0.86, b.r, 0, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(b.x - 5, b.y + b.r + 6); ctx.lineTo(b.x + 5, b.y + b.r + 6); ctx.lineTo(b.x, b.y + b.r - 2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.beginPath(); ctx.ellipse(b.x - b.r * 0.32, b.y - b.r * 0.38, b.r * 0.16, b.r * 0.26, -0.5, 0, 7); ctx.fill();
+        if (b.gold) { ctx.fillStyle = "#3A2E08"; ctx.font = "800 16px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText("50", b.x, b.y + 6); }
+      });
+      FUNKEN.forEach(f => { ctx.globalAlpha = Math.max(0, f.l / 0.45); ctx.fillStyle = f.c; ctx.fillRect(f.x - 3, f.y - 3, 6, 6); }); ctx.globalAlpha = 1;
+      anzeigen(zeit, punkte);
+      if (zeit <= 0) { ende = true; setTimeout(() => fertig(punkte), 0); return false; }
+    });
+    return {stop() { ende = true; halt(); L.weg(); cv.removeEventListener("pointerdown", down); }, info: () => ({ballons: B.length, B, W, H, zeit, punkte})};
+  }
+
+  /* ---- Emoji-Memory: 8 Paare (DOM, keine Schleife), Punkte nach Zügen und Zeit ---- */
+  function memory(feld, fertig) {
+    const EM = shuffle(["🐶", "🐱", "🦊", "🐸", "🐼", "🦁", "🐙", "🦄", "🐢", "🐝", "🍓", "🍕", "⚽", "🚀", "🌈", "🎸"]).slice(0, 8);
+    const karten = shuffle(EM.concat(EM));
+    feld.innerHTML = `<div class="memo" role="grid" aria-label="Memory, 16 Karten">${karten.map((e, i) => `<button type="button" data-i="${i}" aria-label="Karte ${i + 1}, verdeckt"></button>`).join("")}</div>`;
+    let offen = [], zuege = 0, paare = 0, sperre = false, sek = 0, aktiv = true;
+    const punkteJetzt = () => Math.max(100, 1200 - Math.max(0, zuege - 8) * 50 - sek * 4);
+    anzeigen(null, 0); const z = $("spZeit"); if (z) z.textContent = "0 Züge";
+    const tick = setInterval(() => { if (aktiv) sek++; }, 1000);
+    const btns = [...feld.querySelectorAll(".memo button")];
+    const zeig = (b, an) => { const i = +b.dataset.i; b.textContent = an ? karten[i] : ""; b.classList.toggle("offen", an); b.setAttribute("aria-label", `Karte ${i + 1}, ${an ? karten[i] : "verdeckt"}`); };
+    btns.forEach(b => b.onclick = () => {
+      if (!aktiv || sperre || b.classList.contains("paar") || offen.includes(b)) return;
+      zeig(b, true); offen.push(b); Fun.blip(700, 0.05);
+      if (offen.length < 2) return;
+      zuege++; if (z) z.textContent = zuege + " Züge";
+      const [x, y] = offen;
+      if (karten[+x.dataset.i] === karten[+y.dataset.i]) {
+        x.classList.add("paar"); y.classList.add("paar"); offen = []; paare++; Fun.blip(1180, 0.12);
+        anzeigen(null, paare === 8 ? punkteJetzt() : paare * 100);
+        if (paare === 8) { aktiv = false; clearInterval(tick); setTimeout(() => fertig(punkteJetzt()), 350); }
+      } else { sperre = true; setTimeout(() => { if (!aktiv && paare < 8) return; zeig(x, false); zeig(y, false); offen = []; sperre = false; }, 850); }
+    });
+    return {stop() { aktiv = false; clearInterval(tick); }, info: () => ({zuege, paare, karten})};
+  }
+  const GAMES = {flipper, ballons, memory};
+  api.info = () => lauf && lauf.info ? lauf.info() : null;
+  return api;
 })();
+const SPIEL_INFO = {
+  flipper: {ic: "🕹️", t: "Flipper", s: "75 Sekunden", hilfe: "Tipp links oder rechts: der Flipper auf der Seite schlägt. Pilze und Sterne geben Punkte. Am Mac: Pfeiltasten ← →."},
+  ballons: {ic: "🎈", t: "Ballon-Jagd", s: "60 Sekunden", hilfe: "Tipp die Ballons an, bevor sie wegfliegen. Goldene zählen 50 Punkte."},
+  memory: {ic: "🧠", t: "Emoji-Memory", s: "8 Paare finden", hilfe: "Deck immer zwei Karten auf und find die Paare. Je weniger Züge, desto mehr Punkte."}
+};
+function openSpiele() { renderSpielWahl(); show("scrSpiel"); }
+function spielZurueck() { Spiele.stop(); renderHome(); show("scrHome"); }
+function renderSpielWahl() {
+  Spiele.stop();
+  const pid = CUR.pr.id, n = ticketsVon(pid), rk = store.get(rekordKey(pid)) || {};
+  $("spielCard").innerHTML = `<div class="spiel-top"><button type="button" class="btn btn-ghost btn-small" id="spBack">← Zurück</button><span class="pill" id="spTickets">🎟 ${n} ${n === 1 ? "Ticket" : "Tickets"}</span></div>
+    <h1>Bonus-Spiele</h1>
+    <p class="muted">${n ? "Ein Ticket ist eine Runde. Such dir ein Spiel aus." : "Gerade kein Ticket. Tickets gibt es für einen besiegten Boss, eine Einheit mit allen Karten ab Fach 3 und eine perfekte Session."}</p>
+    <div class="spiel-wahl">${Object.keys(SPIEL_INFO).map(k => `<button type="button" class="btn btn-ghost spiel-btn" data-spiel="${k}"${n ? "" : " disabled"}><span class="ic" aria-hidden="true">${SPIEL_INFO[k].ic}</span>${SPIEL_INFO[k].t}<small>${SPIEL_INFO[k].s}${rk[k] ? " · Rekord " + fmt(rk[k]) : ""}</small></button>`).join("")}</div>`;
+  $("spBack").onclick = spielZurueck;
+  $("spielCard").querySelectorAll("[data-spiel]").forEach(b => b.onclick = () => spielStarten(b.dataset.spiel));
+}
+function spielStarten(name) {
+  const pid = CUR.pr.id, e = erfolgeVon(pid), id = LK.Lernstand.ticketEinloesen(e, name, Date.now());
+  if (!id) { toast("Kein Ticket mehr übrig."); renderSpielWahl(); return; }
+  erfolgeSetzen(pid, e); merkeUngesichert(pid);
+  try { Fun.unlock(); Fun.songStop(); } catch (x) {}
+  const I = SPIEL_INFO[name];
+  $("spielCard").innerHTML = `<div class="spiel-top"><button type="button" class="btn btn-ghost btn-small" id="spBack">← Zurück</button><b>${I.ic} ${esc(I.t)}</b><span class="row" style="gap:6px"><span class="pill" id="spZeit"></span><span class="pill" id="spPunkte">0 Punkte</span></span></div>
+    <div class="spiel-feld" id="spFeld"></div>
+    <p class="note" id="spHilfe">${esc(I.hilfe)}</p>`;
+  $("spBack").onclick = spielZurueck;
+  show("scrSpiel");
+  Spiele.start(name, $("spFeld"), punkte => spielEnde(name, punkte));
+}
+function spielEnde(name, punkte) {
+  const feld = $("spFeld"); if (!feld || !CUR) return;
+  const pid = CUR.pr.id, rk = store.get(rekordKey(pid)) || {}, rekord = punkte > (rk[name] || 0);
+  if (rekord) { rk[name] = punkte; store.set(rekordKey(pid), rk); }
+  const n = ticketsVon(pid), d = document.createElement("div");
+  d.className = "spiel-ende"; d.setAttribute("role", "status");
+  d.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;align-items:center"><p class="eyebrow">${name === "memory" ? "Alle Paare gefunden!" : "Zeit um!"}</p>
+    <h2 style="font-size:2rem">${fmt(punkte)} Punkte</h2><p class="muted">${rekord ? "Neuer Rekord! 🎉" : "Rekord: " + fmt(rk[name])}</p>
+    <div class="row" style="justify-content:center"><button type="button" class="btn btn-ghost" id="spEndeZur">Zurück</button>${n ? `<button type="button" class="btn btn-primary" id="spEndeNoch">Noch eine Runde (🎟 ${n})</button>` : ""}</div></div>`;
+  feld.appendChild(d);
+  $("spEndeZur").onclick = spielZurueck;
+  if ($("spEndeNoch")) $("spEndeNoch").onclick = () => renderSpielWahl();
+  if (rekord) confetti(2);
+}
+$("btnBonus").onclick = () => { if (CUR) openSpiele(); };
+
+/* ---------- Abbrechen ---------- */
+$("btnQuit").onclick = () => { $("quitText").textContent = S && S.boss ? "Kampf abbrechen? Du kannst jederzeit neu antreten." : "Abbrechen? Diese Session zählt dann nicht."; $("quitConfirm").hidden = false; };
+$("btnQuitNo").onclick = () => { $("quitConfirm").hidden = true; };
+$("btnQuitYes").onclick = () => { if (S && !S.boss) recentAdd(S.queue.slice(0, S.i + 1).map(t => t.id)); S = null; renderBossHud(); renderHome(); show("scrHome"); };
+
+
 
 /* ---------- PWA: Service Worker + Installationshinweis (still, nur auf eigener Seite, nie im Fremd-Frame) ---------- */
 (function pwa() {
