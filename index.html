@@ -384,6 +384,18 @@ details.pack > * + * { margin-top: 14px; }
 .memo button.paar { border-color: var(--good); opacity: .7; }
 .tools-edit { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
 .tools-edit h2 { font-size: 1.15rem; }
+/* v13.2: Lernprofil */
+.stil-tipp { background: var(--paper); border-left: 4px solid var(--star); border-radius: 10px; padding: 8px 12px; font-size: .95rem; }
+.stil-edit { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.stil-edit h2 { font-size: 1.15rem; }
+.stil-m { display: flex; flex-direction: column; gap: 4px; }
+.stil-m h3 { font-size: 1rem; }
+.stil-m + .stil-m { margin-top: 8px; }
+.stil-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; align-items: center; font-size: .9rem; }
+.stil-row .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.stil-row .bar span { display: block; height: 100%; background: var(--accent); }
+.stil-row.best b { color: var(--good); }
+.stil-row .n { color: var(--muted); font-variant-numeric: tabular-nums; }
 /* v13.1: Mutmach-Karte (freundliches Monster + Spruch); in der Session nie über Eingaben: oben schwebend (nach der Antwort) oder unter dem Antwortbereich (Start) */
 .mut-fix { position: fixed; left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 57; width: min(calc(100% - 32px), 440px); transform: translateX(-50%); pointer-events: none; }
 .mut-fix .mut { pointer-events: auto; }
@@ -456,6 +468,7 @@ details.pack > * + * { margin-top: 14px; }
             </div>
           </section>
           <div><p class="note" style="margin-bottom:8px">Neue Session (ca. 8 min):</p><div id="homeModes"></div></div>
+          <p class="stil-tipp" id="homeTipp" role="status" hidden></p>
           <p class="note" id="mixNote">10 Aufgaben: 6 × Unit 1, 2 × Band 3, 2 × Wiederholung Band 1–2.</p>
           <section class="card bonus" id="bonusCard">
             <div class="row" style="justify-content:space-between"><h3>Bonus-Spiele</h3><span class="pill" id="ticketPill"></span></div>
@@ -525,7 +538,7 @@ details.pack > * + * { margin-top: 14px; }
     <span id="storeInfo"></span>
     <span id="voicePick"></span>
     <span class="foot-tools" id="optTools"></span>
-    <span id="appVersion">Lern! v13.1</span>
+    <span id="appVersion">Lern! v13.2</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -1089,6 +1102,12 @@ const Lernstand = (function () {
     // v12.1: Vorgängerband „behandelt bis“ je Buch und Schalter „freiwillige Teile“ wandern mit dem Profil (neuerer Zeitstempel gewinnt)
     const bis = saubereBis(p.bis); if (bis) o.bis = bis;
     if (typeof p.fak === "boolean") o.fak = p.fak;
+    // v14: Mathe-Plan {fach: "m5", folge: [Kapitel-ids], bis} (Reihenfolge und „behandelt bis“), wandert mit dem Profil
+    if (p.mathe && typeof p.mathe === "object" && p.mathe.fach === "m5") {
+      const KID = /^[a-z0-9_]{1,20}$/;
+      o.mathe = {fach: "m5", folge: Array.isArray(p.mathe.folge) ? uniq(p.mathe.folge.filter(x => typeof x === "string" && KID.test(x))).slice(0, 20) : []};
+      if (typeof p.mathe.bis === "string" && KID.test(p.mathe.bis)) o.mathe.bis = p.mathe.bis;
+    }
     o.geaendert = Math.max(0, num(p.geaendert, 0));
     o.auch = Array.isArray(p.auch) ? uniq(p.auch.filter(x => typeof x === "string" && ID_RE.test(x) && x !== p.id)).sort().slice(0, 20) : [];
     return o;
@@ -1130,6 +1149,7 @@ const Lernstand = (function () {
       buecher: {}, verlauf: [], erfolge: erfolgeSauber(k.erfolge)};
     if (k.buecher && typeof k.buecher === "object") Object.keys(k.buecher).slice(0, 40).forEach(id => { if (!BUCH_RE.test(id)) return; const b = saubereBuch(k.buecher[id]); if (b) out.buecher[id] = b; });
     if (Array.isArray(k.verlauf)) out.verlauf = k.verlauf.slice(-25000).map(saubereEreignis).filter(Boolean);
+    const ma = matheSauber(k.mathe); if (Object.keys(ma.komp).length) out.mathe = ma;   // v14, nur wenn vorhanden (Altstände unverändert)
     return out;
   }
 
@@ -1204,6 +1224,7 @@ const Lernstand = (function () {
     const out = {profil, foto,
       modus: neuer(l.modus, d.modus, x => x.zeit), auswahl: neuer(l.auswahl, d.auswahl, x => x.zeit), stand: neuer(l.stand, d.stand, x => x.zeit),
       buecher: {}, verlauf: [], erfolge: erfolgeMerge(l.erfolge, d.erfolge)};
+    const mm = matheMerge(l.mathe, d.mathe); if (Object.keys(mm.komp).length) out.mathe = mm;
     stat.erfolgeNeu = erfolgeZahl(out.erfolge) - erfolgeZahl(l.erfolge);
     stat.standAktualisiert = kanon([out.stand, out.auswahl, out.modus]) !== kanon([l.stand, l.auswahl, l.modus]);
     uniq(Object.keys(l.buecher).concat(Object.keys(d.buecher))).sort().forEach(id => {
@@ -1220,6 +1241,38 @@ const Lernstand = (function () {
     return {kind: out, stat};
   }
 
+
+  /* ---------- v14: Mathe-Kompetenzstand ----------
+     {komp: {<kompetenz-id>: {tage: ["JJJJ-MM-TT", …] (Tage mit richtiger Lösung ab Stufe 2), z: {stufe 1–3, serie, iv 0–4, due, ok, zeit} | null}}}
+     Zusammenführen je Kompetenz: tage = Vereinigung (sortiert, die letzten 60), z = neuerer Zeitstempel, gleich alt: fest nach Inhalt.
+     Damit kommutativ, idempotent und assoziativ. */
+  const KOMP_RE = /^[a-z0-9_]{1,40}$/, TAG_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const ganz = (v, lo, hi, d) => Math.max(lo, Math.min(hi, Math.round(num(v, d))));
+  function matheSauber(m) {
+    const o = {komp: {}};
+    if (!m || typeof m !== "object" || !m.komp || typeof m.komp !== "object" || Array.isArray(m.komp)) return o;
+    Object.keys(m.komp).slice(0, 300).forEach(id => {
+      const k = m.komp[id]; if (!KOMP_RE.test(id) || !k || typeof k !== "object") return;
+      const tage = uniq((Array.isArray(k.tage) ? k.tage : []).filter(t => typeof t === "string" && TAG_RE.test(t))).sort().slice(-60);
+      const z = k.z && typeof k.z === "object" ? {stufe: ganz(k.z.stufe, 1, 3, 1), serie: ganz(k.z.serie, -9, 9, 0), iv: ganz(k.z.iv, 0, 4, 0),
+        due: typeof k.z.due === "string" && TAG_RE.test(k.z.due) ? k.z.due : null, ok: k.z.ok === 0 ? 0 : 1, zeit: Math.max(0, num(k.z.zeit, 0))} : null;
+      if (!tage.length && !z) return;
+      o.komp[id] = {tage, z};
+    });
+    return o;
+  }
+  function matheMerge(a, b) {
+    a = matheSauber(a); b = matheSauber(b);
+    const o = {komp: {}};
+    uniq(Object.keys(a.komp).concat(Object.keys(b.komp))).sort().forEach(id => {
+      const x = a.komp[id], y = b.komp[id];
+      if (!x || !y) { o.komp[id] = clone(x || y); return; }
+      const zx = x.z, zy = y.z;
+      const z = !zx ? clone(zy) : !zy ? clone(zx) : zx.zeit !== zy.zeit ? clone(zx.zeit > zy.zeit ? zx : zy) : clone(kanon(zx) >= kanon(zy) ? zx : zy);
+      o.komp[id] = {tage: uniq(x.tage.concat(y.tage)).sort().slice(-60), z};
+    });
+    return o;
+  }
 
   /* ---------- v13: Erfolge (Boss-Trophäen, Einheit zu 100 %, Bonus-Tickets) ----------
      {boss: {"<buch>|<einheit>": {zeit, herzen}}, voll: {"<buch>|<einheit>": zeit}, tickets: {<id>: {zeit, grund, info}}, eingeloest: {<id>: {zeit, spiel}}}
@@ -1296,7 +1349,7 @@ const Lernstand = (function () {
   /* Dateiinhalt bauen (info: {zeit: ISO, geraet}) */
   function datei(kinder, info) {
     info = info || {};
-    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v13.1", geraet: info.geraet || "",
+    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v14.0", geraet: info.geraet || "",
       hinweis: "Lernstand zum Weiterlernen auf einem anderen Gerät. In Lern! unter Profil › „Lernstand holen“ öffnen. Enthält Eingaben des Kindes.",
       kinder: (kinder || []).map(sauberesKind).filter(Boolean)};
   }
@@ -1308,7 +1361,7 @@ const Lernstand = (function () {
   }
   return {SCHEMA, MSG, lies, datei, dateiname, mergeKind, sauberesKind, passendesProfil, gleichesKind, mitId, kanon, evKey,
           mitZaehler, zaehlerSumme, zaehlerPlus, zaehlerMerge, wochenZahl,
-          erfolgeSauber, erfolgeMerge, ticketsOffen, ticketGeben, ticketEinloesen, bossSieg, einheitVoll, perfekt};
+          erfolgeSauber, erfolgeMerge, ticketsOffen, ticketGeben, ticketEinloesen, bossSieg, einheitVoll, perfekt, matheSauber, matheMerge};
 })();
 
 /* ---------- Lernpakete (Format lernpaket/1) ---------- */
@@ -1836,7 +1889,9 @@ const LK = (function () {
      "mix"       = wie schreiben, davon ca. 30 % Sprechaufgaben (MIX_SPEAK_SHARE); 30 % dieser Sprechaufgaben sind Frage–Antwort
      "sprechen"  = nur Sprechaufgaben: Vokabeln nachsprechen + ca. 30 % Frage–Antwort (QA_SHARE)
      Ohne opts.modus gilt: speakAvailable -> "mix", sonst "schreiben" (alte Aufrufe). Sprech- und Frageaufgaben tragen
-     fallback (Auswahl/Tippen derselben Karte) für „Ohne Mikro weiter“; Fragen im Modus „sprechen“ haben keinen. */
+     fallback (Auswahl/Tippen derselben Karte) für „Ohne Mikro weiter“; Fragen im Modus „sprechen“ haben keinen.
+     v13.2 opts.stil (aus STIL.empfehlung): kanal "sprechen" = im Mix 45 % Sprechen, neue Karten zuerst; "sehen" = im Mix 15 %, neue Karten
+     bleiben schriftlich; "hoeren" = neue Karten (Fach 0/1) mit hoeren: true, die Lösung wird vorgelesen. neuCap = Obergrenze neue Karten. */
   const MIX_SPEAK_SHARE = 0.30, QA_SHARE = 0.30, SPEAK_SHARE = MIX_SPEAK_SHARE;
   const rndCount = x => Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0);
   /* ---------- Frage–Antwort: welche Fragen kennt das Kind schon? ----------
@@ -1907,7 +1962,8 @@ const LK = (function () {
     opts = opts || {};
     const modus = opts.modus || (opts.speakAvailable ? "mix" : "schreiben");
     const A = allowFn(K, pos, prev, opts);   // erlaubter Stoff für Ablenker und Zusatzkacheln (v12.1: mit bis/fak)
-    const pl0 = pools(K, pos, prev, opts), used = new Set(), usedTxt = new Set(), ordered = {}, NEWCAP = 6;
+    const pl0 = pools(K, pos, prev, opts), used = new Set(), usedTxt = new Set(), ordered = {}, stil = opts.stil || {};
+    const NEWCAP = stil.neuCap != null ? stil.neuCap : 6;
     // Sprechen: nur Karten, die man sprechen kann (keine Verbformen, keine Auslassungen, höchstens 12 Wörter)
     const pl = modus === "sprechen" ? {cur: pl0.cur.filter(speakOk), earlier: pl0.earlier.filter(speakOk), extra: pl0.extra.filter(speakOk), onlyCur: pl0.onlyCur} : pl0;
     const txt = c => c.kind === "verb" ? "verb:" + c.en : (c.K || K).nrm(cleanEn(c.en, (c.K || K).lang));
@@ -1962,8 +2018,10 @@ const LK = (function () {
       }
     });
     if (modus === "mix" && tasks.length) {
-      const want = rndCount(tasks.length * MIX_SPEAK_SHARE);
-      const cand = shuffle(tasks.map((x, i) => ({x, i})).filter(({x}) => (x.t === "mc" || x.t === "type") && speakOk(x.cardRef)));
+      const want = rndCount(tasks.length * (stil.kanal === "sprechen" ? 0.45 : stil.kanal === "sehen" ? 0.15 : MIX_SPEAK_SHARE));
+      const neuZuerst = stil.kanal === "sprechen" ? 1 : stil.kanal === "sehen" ? -1 : 0, frisch = x => bx(x.cardRef) <= 1 ? 1 : 0;
+      const cand = shuffle(tasks.map((x, i) => ({x, i})).filter(({x}) => (x.t === "mc" || x.t === "type") && speakOk(x.cardRef)))
+        .sort((a, b) => neuZuerst * (frisch(b.x) - frisch(a.x)));
       let done = 0;
       for (const {x, i} of cand) {
         if (done >= want) break;
@@ -1975,6 +2033,7 @@ const LK = (function () {
         if (nt) { nt.fallback = x; tasks[i] = nt; done++; }
       }
     }
+    if (stil.kanal === "hoeren") tasks.forEach(x => { if (x.cardRef && x.t !== "speak" && x.t !== "qa" && bx(x.cardRef) <= 1) x.hoeren = true; });
     return arrange(tasks);
   }
 
@@ -2141,10 +2200,92 @@ const LK = (function () {
       return total > 0 && firstOk * 2 < total ? "endeSchwer" : "ende";
     }
   };
+  /* ---------- v13.2: Lernprofil – wie merkt sich dieses Kind Wörter am besten? (DOM-frei) ----------
+     Grundlage ist der Lernverlauf eines Profils. Gemessen wird das Behalten: Eine Karte wird geübt („Kontakt“, letzte Antwort
+     dieser Runde) und das nächste Mal frühestens STIL.ABSTAND_H Stunden später wieder abgefragt („Abfrage“, ok = 1, half = 0,5, bad = 0).
+     Dazwischen darf die Karte nicht geübt worden sein. Jede Abfrage wird drei Merkmalen der Kontakt-Runde zugeordnet:
+       kanal: sprechen (Sprech-/Frageaufgabe) · hoeren (Schreiben, Antwort wurde vorgelesen) · sehen (Schreiben ohne Vorlesen)
+       zeit:  morgens (5–12 Uhr) · nachmittags (12–17 Uhr) · abends (17–5 Uhr)
+       folge: eine (nur eine Runde an dem Tag) · hintereinander (mehrere Runden, Pausen bis BLOCK_MIN) · verteilt (längere Pause dazwischen)
+     Runde = Antworten ohne Lücke über RUNDE_MIN Minuten. Neue Karten sind schwerer: Bewertet wird die Abweichung vom Schnitt
+     derselben Übungsstufe (an wie vielen Tagen die Karte vorher dran war: 0, 1, 2, 3+), gedämpft mit DAEMPF Pseudo-Abfragen.
+     Erkenntnis je Merkmal erst, wenn mindestens zwei Stufen je ≥ MIN Abfragen an ≥ MIN_TAGE Tagen haben und die beste um ≥ DIFF vorn liegt.
+     Anwendung (empfehlung): neue Karten im besten Kanal, weniger neue Karten zu einer schwachen Tageszeit, Tipp zur Rundenfolge. */
+  const STIL = {ABSTAND_H: 20, RUNDE_MIN: 10, BLOCK_MIN: 30, MIN: 20, MIN_TAGE: 3, DIFF: 0.08, DAEMPF: 10, NEU_SCHWACH: 3,
+    STUFEN: {kanal: ["sehen", "hoeren", "sprechen"], zeit: ["morgens", "nachmittags", "abends"], folge: ["eine", "hintereinander", "verteilt"]},
+    MERKMAL: {kanal: "Wie geübt", zeit: "Tageszeit", folge: "Runden am Tag"},
+    NAME: {sehen: "lesen und schreiben", hoeren: "schreiben und hören", sprechen: "hören und sprechen", morgens: "morgens", nachmittags: "nachmittags",
+      abends: "abends", eine: "eine Runde am Tag", hintereinander: "mehrere Runden hintereinander", verteilt: "Runden über den Tag verteilt"},
+    TIPP: {sehen: "Du merkst dir Wörter am besten, wenn du sie liest und schreibst. Neue Wörter kommen meist zum Schreiben.",
+      hoeren: "Du merkst dir Wörter am besten, wenn du sie auch hörst. Neue Wörter werden dir deshalb vorgelesen.",
+      sprechen: "Du merkst dir Wörter am besten, wenn du sie laut sagst. Neue Wörter kommen deshalb öfter zum Sprechen.",
+      morgens: "Neues bleibt bei dir morgens am besten hängen.", nachmittags: "Neues bleibt bei dir nachmittags am besten hängen.",
+      abends: "Neues bleibt bei dir abends am besten hängen.",
+      eine: "Eine Runde am Tag reicht dir zum Merken. Morgen geht's weiter.",
+      hintereinander: "Bei dir hilft es, gleich noch eine Runde dranzuhängen.",
+      verteilt: "Am meisten bleibt hängen, wenn du später am Tag noch eine kurze Runde machst."},
+    zeitVon(ms) { const h = new Date(ms).getHours(); return h >= 5 && h < 12 ? "morgens" : h >= 12 && h < 17 ? "nachmittags" : "abends"; },
+    kanalVon(e) { const a = e.typ || e.aufgabe; return a === "speak" || a === "qa" ? "sprechen" : e.vorgelesen ? "hoeren" : "sehen"; },
+    analyse(events) {
+      const W = {ok: 1, half: 0.5, bad: 0}, tagVon = ms => { const d = new Date(ms - 5 * 3600000); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
+      const ev = (events || []).map(e => ({e, t: Date.parse(e && e.zeit)})).filter(x => x.e && x.e.item && x.e.ergebnis in W && isFinite(x.t)).sort((a, b) => a.t - b.t);
+      // Runden und Tagesmuster (Tag beginnt um 5 Uhr, dann zählt ein später Abend zum selben Tag)
+      const runden = []; let r = null;
+      ev.forEach(x => { if (!r || x.t - r.ende > STIL.RUNDE_MIN * 60000) runden.push(r = {start: x.t, ende: x.t, tag: tagVon(x.t)}); else r.ende = x.t; x.r = runden.length - 1; });
+      const tage = {};
+      runden.forEach((q, i) => { (tage[q.tag] = tage[q.tag] || []).push(i); });
+      const folgeTag = {};
+      Object.keys(tage).forEach(d => { const ix = tage[d]; let lang = false; for (let k = 1; k < ix.length; k++) if (runden[ix[k]].start - runden[ix[k - 1]].ende > STIL.BLOCK_MIN * 60000) lang = true;
+        folgeTag[d] = ix.length === 1 ? "eine" : lang ? "verteilt" : "hintereinander"; });
+      // je Karte: Ereignisse in Reihenfolge
+      const jeKarte = {};
+      ev.forEach(x => { const k = (x.e.buch || "") + "|" + x.e.item; (jeKarte[k] = jeKarte[k] || []).push(x); });
+      const proben = [];
+      Object.keys(jeKarte).forEach(k => {
+        const L = jeKarte[k], tageVorher = new Set();
+        for (let i = 0; i < L.length; i++) {
+          const a = L[i], b = L[i + 1];
+          if (b && b.r === a.r) continue;   // nur die letzte Antwort einer Runde ist der Kontakt
+          const ta = runden[a.r].tag, stufe = Math.min(3, [...tageVorher].filter(d => d < ta).length);
+          if (b && b.t - a.t >= STIL.ABSTAND_H * 3600000)
+            proben.push({kanal: STIL.kanalVon(a.e), zeit: STIL.zeitVon(runden[a.r].start), folge: folgeTag[ta], stufe, y: W[b.e.ergebnis], tag: ta});
+          tageVorher.add(ta);
+        }
+      });
+      const mittel = a => a.length ? a.reduce((s, p) => s + p.y, 0) / a.length : 0, gesamt = mittel(proben);
+      const basis = [0, 1, 2, 3].map(s => { const a = proben.filter(p => p.stufe === s); return a.length >= 5 ? mittel(a) : gesamt; });
+      const merkmale = {};
+      Object.keys(STIL.STUFEN).forEach(m => {
+        const stufen = {};
+        STIL.STUFEN[m].forEach(s => {
+          const a = proben.filter(p => p[m] === s), abw = a.reduce((x, p) => x + p.y - basis[p.stufe], 0);
+          stufen[s] = {n: a.length, tage: new Set(a.map(p => p.tag)).size, quote: a.length ? mittel(a) : null, wert: gesamt + abw / (a.length + STIL.DAEMPF)};
+        });
+        const genug = STIL.STUFEN[m].filter(s => stufen[s].n >= STIL.MIN && stufen[s].tage >= STIL.MIN_TAGE).sort((x, y) => stufen[y].wert - stufen[x].wert);
+        const vorsprung = genug.length >= 2 ? stufen[genug[0]].wert - stufen[genug[1]].wert : null;
+        merkmale[m] = {stufen, genug, beste: vorsprung != null && vorsprung >= STIL.DIFF ? genug[0] : null, vorsprung};
+      });
+      return {proben: proben.length, gesamt: proben.length ? gesamt : null, merkmale};
+    },
+    /* Anwendung zum Zeitpunkt jetzt (ms): {kanal, neuCap, folge, tipps[]}; ohne Erkenntnis bleibt alles wie bisher (null) */
+    empfehlung(an, jetzt) {
+      const out = {kanal: null, neuCap: null, folge: null, zeit: null, tipps: []}; if (!an || !an.merkmale) return out;
+      const M = an.merkmale;
+      if (M.kanal.beste) { out.kanal = M.kanal.beste; out.tipps.push(STIL.TIPP[out.kanal]); }
+      if (M.zeit.beste) {
+        out.zeit = M.zeit.beste; const z = STIL.zeitVon(jetzt == null ? Date.now() : jetzt), sz = M.zeit.stufen[z], sb = M.zeit.stufen[out.zeit];
+        if (z !== out.zeit && M.zeit.genug.indexOf(z) >= 0 && sb.wert - sz.wert >= STIL.DIFF) {
+          out.neuCap = STIL.NEU_SCHWACH; out.tipps.push(STIL.TIPP[out.zeit] + " Jetzt wiederholst du mehr, Neues kommt lieber " + out.zeit + ".");
+        } else out.tipps.push(STIL.TIPP[out.zeit]);
+      }
+      if (M.folge.beste) { out.folge = M.folge.beste; out.tipps.push(STIL.TIPP[out.folge]); }
+      return out;
+    }
+  };
   return {validate, metaOf, countCards, indexPaket, position, pools, buildSession, makeTask, boxStats, unitStats, capacity,
           meanings, mkey, enVariants, cleanEn, short, stShort, sentence, verbsReached, satzVarianten, vorgaenger, seriesOf, typeOk, speakOk, SPEAK_SHARE, buildDistractors, buildMinTiles,
           MIX_SPEAK_SHARE, QA_SHARE, allowFn, qaPool, qaPoolFor, qaStand, makeQaTask, umfang, grenzeVon, migriereProfile, BEKANNTE_BUECHER, Lernstand,
-          BOSS_AB, BOSS_HP, BOSS_HERZEN, bossKarten, bossAufgaben, bossStart, bossZug, MUT};
+          BOSS_AB, BOSS_HP, BOSS_HERZEN, bossKarten, bossAufgaben, bossStart, bossZug, MUT, STIL};
 })();
 </script>
 <script>
@@ -3020,6 +3161,8 @@ function logEvent(it, res, info) {
     };
     // Sprechen: nur der erkannte Text und die Zahl der Versuche, nie Audio
     if (typ) { ev.typ = typ; ev.erkannt = String((info && info.erkannt) || ""); ev.versuche = (info && info.versuche) || 0; }
+    // v13.2: wurde die Lösung vorgelesen (für das Lernprofil: lesen+schreiben oder schreiben+hören)
+    else if (info && info.speak && (OPT.get("autosay") || info.forceSay || it.hoeren) && window.speechSynthesis) ev.vorgelesen = true;
     Verlauf.add(ev).then(renderVerlaufTools, () => {});
   } catch (e) {}
 }
@@ -3490,6 +3633,10 @@ function renderEdit() {
       <p class="note">Zuletzt gesichert: <b id="edSichZeit">${esc(gesichertText(p.id))}</b>. Sichere den Lernstand nach iCloud Drive und hol ihn auf dem anderen Gerät hier mit „Lernstand holen“.</p>
       <div class="row"><button type="button" class="btn btn-ghost btn-small sich-btn" id="edSichern">💾 Lernstand sichern</button><button type="button" class="btn btn-ghost btn-small" id="edHolen">📥 Lernstand holen</button></div>
       ${PROFILES.length > 1 ? `<button type="button" class="link" id="edSichernAlle" style="align-self:flex-start">Alle Kinder in einer Datei sichern</button>` : ""}</div>
+    <div class="stil-edit" aria-labelledby="edStilH"><h2 id="edStilH">Lernprofil</h2>
+      <p class="note">Lern! prüft, wie gut ${esc(p.name)} ein Wort beim nächsten Mal (frühestens am nächsten Tag) noch weiß: je nachdem, wie, wann und in welcher Rundenfolge es geübt wurde. Neue Karten zählen dabei nicht schlechter, weil jede Stufe mit ihrem eigenen Schnitt verglichen wird. Sobald es eine klare Erkenntnis gibt, kommen neue Wörter so dran, wie es am besten passt.</p>
+      <div id="edStil"><p class="note">Wird ausgewertet …</p></div>
+      <label class="opt-tog"><input type="checkbox" id="edStilAn"${stilAn(p.id) ? " checked" : ""}> Lernprofil beim Üben anwenden</label></div>
     <div class="tools-edit" aria-labelledby="edVerlaufH"><h2 id="edVerlaufH">Lernverlauf und Übungsstand</h2>
       <p class="note">Lernverlauf von ${esc(p.name)}: <b id="edVerlaufN">…</b> Antworten, nur auf diesem Gerät. Der Export ist eine Datei zur Auswertung durch die Eltern.</p>
       <div class="row"><button type="button" class="btn btn-ghost btn-small" id="btnVerlaufExp">Lernverlauf exportieren</button><button type="button" class="btn btn-ghost btn-small danger" id="btnVerlaufDel">Lernverlauf löschen</button></div>
@@ -3528,6 +3675,8 @@ function renderEdit() {
       if (resetBuch(p.id, b.dataset.reset)) toast("Zurückgesetzt."); else toast("Das Lernpaket fehlt auf diesem Gerät.");
     }));
     renderVerlaufTools();
+    $("edStilAn").onchange = e => { store.set(STIL_AN_KEY(p.id), e.target.checked); };
+    renderStilEdit(p.id);
     $("edDel").onclick = () => { $("edDelAsk").hidden = false; $("edDel").hidden = true; $("edDelNo").focus(); };
     $("edDelNo").onclick = () => { $("edDelAsk").hidden = true; $("edDel").hidden = false; };
     $("edDelYes").onclick = async () => { const id = p.id, name = p.name; await deleteProfile(id); EDIT = null; renderProfiles(); renderPacks(); show("scrProfile"); toast(`Profil ${name} gelöscht.`); };
@@ -4093,6 +4242,7 @@ function renderHome() {
   $("ringNum").textContent = `${P.sessions}/${GOAL}`;
   $("goalText").textContent = P.sessions >= GOAL ? "Ziel geschafft. Alles ab jetzt ist Bonus." : P.sessions === 0 ? "Diese Woche noch keine Session. Fang einfach an." : `Noch ${GOAL - P.sessions} bis zum Wochenziel.`;
   if (CUR) { renderBossCard(); renderBonus(); }
+  renderHomeTipp();
   const hm = $("homeModes");
   if (hm && CUR) { hm.innerHTML = modeButtons(CUR.pr.id); wireModes(hm, modus => startSession(modus)); }
   if (CUR && !CUR.sample) return renderHomePack();
@@ -4127,6 +4277,55 @@ function renderHomePack() {
     : `10 Aufgaben: 6 × ${LK.short(e)}${st ? " bis " + LK.stShort(st) : ""}, die übrigen etwa 5 : 3 aus früheren Einheiten${pvTxt} und Zusatzwortschatz${LK.verbsReached(K, pos) ? " mit unregelmäßigen Verben" : ""}. Höchstens 6 neue Karten.`;
 }
 
+/* ---------- v13.2: Lernprofil (Auswertung und Regeln: LK.STIL) ----------
+   Je Profil aus dem Lernverlauf auf diesem Gerät (geholte Lernstände anderer Geräte sind darin enthalten). Zwischengespeichert,
+   nach jeder Runde neu gerechnet. Anwenden ist je Profil im Profil-Editor abschaltbar (kk.v1.stil.<id>, Standard an); die Anzeige bleibt. */
+const STIL_AN_KEY = pid => "kk.v1.stil." + pid;
+const stilAn = pid => store.get(STIL_AN_KEY(pid)) !== false;
+const STIL_CACHE = {};
+async function stilLaden(pid, neu) {
+  if (!pid) return null;
+  if (!neu && STIL_CACHE[pid]) return STIL_CACHE[pid];
+  let alle = []; try { alle = (await Verlauf.all()).filter(e => e && e.profil === pid); } catch (e) {}
+  return (STIL_CACHE[pid] = LK.STIL.analyse(alle));
+}
+/* Empfehlung für die nächste Runde des aktuellen Profils (synchron aus dem Zwischenspeicher; ohne Auswertung: null = wie bisher) */
+function stilJetzt() {
+  if (!CUR || CUR.sample || !stilAn(CUR.pr.id) || !STIL_CACHE[CUR.pr.id]) return null;
+  const e = LK.STIL.empfehlung(STIL_CACHE[CUR.pr.id], Date.now());
+  return e.tipps.length ? e : null;
+}
+/* Startseite: ein Tipp, täglich wechselnd; der Tageszeit-Hinweis hat Vorrang, wenn gerade weniger Neues kommt */
+function renderHomeTipp() {
+  const el = $("homeTipp"); if (!el) return;
+  el.hidden = true;
+  if (!CUR || CUR.sample) return;
+  const pid = CUR.pr.id;
+  stilLaden(pid).then(() => {
+    if (!CUR || CUR.pr.id !== pid) return;
+    const e = stilJetzt(); if (!e) return;
+    const t = e.neuCap ? e.tipps.find(x => /Jetzt wiederholst/.test(x)) : e.tipps[Math.floor(Date.now() / 86400000) % e.tipps.length];
+    el.textContent = "💡 " + t; el.hidden = false;
+  }).catch(() => {});
+}
+/* Profil-Editor: Auswertung je Merkmal für die Eltern */
+async function renderStilEdit(pid) {
+  const an = await stilLaden(pid, true).catch(() => null), host = $("edStil");
+  if (!host || !EDIT || EDIT.p.id !== pid) return;
+  if (!an || !an.proben) { host.innerHTML = `<p class="note">Noch keine Auswertung: Es braucht Wörter, die an einem Tag geübt und frühestens am nächsten Tag wieder abgefragt wurden.</p>`; return; }
+  const X = LK.STIL, pz = v => v == null ? "–" : Math.round(100 * Math.max(0, Math.min(1, v))) + "\u00a0%";
+  host.innerHTML = `<p class="note">${fmt(an.proben)} Wiederholungen ausgewertet, im Schnitt ${pz(an.gesamt)} gewusst.</p>` + Object.keys(X.STUFEN).map(m => {
+    const M = an.merkmale[m];
+    const rows = X.STUFEN[m].map(st => { const z = M.stufen[st], zeig = z.n ? z.wert : null;
+      return `<div class="stil-row${M.beste === st ? " best" : ""}"><span>${M.beste === st ? "<b>★ " + esc(X.NAME[st]) + "</b>" : esc(X.NAME[st])}</span><b>${pz(zeig)}</b><span class="n">${fmt(z.n)} ×</span>
+        <div class="bar" aria-hidden="true"><span style="width:${zeig == null ? 0 : Math.round(100 * Math.max(0, Math.min(1, zeig)))}%"></span></div></div>`; }).join("");
+    const fazit = M.beste ? `Erkenntnis: am besten ${esc(X.NAME[M.beste])} (${Math.round(100 * M.vorsprung)} Prozentpunkte vorn).`
+      : M.genug.length >= 2 ? "Kein klarer Unterschied. Es bleibt wie bisher."
+      : `Noch zu wenig Daten: je Stufe mindestens ${X.MIN} Wiederholungen an ${X.MIN_TAGE} Tagen.`;
+    return `<div class="stil-m"><h3>${esc(X.MERKMAL[m])}</h3>${rows}<p class="note">${fazit}</p></div>`;
+  }).join("");
+}
+
 /* ---------- Session ---------- */
 let S = null;
 /* Session-Kette: welche Karten kamen in den letzten 60 min schon dran (je Profil und Buch, nur Kennungen).
@@ -4156,10 +4355,10 @@ function startSession(modus) {
     // Fächer der Vorgängerbände (eigener Lernstand des Profils dort) + aktueller Band; Ergebnisse landen im aktuellen Band
     const prevBoxes = (CUR.prev || []).map(k => { const m = METAS.find(x => x.id === k.id); return m ? loadPackProgress(CUR.pr.id, m).boxes : {}; });
     boxes = Object.assign({}, ...prevBoxes, P.boxes);
-    queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus, seen: recentSeen()}, umfangOpts(CUR.pr)));
+    queue = LK.buildSession(CUR.K, boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus, seen: recentSeen(), stil: stilJetzt()}, umfangOpts(CUR.pr)));
   } else queue = buildSession(modus);
   if (!queue.length) { toast(modus === "sprechen" ? "Für diese Einheit gibt es nichts zum Sprechen. Probier Schreiben." : "Für diese Einheit gibt es noch keine Karten."); renderHome(); show("scrHome"); return; }
-  S = {modus, queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: ""};
+  S = {modus, queue, boxes, i: 0, phase: "main", retry: [], results: {}, points: 0, firstOk: 0, rescued: 0, moves: [], current: null, fbAt: 0, t0: 0, streak: 0, saidFor: "", stil: stilJetzt()};
   const mut = mutSessionNeu(); S.mut = mut.st;
   Fun.reset();
   show("scrSession");
@@ -4174,7 +4373,7 @@ function addExtraTask() {
   if (S.boss) return;   // im Bosskampf kostet die Hilfe nichts extra
   const have = new Set(S.queue.map(t => t.id));
   let cand = [];
-  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus: S.modus, seen: recentSeen()}, umfangOpts(CUR.pr))) : buildSession(S.modus); } catch (e) { cand = []; }
+  try { cand = CUR && !CUR.sample ? LK.buildSession(CUR.K, S.boxes, LK.position(CUR.K, P.einheit, P.station), 10, CUR.prev, Object.assign({modus: S.modus, seen: recentSeen(), stil: S.stil}, umfangOpts(CUR.pr))) : buildSession(S.modus); } catch (e) { cand = []; }
   const t = cand.find(x => !have.has(x.id)) || Object.assign({}, S.current);
   S.queue.push(t); S.extraTasks = (S.extraTasks || 0) + 1;
   const n = S.i + 1, tot = totalSteps();
@@ -4434,7 +4633,7 @@ function finishTask(res, info) {
   // Das Auflösen ist eine Nutzergeste (Tipp auf Antwort/Prüfen/Enter): direkt hier sprechen, sonst schweigt iOS.
   // Genau einmal je Aufgabe; „Weiter“ spricht nicht erneut.
   const sayKey = S.phase + ":" + S.i;
-  if ((OPT.get("autosay") || info.forceSay) && info.speak && S.saidFor !== sayKey) { S.saidFor = sayKey; speak(String(info.speak), L); }
+  if ((OPT.get("autosay") || info.forceSay || it.hoeren) && info.speak && S.saidFor !== sayKey) { S.saidFor = sayKey; speak(String(info.speak), L); }
   S.streak = res === "ok" ? (S.streak || 0) + 1 : 0;
   let mr = null; try { if (S.mut && !B && mutAn()) mr = LK.MUT.nach(S.mut, res); } catch (e) {}
   try { Fun.afterReveal(it, res, S.streak, !!mr); } catch (e) {}
@@ -4511,6 +4710,7 @@ function endSession() {
       <h1>${stars === 3 ? "Stark gespielt." : stars === 2 ? "Solide Runde." : "Geschafft. Das zählt."}</h1>
       <p class="muted">${esc(effort)}</p>
     </div>
+    ${S.stil && S.stil.folge ? `<p class="stil-tipp" id="endTipp">💡 ${esc(LK.STIL.TIPP[S.stil.folge])}</p>` : ""}
     ${mutEndeKarte(LK.MUT.endeSit(S.firstOk, total, lohn.zeilen.some(z => z.indexOf("💯") === 0)))}
     ${lohnHtml}
     <div class="stats">
@@ -4529,10 +4729,11 @@ function endSession() {
     <div class="row" style="justify-content:space-between">
       <button class="btn btn-ghost btn-small sich-btn${sichHot ? " is-hot" : ""}" id="btnSichern" title="Zuletzt gesichert: ${esc(gesichertText(CUR.pr.id))}">💾 Lernstand sichern</button>
       <span class="row"><button class="btn btn-ghost" id="btnHome">Home</button>
-      <button class="btn btn-primary" id="btnAgain">Nochmal</button></span>
+      <button class="btn btn-primary" id="btnAgain">${S.stil && S.stil.folge === "hintereinander" ? "Gleich noch eine Runde" : "Nochmal"}</button></span>
     </div>`;
   const pidEnd = CUR.pr.id;
   vorbereiten([pidEnd]);
+  setTimeout(() => { stilLaden(pidEnd, true).catch(() => {}); }, 400);   // Lernprofil mit dieser Runde neu rechnen
   $("btnSichern").onclick = () => sichern([pidEnd], $("btnSichern"));
   $("btnHome").onclick = () => { renderHome(); show("scrHome"); };
   $("btnAgain").onclick = () => startSession(S.modus);

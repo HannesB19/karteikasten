@@ -48,3 +48,11 @@ Beide Einstellungen wandern mit „Lernstand sichern/holen“ mit (die neuere Pr
 - **Schalter** „Mutmach-Sprüche“ in der Fußzeile (Standard an, `kk.v1.opt.mut`).
 - **Vorlesen:** nur beim Start und auf der Ergebnisseite, nur mit „Antworten vorlesen“ an, nur bei der Übungsart Schreiben, nur mit deutscher Stimme auf dem Gerät und nicht über die Siegesmusik; sonst schweigt die Karte.
 - Ausrollen: `index.html` und `sw.js` (VERSION 10) hochladen.
+
+## Lernprofil (ab v13.2)
+- **Was:** Lern! prüft für jedes Kind, wie gut es ein Wort beim nächsten Mal noch weiß (frühestens 20 Stunden später, dazwischen nicht geübt), je nachdem, wie das Wort davor geübt wurde. Drei Merkmale: **wie geübt** (lesen und schreiben · schreiben und hören, die Lösung wurde vorgelesen · hören und sprechen), **Tageszeit** (morgens 5–12 · nachmittags 12–17 · abends 17–5 Uhr) und **Runden am Tag** (eine Runde · mehrere hintereinander mit Pausen bis 30 min · über den Tag verteilt).
+- **Fair gerechnet:** Neue Wörter sind schwerer. Verglichen wird deshalb jede Übungsstufe (an wie vielen Tagen das Wort vorher dran war) mit ihrem eigenen Schnitt, gedämpft gegen Zufall. Eine Erkenntnis gibt es erst, wenn zwei Stufen je mindestens 20 Wiederholungen an 3 Tagen haben und die beste mindestens 8 Prozentpunkte vorn liegt. Vorher bleibt alles wie bisher.
+- **Anwendung bei neuen Wörtern:** hören und sprechen → im Mix mehr Sprechaufgaben (45 statt 30 %), neue Wörter zuerst; lesen und schreiben → im Mix weniger Sprechen (15 %), neue Wörter schriftlich; schreiben und hören → neue Wörter werden nach der Antwort vorgelesen, auch wenn „Antworten vorlesen“ aus ist. Tageszeit: zur deutlich schwächeren Tageszeit höchstens 3 statt 6 neue Wörter (mehr Wiederholung). Runden: Tipp auf der Ergebnisseite, bei „hintereinander“ heißt der Knopf „Gleich noch eine Runde“.
+- **Anzeige:** Kind: ein Lerntipp auf der Startseite (täglich wechselnd). Eltern: Profil bearbeiten → „Lernprofil“ mit Quote je Stufe, Anzahl und Fazit; Schalter „Lernprofil beim Üben anwenden“ je Profil (Standard an, `kk.v1.stil.<id>`).
+- **Daten:** nur der Lernverlauf auf dem Gerät (geholte Lernstände anderer Geräte zählen mit). Neues Feld `vorgelesen` im Lernverlauf; ältere Einträge zählen als „lesen und schreiben“, wenn sie keine Sprechaufgaben sind.
+- Ausrollen: `index.html` und `sw.js` (VERSION 11) hochladen.
