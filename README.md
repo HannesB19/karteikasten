@@ -56,3 +56,10 @@ Beide Einstellungen wandern mit „Lernstand sichern/holen“ mit (die neuere Pr
 - **Anzeige:** Kind: ein Lerntipp auf der Startseite (täglich wechselnd). Eltern: Profil bearbeiten → „Lernprofil“ mit Quote je Stufe, Anzahl und Fazit; Schalter „Lernprofil beim Üben anwenden“ je Profil (Standard an, `kk.v1.stil.<id>`).
 - **Daten:** nur der Lernverlauf auf dem Gerät (geholte Lernstände anderer Geräte zählen mit). Neues Feld `vorgelesen` im Lernverlauf; ältere Einträge zählen als „lesen und schreiben“, wenn sie keine Sprechaufgaben sind.
 - Ausrollen: `index.html` und `sw.js` (VERSION 11) hochladen.
+
+## Einstellungen (ab v13.3)
+- **⚙️ oben rechts** (Profilseite, Startseite, Ergebnisseite; nicht in der Session): eine Seite für alles, was man selten braucht. Abschnitte: **Kinder** (Liste mit „Bearbeiten“ und „Kind hinzufügen“; dort weiter Bücher, Wiederholung, freiwillige Teile, Lernstand sichern/holen, Lernprofil, Lernverlauf, Zurücksetzen, Löschen), **Vorlesen** („Antworten vorlesen“, Stimme Englisch und Französisch gleichzeitig wählbar, Probe beim Wechsel), **Spaß** („Überraschungen und Siegesmusik“ als ein Schalter), **Lernpakete**, **Über Lern!** (Speicherhinweis).
+- **Fest übernommen, ohne Schalter:** Mutmach-Sprüche (Dosierung regelt die App) und Lernprofil (Auswertung bleibt im Profil-Editor sichtbar). Alte gespeicherte Schalterwerte (`kk.v1.opt.mut`, `kk.v1.opt.musik`, `kk.v1.stil.<id>`) werden nicht mehr gelesen.
+- **Lernpakete:** Ohne Paket steht die Klappe wie bisher aufgeklappt auf der Profilseite (Einrichtung). Sobald ein Paket geladen ist, liegt sie in den Einstellungen; auf der Profilseite führt „⚙️ Lernpakete verwalten“ dorthin.
+- **Fußzeile:** nur noch Hinweis zur Herkunft der Inhalte und Version.
+- Ausrollen: `index.html` und `sw.js` (VERSION 12) hochladen.

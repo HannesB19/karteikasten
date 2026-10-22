@@ -255,6 +255,22 @@ details.pack { display: block; }
 details.pack > * + * { margin-top: 14px; }
 .opt-tog { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .opt-tog input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+/* v13.3: Einstellungen */
+.settings { display: flex; flex-direction: column; gap: 4px; }
+.set-head { justify-content: space-between; align-items: center; gap: 12px; }
+.set-sec { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-block: 16px 6px; }
+.set-sec h2 { font-size: 1.15rem; }
+.set-sec .opt-tog { font-size: 1rem; min-height: 40px; }
+.set-kid { display: flex; align-items: center; gap: 12px; }
+.set-kid .top-ava { width: 40px; height: 40px; flex: none; }
+.set-kid .who-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.set-kid .who-t span { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+.set-voices { display: flex; flex-wrap: wrap; gap: 12px; }
+.set-voices .field { flex: 1 1 220px; min-width: 0; }
+.set-voices select { width: 100%; }
+#setPack .pack { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+#setPack .pack > summary { display: none; }
+.gear { font-size: 1.15rem; min-width: 44px; min-height: 40px; padding: 4px 10px; }
 /* Überraschungen: über dem Inhalt, ohne Layout-Sprung */
 .fly { position: fixed; left: 50%; top: 38%; z-index: 55; pointer-events: none; font-size: clamp(72px, 16vw, 128px); line-height: 1; transform: translate(-50%, -50%); animation: fly .8s cubic-bezier(.3,1.4,.5,1) forwards; }
 @keyframes fly { 0% { transform: translate(-50%, 40%) scale(.3) rotate(-25deg); opacity: 0; } 35% { transform: translate(-50%, -50%) scale(1.1) rotate(6deg); opacity: 1; } 70% { transform: translate(-50%, -60%) scale(1) rotate(0); opacity: 1; } 100% { transform: translate(-50%, -140%) scale(.7); opacity: 0; } }
@@ -438,6 +454,7 @@ details.pack > * + * { margin-top: 14px; }
         <ul class="packs" id="packList"></ul>
         <p class="note" id="packMsg" role="status" aria-live="polite"></p>
       </details>
+      <button type="button" class="btn btn-ghost btn-small" id="btnPackLink" hidden style="align-self:flex-start">⚙️ Lernpakete verwalten</button>
       <p class="note" id="installHint" hidden>Auf dem iPad: Teilen → Zum Home-Bildschirm</p>
     </div>
   </main>
@@ -533,12 +550,30 @@ details.pack > * + * { margin-top: 14px; }
     <section class="card spiel" id="spielCard"></section>
   </main>
 
+  <!-- EINSTELLUNGEN (v13.3) -->
+  <main id="scrSettings" hidden>
+    <section class="card settings" aria-labelledby="setH">
+      <div class="row set-head"><h1 id="setH">Einstellungen</h1><button type="button" class="btn btn-ghost btn-small" id="setBack">Zurück</button></div>
+      <div class="set-sec" aria-labelledby="setKidsH"><h2 id="setKidsH">Kinder</h2>
+        <p class="note">Je Kind: Bücher, Wiederholung früherer Bände, freiwillige Teile, Lernstand sichern und holen, Lernprofil, Lernverlauf, Zurücksetzen.</p>
+        <div id="setKids" style="display:flex;flex-direction:column;gap:10px"></div></div>
+      <div class="set-sec" aria-labelledby="setSayH"><h2 id="setSayH">Vorlesen</h2>
+        <label class="opt-tog"><input type="checkbox" id="optSay"> Antworten vorlesen</label>
+        <p class="note">Nach jeder Antwort wird die Lösung vorgelesen. Lernt ein Kind am besten mit Hören (Lernprofil), liest Lern! neue Wörter auch ohne diesen Schalter vor.</p>
+        <div class="set-voices" id="voicePick"></div></div>
+      <div class="set-sec" aria-labelledby="setFunH"><h2 id="setFunH">Spaß</h2>
+        <label class="opt-tog"><input type="checkbox" id="optFun"> Überraschungen und Siegesmusik</label>
+        <p class="note">Fliegende Emojis, Töne, Bilder zu Wörtern und die Siegesmusik bei Erfolgen. Mutmach-Sprüche kommen immer, aber sparsam.</p></div>
+      <div class="set-sec" id="setPack" aria-labelledby="setPackH"><h2 id="setPackH">Lernpakete</h2></div>
+      <div class="set-sec" aria-labelledby="setInfoH"><h2 id="setInfoH">Über Lern!</h2>
+        <p class="note" id="storeInfo"></p>
+        <p class="note">Auf dem iPad als App: Teilen → Zum Home-Bildschirm. Mutmach-Sprüche und Lernprofil richten sich von selbst nach dem Kind.</p></div>
+    </section>
+  </main>
+
   <footer>
     <span id="footNote">Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.</span>
-    <span id="storeInfo"></span>
-    <span id="voicePick"></span>
-    <span class="foot-tools" id="optTools"></span>
-    <span id="appVersion">Lern! v13.2</span>
+    <span id="appVersion">Lern! v13.3</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -1000,7 +1035,7 @@ const Lernstand = (function () {
   const MSG = {
     kaputt: "Diese Datei ist beschädigt oder keine Lern!-Datei. Es wurde nichts geändert.",
     fremd: "Das ist kein Lernstand aus Lern!. Es wurde nichts geändert.",
-    paket: "Das ist ein Lernpaket, kein Lernstand. Lernpakete lädst du auf der Startseite unter „Lernpakete verwalten“. Es wurde nichts geändert.",
+    paket: "Das ist ein Lernpaket, kein Lernstand. Lernpakete lädst du auf der Startseite in den ⚙️ Einstellungen unter „Lernpakete“. Es wurde nichts geändert.",
     verlauf: "Das ist ein Lernverlauf-Export für die Eltern, kein Lernstand. Bitte eine Datei „Lern_Name_Datum.json“ wählen. Es wurde nichts geändert.",
     neuer: "Dieser Lernstand kommt aus einer neueren Version von Lern!. Bitte zuerst die App aktualisieren. Es wurde nichts geändert.",
     leer: "In dieser Datei steckt kein Kind mit Lernstand. Es wurde nichts geändert.",
@@ -2437,7 +2472,7 @@ function show(id) {
   try { spAbort(); } catch (e) {}
   try { mutWeg(); } catch (e) {}
   if (id !== "scrSpiel") { try { Spiele.stop(); } catch (e) {} }   // v13: kein Spiel läuft unsichtbar weiter
-  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit","scrSpiel"].forEach(s => $(s).hidden = s !== id);
+  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit","scrSpiel","scrSettings"].forEach(s => $(s).hidden = s !== id);
   window.scrollTo(0, 0);
   renderTop(id);
 }
@@ -2509,12 +2544,14 @@ function speak(text, lang) {
 }
 function renderVoicePicker() {
   const host = document.getElementById("voicePick"); if (!host) return;
-  const lang = curLang(), list = voicesFor(lang);
-  if (!list.length) { host.innerHTML = ""; return; }
-  const cur = pickVoice(lang);
-  host.innerHTML = `<label class="muted" for="selVoice">Stimme ${esc(sprache(lang).name)}:</label> <select id="selVoice" style="min-height:34px;padding:4px 28px 4px 8px;width:auto;font-size:.82rem">${list.map(v => `<option value="${esc(v.voiceURI)}"${cur && v.voiceURI === cur.voiceURI ? " selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select>`;
-  // Beim Wechsel liest die neue Stimme sofort eine Probe vor (v13: eigener Test-Knopf entfällt)
-  document.getElementById("selVoice").onchange = e => { store.set(VKEY(lang), e.target.value); speak(VTEST[lang][0], lang); };
+  // v13.3: in den Einstellungen beide Sprachen; beim Wechsel liest die neue Stimme sofort eine Probe vor
+  const rows = ["en", "fr"].map(lang => {
+    const list = voicesFor(lang); if (!list.length) return "";
+    const cur = pickVoice(lang);
+    return `<div class="field"><label for="selVoice_${lang}">Stimme ${esc(sprache(lang).name)}</label><select id="selVoice_${lang}" data-lang="${lang}">${list.map(v => `<option value="${esc(v.voiceURI)}"${cur && v.voiceURI === cur.voiceURI ? " selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select></div>`;
+  }).join("");
+  host.innerHTML = rows || `<p class="note">Auf diesem Gerät gibt es keine englische oder französische Stimme.</p>`;
+  host.querySelectorAll("select[data-lang]").forEach(sel => { sel.onchange = e => { store.set(VKEY(sel.dataset.lang), e.target.value); speak(VTEST[sel.dataset.lang][0], sel.dataset.lang); }; });
 }
 const sayBtn = (text, label, lang) => `<button class="say" data-say="${esc(text)}" data-lang="${esc(lang || "en")}" aria-label="${esc(label || "Vorlesen")}">🔊</button>`;
 document.addEventListener("click", e => { const b = e.target.closest("[data-say]"); if (b) speak(b.dataset.say, b.dataset.lang); });
@@ -2525,16 +2562,34 @@ const OPT = {
   set(k, v) { store.set("kk.v1.opt." + k, !!v); }
 };
 function renderOptTools() {
-  const host = $("optTools"); if (!host) return;
-  host.innerHTML = `<label class="opt-tog"><input type="checkbox" id="optSay"${OPT.get("autosay") ? " checked" : ""}> Antworten vorlesen</label>
-    <label class="opt-tog"><input type="checkbox" id="optFun"${OPT.get("fun") ? " checked" : ""}> Überraschungen</label>
-    <label class="opt-tog"><input type="checkbox" id="optMusik"${OPT.get("musik") ? " checked" : ""}> Siegesmusik</label>
-    <label class="opt-tog"><input type="checkbox" id="optMut"${OPT.get("mut") ? " checked" : ""}> Mutmach-Sprüche</label>`;
-  $("optMut").onchange = e => { OPT.set("mut", e.target.checked); if (!e.target.checked) mutWeg(); };
-  $("optMusik").onchange = e => { OPT.set("musik", e.target.checked); if (e.target.checked) Fun.unlock(); else Fun.songStop(); };
-  $("optSay").onchange = e => OPT.set("autosay", e.target.checked);
-  $("optFun").onchange = e => { OPT.set("fun", e.target.checked); if (e.target.checked) Fun.unlock(); };
+  // v13.3: zwei Schalter in den Einstellungen; Siegesmusik gehört zu „Überraschungen“, Mutmach-Sprüche und Lernprofil sind immer an
+  const say = $("optSay"), fun = $("optFun"); if (!say || !fun) return;
+  say.checked = OPT.get("autosay"); fun.checked = OPT.get("fun");
+  say.onchange = e => OPT.set("autosay", e.target.checked);
+  fun.onchange = e => { OPT.set("fun", e.target.checked); if (e.target.checked) Fun.unlock(); else Fun.songStop(); };
 }
+/* ---------- v13.3: Einstellungen (Zahnrad oben rechts) ---------- */
+let SET_BACK = "scrProfile";
+function openSettings(from) {
+  SET_BACK = from || "scrProfile";
+  renderSettingsKids(); renderOptTools(); renderVoicePicker(); renderStoreInfo();
+  show("scrSettings");
+}
+function renderSettingsKids() {
+  const host = $("setKids"); if (!host) return;
+  host.innerHTML = PROFILES.map(p => `<div class="set-kid"><span class="top-ava" aria-hidden="true">${avatarInner(p)}</span>
+      <span class="who-t"><b>${esc(p.name)}</b><span>${p.jgst ? "Jgst. " + esc(p.jgst) + " · " : ""}${esc([p.en, p.fr].filter(Boolean).map(buchTitel).join(", ") || "noch kein Buch")}</span></span>
+      <button type="button" class="btn btn-ghost btn-small" data-edit="${esc(p.id)}">Bearbeiten</button></div>`).join("")
+    + `<button type="button" class="btn btn-ghost btn-small" id="setAdd" style="align-self:flex-start">＋ Kind hinzufügen</button>`;
+  host.querySelectorAll("[data-edit]").forEach(b => { b.onclick = () => openEdit(b.dataset.edit); });
+  $("setAdd").onclick = () => openEdit(null);
+}
+$("setBack").onclick = () => {
+  if ((SET_BACK === "scrHome" || SET_BACK === "scrMathe") && CUR) { renderHome(); show("scrHome"); }
+  else if (SET_BACK === "scrEnd" && CUR) show("scrEnd");
+  else { renderProfiles(); show("scrProfile"); }
+};
+$("btnPackLink").onclick = () => openSettings("scrProfile");
 
 /* ---------- Überraschungen (E7: nur App-intern, sparsam, zufällig, nie als Strafe) ----------
    a) Emoji fliegt 0,8 s durchs Bild (ca. 15 % nach richtig, Auswahl nach Serie 3/5/10)
@@ -2852,7 +2907,7 @@ const Fun = (function () {
   api.songStop = () => { if (songGain) { try { songGain.disconnect(); } catch (e) {} songGain = null; } };
   api.song = () => {
     api.lastSong = 0;
-    if (!OPT.get("musik")) return false;
+    if (!OPT.get("fun")) return false;   // v13.3: Siegesmusik gehört zu „Überraschungen“
     const c = ctx(); if (!c) return false;
     try {
       api.songStop();
@@ -3378,8 +3433,10 @@ let metasReady = false;
 function placePacks(boot) {
   const d = $("packDetails"), col = $("profileCol"); if (!d || !col || !metasReady) return;
   const empty = !METAS.length;
+  // v13.3: ohne Paket aufgeklappt auf der Profilseite (Einrichtung), sonst in den Einstellungen; auf der Profilseite dann ein Link
   if (empty) { col.insertBefore(d, $("profiles")); d.open = !!PROFILES.length; }
-  else if (boot) { col.insertBefore(d, $("installHint")); d.open = false; }
+  else if (d.parentNode !== $("setPack")) { $("setPack").appendChild(d); d.open = true; }
+  const lk = $("btnPackLink"); if (lk) lk.hidden = empty;
   const h = $("hPack"); if (h) h.textContent = empty ? "Lernpakete verwalten · noch keins geladen" : `Lernpakete verwalten · ${METAS.length} geladen`;
 }
 
@@ -3494,7 +3551,7 @@ function profileCard(pr) {
   const fehlt = fehlendeBuecher(pr);
   const head = `<div class="row"><button type="button" class="avatar avatar-btn" data-edit="${esc(pr.id)}" aria-label="Profil von ${esc(pr.name)} bearbeiten">${avatarInner(pr)}<span class="cam" aria-hidden="true">✏️</span></button>
     <div style="min-width:0"><h2 id="h-${esc(pr.id)}">${esc(pr.name)}</h2><p class="muted">${esc(sub)}</p>${pr.nameFehlt ? `<button type="button" class="link" data-edit="${esc(pr.id)}">Name eintragen</button>` : ""}</div></div>`;
-  const miss = fehlt.length ? `<p class="note">Für ${fehlt.map(buchTitel).map(esc).join(" und ")} fehlt noch das Lernpaket. Unten unter „Lernpakete verwalten“ laden.</p>` : "";
+  const miss = fehlt.length ? `<p class="note">Für ${fehlt.map(buchTitel).map(esc).join(" und ")} fehlt noch das Lernpaket. In den ⚙️ Einstellungen unter „Lernpakete“ laden.</p>` : "";
   const books = booksFor(pr);
   const bookSel = books.length > 1 ? `<div class="row"><div class="field"><label for="selBook-${esc(pr.id)}">Buch</label><select id="selBook-${esc(pr.id)}">${books.map(b => `<option value="${esc(b.id)}">${esc(b.titel)}</option>`).join("")}</select></div></div>` : "";
   // Auswahl immer sichtbar direkt über den Knöpfen; die Knöpfe starten genau diese Einheit/Station (kein zweiter Startweg)
@@ -3635,8 +3692,7 @@ function renderEdit() {
       ${PROFILES.length > 1 ? `<button type="button" class="link" id="edSichernAlle" style="align-self:flex-start">Alle Kinder in einer Datei sichern</button>` : ""}</div>
     <div class="stil-edit" aria-labelledby="edStilH"><h2 id="edStilH">Lernprofil</h2>
       <p class="note">Lern! prüft, wie gut ${esc(p.name)} ein Wort beim nächsten Mal (frühestens am nächsten Tag) noch weiß: je nachdem, wie, wann und in welcher Rundenfolge es geübt wurde. Neue Karten zählen dabei nicht schlechter, weil jede Stufe mit ihrem eigenen Schnitt verglichen wird. Sobald es eine klare Erkenntnis gibt, kommen neue Wörter so dran, wie es am besten passt.</p>
-      <div id="edStil"><p class="note">Wird ausgewertet …</p></div>
-      <label class="opt-tog"><input type="checkbox" id="edStilAn"${stilAn(p.id) ? " checked" : ""}> Lernprofil beim Üben anwenden</label></div>
+      <div id="edStil"><p class="note">Wird ausgewertet …</p></div></div>
     <div class="tools-edit" aria-labelledby="edVerlaufH"><h2 id="edVerlaufH">Lernverlauf und Übungsstand</h2>
       <p class="note">Lernverlauf von ${esc(p.name)}: <b id="edVerlaufN">…</b> Antworten, nur auf diesem Gerät. Der Export ist eine Datei zur Auswertung durch die Eltern.</p>
       <div class="row"><button type="button" class="btn btn-ghost btn-small" id="btnVerlaufExp">Lernverlauf exportieren</button><button type="button" class="btn btn-ghost btn-small danger" id="btnVerlaufDel">Lernverlauf löschen</button></div>
@@ -3675,7 +3731,6 @@ function renderEdit() {
       if (resetBuch(p.id, b.dataset.reset)) toast("Zurückgesetzt."); else toast("Das Lernpaket fehlt auf diesem Gerät.");
     }));
     renderVerlaufTools();
-    $("edStilAn").onchange = e => { store.set(STIL_AN_KEY(p.id), e.target.checked); };
     renderStilEdit(p.id);
     $("edDel").onclick = () => { $("edDelAsk").hidden = false; $("edDel").hidden = true; $("edDelNo").focus(); };
     $("edDelNo").onclick = () => { $("edDelAsk").hidden = true; $("edDel").hidden = false; };
@@ -3983,7 +4038,7 @@ function importFile(file) {
 $("fileIn").onchange = e => { importFile(e.target.files && e.target.files[0]); e.target.value = ""; };
 (function dragDrop() {
   const z = $("dropZone"); let depth = 0;
-  const onProfile = () => !$("scrProfile").hidden;
+  const onProfile = () => !$("scrProfile").hidden || !$("scrSettings").hidden;
   document.addEventListener("dragenter", e => { if (!onProfile()) return; e.preventDefault(); depth++; z.classList.add("over"); const d = $("packDetails"); if (d) d.open = true; });
   document.addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (!depth) z.classList.remove("over"); });
   document.addEventListener("dragover", e => { if (onProfile()) e.preventDefault(); });
@@ -4006,6 +4061,11 @@ function renderTop(screen) {
   if (screen === "scrHome" && CUR) r.innerHTML = `<span class="pill who"><span class="top-ava" aria-hidden="true">${avatarInner(CUR.pr)}</span>${esc(CUR.pr.name)}${CUR.pr.jgst ? " · Jgst. " + esc(CUR.pr.jgst) : ""}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
   else r.innerHTML = "";
   const l = $("lnkSwitch"); if (l) l.onclick = () => { CUR = null; renderProfiles(); show("scrProfile"); };
+  // v13.3: Einstellungen über das Zahnrad (nicht in Session, Spiel, Bearbeiten und auf der Einstellungsseite selbst)
+  if (["scrProfile", "scrHome", "scrMathe", "scrEnd"].includes(screen)) {
+    r.insertAdjacentHTML("beforeend", `<button type="button" class="btn btn-ghost gear" id="btnSettings" aria-label="Einstellungen" title="Einstellungen">⚙️</button>`);
+    $("btnSettings").onclick = () => openSettings(screen);
+  }
   document.title = CUR && screen !== "scrProfile" && screen !== "scrEdit" ? "Lern! " + sprache(curLang()).name : "Lern!";
   renderVoicePicker();
   $("footNote").textContent = CUR && !CUR.sample && screen !== "scrProfile"
@@ -4048,7 +4108,7 @@ const herzHtml = k => Array.from({length: k.maxHerzen}, (_, i) => `<span class="
 /* ---------- v13.1: Mutmach-Sprüche (Logik und Texte: LK.MUT) ----------
    Je Profil gemerkt (kk.v1.mut.<id>): zuletzt gezeigte Sätze (Wiederholungsschutz) und der Tag der letzten Session (Rückkehr nach Pause). Schalter „Mutmach-Sprüche“ (kk.v1.opt.mut, Standard an). */
 const MUT_KEY = pid => "kk.v1.mut." + pid;
-const mutAn = () => OPT.get("mut");
+const mutAn = () => true;   // v13.3: immer an (Dosierung regelt LK.MUT)
 function mutGespeichert() { const v = CUR && store.get(MUT_KEY(CUR.pr.id)); return v && typeof v === "object" ? v : {}; }
 function mutMerken(st) { if (!CUR || !st) return; const v = mutGespeichert(); v.zuletzt = st.zuletzt.slice(-LK.MUT.MERKEN); store.set(MUT_KEY(CUR.pr.id), v); }
 /* neuer Dosierungszustand je Session; liefert auch die Tage seit der letzten Session des Profils (null = unbekannt) */
@@ -4281,7 +4341,7 @@ function renderHomePack() {
    Je Profil aus dem Lernverlauf auf diesem Gerät (geholte Lernstände anderer Geräte sind darin enthalten). Zwischengespeichert,
    nach jeder Runde neu gerechnet. Anwenden ist je Profil im Profil-Editor abschaltbar (kk.v1.stil.<id>, Standard an); die Anzeige bleibt. */
 const STIL_AN_KEY = pid => "kk.v1.stil." + pid;
-const stilAn = pid => store.get(STIL_AN_KEY(pid)) !== false;
+const stilAn = pid => true;   // v13.3: immer an; Auswertung im Profil-Editor
 const STIL_CACHE = {};
 async function stilLaden(pid, neu) {
   if (!pid) return null;
