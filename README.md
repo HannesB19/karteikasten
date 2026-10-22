@@ -63,3 +63,28 @@ Beide Einstellungen wandern mit „Lernstand sichern/holen“ mit (die neuere Pr
 - **Lernpakete:** Ohne Paket steht die Klappe wie bisher aufgeklappt auf der Profilseite (Einrichtung). Sobald ein Paket geladen ist, liegt sie in den Einstellungen; auf der Profilseite führt „⚙️ Lernpakete verwalten“ dorthin.
 - **Fußzeile:** nur noch Hinweis zur Herkunft der Inhalte und Version.
 - Ausrollen: `index.html` und `sw.js` (VERSION 12) hochladen.
+
+## Mathe (ab v14.0)
+
+### Bedienung
+- **Fach einschalten:** Profil bearbeiten › „Mathematik: Mathe 5 · Gymnasium Bayern“. Darunter mit ↑/↓ die Kapitelfolge wie im Unterricht ordnen und „Im Unterricht behandelt bis“ setzen. Spätere Kapitel kommen nie vor.
+- **Starten:** Auf der Profilkarte das Buch „Mathe 5“ wählen, das aktuelle Kapitel einstellen und „🧮 Rechnen“ tippen. Eine Session hat 10 Aufgaben.
+- **Ablauf:** Zuerst fällige Wiederholungen gemischt aus allen behandelten Kapiteln (höchstens 6), dann Neues aus dem aktuellen Kapitel am Stück. Falsch Gelöstes kommt am Ende „nochmal ähnlich“ (höchstens 3 je Session).
+- **Stufen je Kompetenz:** 1 = Musterlösung ansehen, Parallelaufgabe per Auswahl; 2 = Teilschritte mit Lücken; 3 = frei. 2 richtige in Folge heben die Stufe, 2 falsche senken sie. „Ich brauch die Schritte“ wechselt von Stufe 3 auf 2.
+- **Eingabe:** eigener Ziffernblock mit Minus, Komma und Löschen; Einheiten zum Antippen; Auswahl nur auf Stufe 1, bei Schätzaufgaben und beim Benennen.
+- **Mastery:** Eine Kompetenz „sitzt“ nach richtigen Lösungen auf Stufe 2 oder 3 an 3 verschiedenen Tagen. Fälligkeiten: 1/3/7/14/30 Tage, ein Fehler setzt auf 1 Tag zurück.
+- **Motivation:** eigenes Wochenziel. Bosskampf je Kapitel, sobald jede Kompetenz einmal ohne Musterlösung geschafft ist. Tickets für den ersten Bosssieg, für ein Kapitel, in dem alles sitzt, und für eine perfekte Session. Mutmacher und Sounds wie bei den Sprachen.
+- **Elternbericht:** Mathe-Startseite › „Für Eltern: Bericht“ mit Ampel je Kompetenz, häufigsten Fehlerarten (28 Tage) und Zeit pro Woche.
+
+### Daten
+- Alle Aufgaben kommen aus Generatoren im Code (`<script id="mathekern">`, global `MK`): 6 Kapitel, 27 Kompetenzen, Schwierigkeit 1–3, je 1–3 erkannte typische Fehler mit Rückmeldung. Keine Schulbuchinhalte.
+- Lernstand `lern-lernstand/1` (Schema unverändert), ergänzt um `profil.mathe = {fach, folge, bis}`, `kinder[].mathe = {komp: {id: {tage, z}}}` und das Pseudo-Buch `buecher.m5` (Wochenzähler).
+- Zusammenführen: `tage` als Vereinigung, `z` nach neuerem Zeitstempel (kommutativ, idempotent, assoziativ). Altstände ohne Mathe bleiben ladbar.
+- Geräte mit v13 übernehmen den Mathe-Teil beim Holen nicht (bleibt auf dem v14-Gerät erhalten). Darum alle Geräte auf v14 aktualisieren, bevor Lernstände geholt werden.
+- Test: `python3 mathe_testlauf.py [--n=2000]` (jsc, 2.000 Aufgaben je Generator und Stufe).
+
+### Grenzen
+- Winkel nur schätzen und benennen, nicht messen; Achsensymmetrie nur als Punktspiegelung an waagrechten oder senkrechten Geraden.
+- Kommazahlen nur bei Größen und Geld; Brüche fehlen (Stoff der 6. Klasse).
+- Kapitelplan nach LehrplanPLUS M5, nicht mit dem Inhaltsverzeichnis des Schulbuchs abgeglichen.
+- Ausrollen: `index.html` und `sw.js` (VERSION 13) hochladen.

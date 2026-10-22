@@ -545,6 +545,11 @@ details.pack > * + * { margin-top: 14px; }
     <section class="card edit" id="editCard" aria-labelledby="editH"></section>
   </main>
 
+  <!-- MATHE (v14) -->
+  <main id="scrMathe" hidden>
+    <div style="display:flex;flex-direction:column;gap:18px" id="mHome"></div>
+  </main>
+
   <!-- BONUS-SPIELE (v13) -->
   <main id="scrSpiel" hidden>
     <section class="card spiel" id="spielCard"></section>
@@ -573,7 +578,7 @@ details.pack > * + * { margin-top: 14px; }
 
   <footer>
     <span id="footNote">Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.</span>
-    <span id="appVersion">Lern! v13.3</span>
+    <span id="appVersion">Lern! v14.0</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -2323,6 +2328,1183 @@ const LK = (function () {
           BOSS_AB, BOSS_HP, BOSS_HERZEN, bossKarten, bossAufgaben, bossStart, bossZug, MUT, STIL};
 })();
 </script>
+<script id="mathekern">
+/* ---------- v14: Mathe-Kern (DOM-frei, global MK) ----------
+   Fach „Mathe 5“ (Gymnasium Bayern, Kapitelplan nach LehrplanPLUS M5). Keine Schulbuchtexte: jede Aufgabe kommt aus einem
+   eigenen Generator mit Zufallszahlen. Je Kompetenz ein Generator gen(d, rng) mit Schwierigkeit d = 1–3; er liefert
+   {frage, art: zahl|paar|einheit|wahl, loesung, schritte: [{t, w?}], fehler: [{w, art, tipp}], bild?, einheitText?, wahl?, optionen?, schaetzen?}.
+   Typische Fehler sind als Wert hinterlegt; pruefe() erkennt sie und liefert die erklärende Rückmeldung.
+   Stufen je Kompetenz: 1 = Musterlösung + Parallelaufgabe (Auswahl), 2 = vorgegebene Teilschritte mit Lücken, 3 = frei.
+   Stufe steigt nach 2 richtigen in Folge, sinkt nach 2 falschen in Folge.
+   Mastery: „sitzt“ nach richtigen Lösungen (Stufe 2 oder 3) an 3 verschiedenen Tagen. Fälligkeiten 1/3/7/14/30 Tage.
+   Zustand je Kompetenz: {tage: ["JJJJ-MM-TT", …], z: {stufe, serie, iv, due, zeit}} (Abgleich: LK.Lernstand.matheMerge). */
+const MK = (function () {
+  const FAELLIG = [1, 3, 7, 14, 30];
+  const ri = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
+  const pk = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+  const mix = (rng, a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const r3 = x => Math.round(x * 1000) / 1000;
+  const NB = " ";
+  /* Zahl deutsch: Minus „−“, Komma, Tausendergruppen ab 10 000 mit schmalem Leerzeichen */
+  function z(n) {
+    n = r3(n); const neg = n < 0;
+    let [i, d] = String(Math.abs(n)).split(".");
+    if (i.length >= 5) i = i.replace(/\B(?=(\d{3})+(?!\d))/g, NB);
+    return (neg ? "−" : "") + i + (d ? "," + d : "");
+  }
+  const zk = n => n < 0 ? "(" + z(n) + ")" : z(n);
+  const eur = n => { const s = (Math.round(n * 100) / 100).toFixed(2).split("."); return z(+s[0]) + "," + s[1]; };
+  const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+  const sup = n => String(n).split("").map(c => SUP[+c]).join("");
+  const pad2 = n => String(n).padStart(2, "0");
+  const F_ = (w, art, tipp) => ({w, art, tipp});
+
+  /* Eingabe „-12,5“ / „−1 250“ -> Zahl oder NaN */
+  function parseZahl(s) {
+    const t = String(s == null ? "" : s).replace(/[\s  ]/g, "").replace(/−/g, "-").replace(",", ".");
+    if (!/^-?\d+(\.\d+)?$/.test(t)) return NaN;
+    return +t;
+  }
+  function gleich(art, a, b) {
+    if (a == null || b == null) return false;
+    if (art === "zahl") return typeof a === "number" && Math.abs(a - b) < 1e-9;
+    if (art === "paar") return Array.isArray(a) && Array.isArray(b) && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
+    if (art === "einheit") return typeof a === "object" && Math.abs(a.wert - b.wert) < 1e-9 && (a.einheit == null || b.einheit == null || a.einheit === b.einheit);
+    return a === b;
+  }
+  /* Fehler ohne Wirkung entfernen (gleich der Lösung oder doppelt) */
+  function sauber(t) {
+    const out = [];
+    t.fehler.forEach(f => {
+      if (f.w == null || (t.art === "zahl" && !isFinite(f.w))) return;
+      if (t.art === "einheit" ? (Math.abs(f.w.wert - t.loesung.wert) < 1e-9 && (f.w.einheit == null || f.w.einheit === t.loesung.einheit)) : gleich(t.art, f.w, t.loesung)) return;
+      if (out.some(o => gleich(t.art, o.w, f.w) && (t.art !== "einheit" || o.w.einheit === f.w.einheit))) return;
+      out.push(f);
+    });
+    t.fehler = out;
+    return t;
+  }
+  function pruefe(t, e) {
+    if (t.art === "einheit") {
+      if (!e || e.einheit == null) return {res: "bad", art: "", tipp: ""};
+      if (Math.abs(e.wert - t.loesung.wert) < 1e-9 && e.einheit === t.loesung.einheit) return {res: "ok"};
+      // genaue Einheitenfehler zuerst, dann Wertfehler mit beliebiger Einheit
+      for (const f of t.fehler) if (f.w.einheit != null && Math.abs(e.wert - f.w.wert) < 1e-9 && e.einheit === f.w.einheit) return {res: "bad", art: f.art, tipp: f.tipp};
+      for (const f of t.fehler) if (f.w.einheit == null && Math.abs(e.wert - f.w.wert) < 1e-9) return {res: "bad", art: f.art, tipp: f.tipp};
+      return {res: "bad", art: "", tipp: ""};
+    }
+    if (gleich(t.art, e, t.loesung)) return {res: "ok"};
+    for (const f of t.fehler) if (gleich(t.art, e, f.w)) return {res: "bad", art: f.art, tipp: f.tipp};
+    return {res: "bad", art: "", tipp: ""};
+  }
+
+  /* ---------- K1 Natürliche Zahlen ---------- */
+  const STELLEN = ["Einer", "Zehner", "Hunderter", "Tausender", "Zehntausender", "Hunderttausender", "Millionen", "Zehnmillionen", "Hundertmillionen", "Milliarden", "Zehnmilliarden", "Hundertmilliarden"];
+  function genStelle(d, rng) {
+    for (;;) {
+      const len = d === 1 ? 6 : d === 2 ? ri(rng, 7, 9) : ri(rng, 10, 12);
+      let dig = []; while (dig.length < len) dig = dig.concat(mix(rng, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
+      dig = dig.slice(0, len);
+      if (dig[0] === 0) continue;
+      const at = q => dig[len - 1 - q], p = ri(rng, 1, len - 2);
+      if (new Set([at(p - 1), at(p), at(p + 1)]).size < 3) continue;
+      const n = Number(dig.join(""));
+      if (d >= 2 && rng() < 0.5) {
+        const x = at(p);
+        if (!x || dig.filter(v => v === x).length > 1) continue;
+        const w = x * Math.pow(10, p);
+        return sauber({frage: `Welchen Wert hat die Ziffer ${x} in ${z(n)}?`, art: "zahl", loesung: w,
+          schritte: [{t: "Zähl die Stellen von rechts: Einer, Zehner, Hunderter, Tausender, …"}, {t: `Die ${x} steht an der Stelle der ${STELLEN[p]}. Stellenwert: □`, w: Math.pow(10, p)}, {t: `Wert: ${x} · ${z(Math.pow(10, p))} = □`, w}],
+          fehler: [F_(x, "stellenwert", `Gefragt ist der Wert, nicht die Ziffer: Ziffer mal Stellenwert, hier ${x} · ${z(Math.pow(10, p))}.`),
+            F_(x * Math.pow(10, p - 1), "stelle", "Um eine Stelle verrutscht. Zähl die Stellen von rechts: Einer, Zehner, Hunderter, …"),
+            F_(x * Math.pow(10, p + 1), "stelle", "Um eine Stelle verrutscht. Zähl die Stellen von rechts: Einer, Zehner, Hunderter, …")]});
+      }
+      return sauber({frage: `Welche Ziffer steht in ${z(n)} an der Stelle der ${STELLEN[p]}?`, art: "zahl", loesung: at(p),
+        schritte: [{t: "Zähl die Stellen von rechts: Einer, Zehner, Hunderter, Tausender, …"}, {t: `Die ${STELLEN[p]} sind die ${p + 1}. Stelle von rechts. Ziffer: □`, w: at(p)}],
+        fehler: [F_(at(p - 1), "stelle", "Um eine Stelle verrutscht. Zähl von rechts: Einer, Zehner, Hunderter, Tausender, …"), F_(at(p + 1), "stelle", "Um eine Stelle verrutscht. Zähl von rechts: Einer, Zehner, Hunderter, Tausender, …")]});
+    }
+  }
+  const RNAME = {10: "Zehner", 100: "Hunderter", 1000: "Tausender", 10000: "Zehntausender", 100000: "Hunderttausender", 1000000: "Millionen"};
+  function genRunden(d, rng) {
+    for (;;) {
+      const n = d === 1 ? ri(rng, 1001, 9999) : d === 2 ? ri(rng, 10001, 9999999) : ri(rng, 1000001, 999999999);
+      const p = pk(rng, d === 1 ? [10, 100] : d === 2 ? [1000, 10000] : [100000, 1000000]);
+      if (n % p === 0 || n < p) continue;
+      const down = Math.floor(n / p) * p, up = down + p, c = Math.floor(n / p + 0.5) * p, ziff = Math.floor(n / (p / 10)) % 10;
+      const q = p * 10, falschStelle = Math.floor(n / q + 0.5) * q;
+      return sauber({frage: `Runde ${z(n)} auf ${RNAME[p]}.`, art: "zahl", loesung: c,
+        schritte: [{t: `Rundungsstelle: ${RNAME[p]}. Ziffer rechts daneben: □`, w: ziff}, {t: "0 bis 4: abrunden. 5 bis 9: aufrunden."}, {t: "Gerundet: □", w: c}],
+        fehler: [F_(c === up ? down : up, "runden", "Schau auf die Ziffer rechts neben der Rundungsstelle: 0–4 abrunden, 5–9 aufrunden."),
+          F_(falschStelle, "rundstelle", `Auf die falsche Stelle gerundet. Gefragt sind die ${RNAME[p]}.`)]});
+    }
+  }
+  const E1 = ["", "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"];
+  const ZEHN = ["zehn", "elf", "zwölf", "dreizehn", "vierzehn", "fünfzehn", "sechzehn", "siebzehn", "achtzehn", "neunzehn"];
+  const ZIG = ["", "", "zwanzig", "dreißig", "vierzig", "fünfzig", "sechzig", "siebzig", "achtzig", "neunzig"];
+  function wort(n, ende) {   // 1–999
+    let s = ""; const h = Math.floor(n / 100), r = n % 100;
+    if (h) s += E1[h] + "hundert";
+    if (r >= 10 && r < 20) s += ZEHN[r - 10];
+    else if (r >= 20) { const e = r % 10; s += (e ? E1[e] + "und" : "") + ZIG[Math.floor(r / 10)]; }
+    else if (r) s += E1[r] + (ende && r === 1 ? "s" : "");
+    return s;
+  }
+  function genGross(d, rng) {
+    for (;;) {
+      const g = [0, 0, 0, 0];   // Rest, Tausender, Millionen, Milliarden
+      const klein = () => rng() < 0.3 ? 0 : ri(rng, 1, 99), voll = () => ri(rng, 1, 999);
+      if (d === 1) { g[1] = voll(); g[0] = klein(); }
+      else if (d === 2) { g[2] = ri(rng, 1, 99); g[1] = rng() < 0.5 ? klein() : voll(); g[0] = rng() < 0.5 ? klein() : voll(); }
+      else { g[3] = ri(rng, 1, 20); g[2] = rng() < 0.4 ? klein() : voll(); g[1] = klein(); g[0] = rng() < 0.5 ? klein() : voll(); }
+      if (g[2] > 1 && g[2] % 100 === 1) continue;
+      if (g[3] > 1 && g[3] % 100 === 1) continue;
+      const teile = [];
+      if (g[3]) teile.push(g[3] === 1 ? "eine Milliarde" : wort(g[3]) + " Milliarden");
+      if (g[2]) teile.push(g[2] === 1 ? "eine Million" : wort(g[2]) + " Millionen");
+      const rest = (g[1] ? wort(g[1]) + "tausend" : "") + (g[0] ? wort(g[0], true) : "");
+      if (rest) teile.push(rest);
+      const n = g[3] * 1e9 + g[2] * 1e6 + g[1] * 1e3 + g[0];
+      const top = g[3] ? 3 : g[2] ? 2 : 1;
+      const falsch = Number(g.slice(0, top + 1).reverse().filter(x => x).map(String).join(""));
+      if (falsch === n) continue;
+      const namen = ["Rest (Hunderter, Zehner, Einer)", "Tausender", "Millionen", "Milliarden"];
+      const schritte = [{t: "Zerlege in Dreiergruppen von links: Milliarden | Millionen | Tausender | Rest."}];
+      for (let i = top; i >= 0; i--) schritte.push({t: `${namen[i]}: □`, w: g[i]});
+      schritte.push({t: "Jede Gruppe hat drei Ziffern, leere Stellen mit 0 füllen. Zahl: □", w: n});
+      return sauber({frage: `Schreib als Zahl: „${teile.join(" ")}“`, art: "zahl", loesung: n, schritte,
+        fehler: [F_(falsch, "nullen", "Nullen vergessen: Jede Dreiergruppe braucht drei Ziffern, z. B. vierzigtausendfünf = 40 005.")]});
+    }
+  }
+  function genStrahl(d, rng) {
+    const s = pk(rng, d === 1 ? [1, 2, 5, 10] : d === 2 ? [10, 20, 25, 50, 100] : [100, 250, 500, 1000, 5000, 25000]);
+    const a = s * ri(rng, 0, d === 1 ? 10 : d === 2 ? 20 : 40);
+    const k = pk(rng, [1, 2, 3, 4, 6, 7, 8, 9]), c = a + k * s;
+    return sauber({frage: "Welche Zahl gehört zum Pfeil?", art: "zahl", loesung: c,
+      bild: {typ: "strahl", n: 10, marke: k, werte: [{i: 0, t: z(a)}, {i: 5, t: z(a + 5 * s)}]},
+      schritte: [{t: `Von ${z(a)} bis ${z(a + 5 * s)} sind es 5 Schritte. Ein Schritt ist □`, w: s}, {t: `Der Pfeil steht ${k} Schritte rechts von ${z(a)}: ${z(a)} + ${k} · ${z(s)} = □`, w: c}],
+      fehler: [F_(s !== 1 ? a + k : null, "schritt", "Achte auf die Schrittweite: Von Strich zu Strich geht es hier nicht immer um 1 weiter. Teile den Abstand der beschrifteten Zahlen durch die Zahl der Schritte."),
+        F_(a + (k - 1) * s, "zaehlen", "Striche verzählt: Der beschriftete Strich ist der Start, ab dort zählst du die Schritte."),
+        F_(a + (k + 1) * s, "zaehlen", "Striche verzählt: Der beschriftete Strich ist der Start, ab dort zählst du die Schritte.")]});
+  }
+
+  /* ---------- K2 Ganze Zahlen ---------- */
+  function genOrdnen(d, rng) {
+    for (;;) {
+      const n = d === 1 ? 2 : d === 2 ? 3 : 4, R = d === 1 ? 20 : d === 2 ? 50 : 200;
+      const abs = new Set(); while (abs.size < n) abs.add(ri(rng, 1, R));
+      const xs = Array.from(abs).map(v => rng() < 0.65 ? -v : v);
+      if (xs.filter(x => x < 0).length < 2 && n > 2) continue;
+      if (!xs.some(x => x < 0)) continue;
+      const gr = rng() < 0.5, c = gr ? Math.max(...xs) : Math.min(...xs);
+      const byAbs = xs.slice().sort((p, q) => Math.abs(p) - Math.abs(q)), f = gr ? byAbs[n - 1] : byAbs[0];
+      if (f === c) continue;
+      const frage = n === 2 ? `Welche Zahl ist ${gr ? "größer" : "kleiner"}: ${z(xs[0])} oder ${z(xs[1])}?` : `Welche Zahl ist am ${gr ? "größten" : "kleinsten"}? ${xs.map(z).join(";  ")}`;
+      return sauber({frage, art: "zahl", loesung: c,
+        schritte: [{t: "Denk an den Zahlenstrahl: links liegen die kleinen, rechts die großen Zahlen."}, {t: `Gesucht ist die Zahl ganz ${gr ? "rechts" : "links"}: □`, w: c}],
+        fehler: [F_(f, "anordnung", "Bei negativen Zahlen ist die Zahl größer, die näher an der 0 liegt: −3 ist größer als −7.")]});
+    }
+  }
+  function genBetrag(d, rng) {
+    const R = d === 1 ? 50 : d === 2 ? 500 : 10000, x = -ri(rng, 1, R) * (rng() < 0.8 ? 1 : -1);
+    const v = d === 3 && rng() < 0.5 ? "abstand" : pk(rng, ["betrag", "gegen"]);
+    if (v === "betrag") return sauber({frage: `|${z(-Math.abs(x))}| = ?`, art: "zahl", loesung: Math.abs(x),
+      schritte: [{t: "Der Betrag ist der Abstand zur 0 auf dem Zahlenstrahl."}, {t: "Abstand zur 0: □", w: Math.abs(x)}],
+      fehler: [F_(-Math.abs(x), "betrag", "Der Betrag ist ein Abstand und deshalb nie negativ.")]});
+    if (v === "gegen") return sauber({frage: `Wie heißt die Gegenzahl von ${z(x)}?`, art: "zahl", loesung: -x,
+      schritte: [{t: "Die Gegenzahl hat denselben Abstand zur 0, liegt aber auf der anderen Seite."}, {t: "Gegenzahl: □", w: -x}],
+      fehler: [F_(x, "gegenzahl", "Die Gegenzahl hat dasselbe Zahlzeichen, aber das andere Vorzeichen.")]});
+    const a = -ri(rng, 2, 60), b = ri(rng, 2, 60);
+    return sauber({frage: `Wie weit liegen ${z(a)} und ${z(b)} auf dem Zahlenstrahl auseinander?`, art: "zahl", loesung: b - a,
+      schritte: [{t: `Abstand von ${z(a)} zur 0: □`, w: -a}, {t: `Abstand von ${z(b)} zur 0: □`, w: b}, {t: "Zusammen: □", w: b - a}],
+      fehler: [F_(Math.abs(b + a), "abstand", "Die Zahlen liegen auf verschiedenen Seiten der 0. Dann addierst du beide Abstände zur 0.")]});
+  }
+  const T_VZ = "Vorzeichen falsch: Das Ergebnis bekommt das Vorzeichen der Zahl mit dem größeren Betrag.";
+  function genAdd(d, rng) {
+    for (;;) {
+      const R = d === 1 ? 20 : d === 2 ? 100 : 1000;
+      const a = ri(rng, 1, R) * (rng() < 0.6 ? -1 : 1), b = ri(rng, 1, R) * (rng() < 0.6 ? -1 : 1), c = a + b;
+      if ((a > 0 && b > 0) || c === 0 || Math.abs(a) === Math.abs(b)) continue;
+      const verschieden = (a < 0) !== (b < 0);
+      const schritte = verschieden
+        ? [{t: `Beträge ${Math.abs(a)} und ${Math.abs(b)}. Größerer minus kleinerer Betrag: □`, w: Math.abs(c)}, {t: "Vorzeichen der Zahl mit dem größeren Betrag. Ergebnis: □", w: c}]
+        : [{t: `Gleiche Vorzeichen: Beträge addieren: □`, w: Math.abs(c)}, {t: "Das Minus bleibt. Ergebnis: □", w: c}];
+      return sauber({frage: `${z(a)} + ${zk(b)} = ?`, art: "zahl", loesung: c, schritte,
+        fehler: [F_(-c, "vorzeichen", T_VZ),
+          F_(verschieden ? Math.sign(c) * (Math.abs(a) + Math.abs(b)) : null, "betraege", "Bei verschiedenen Vorzeichen subtrahierst du die Beträge: größerer minus kleinerer."),
+          F_(verschieden ? -Math.sign(c) * (Math.abs(a) + Math.abs(b)) : null, "betraege", "Bei verschiedenen Vorzeichen subtrahierst du die Beträge: größerer minus kleinerer.")]});
+    }
+  }
+  function genSub(d, rng) {
+    for (;;) {
+      const R = d === 1 ? 20 : d === 2 ? 100 : 1000;
+      const a = ri(rng, 1, R) * (rng() < 0.4 ? -1 : 1), b = ri(rng, 1, R) * (rng() < 0.5 ? -1 : 1), c = a - b;
+      if (c === 0 || (b > 0 && a > 0 && c > 0)) continue;
+      if (b < 0) return sauber({frage: `${z(a)} − ${zk(b)} = ?`, art: "zahl", loesung: c,
+        schritte: [{t: `Eine negative Zahl subtrahieren heißt ihre Gegenzahl addieren: ${z(a)} + ${z(-b)}`}, {t: "Ergebnis: □", w: c}],
+        fehler: [F_(a + b, "minusminus", `Minus eine negative Zahl ist plus ihre Gegenzahl: ${z(a)} − ${zk(b)} = ${z(a)} + ${z(-b)}.`), F_(-c, "vorzeichen", T_VZ)]});
+      return sauber({frage: `${z(a)} − ${z(b)} = ?`, art: "zahl", loesung: c,
+        schritte: [{t: `Auf dem Zahlenstrahl von ${z(a)} aus ${z(b)} Schritte nach links.`}, {t: "Ergebnis: □", w: c}],
+        fehler: [F_(-c, "vorzeichen", "Du landest links von der 0, das Ergebnis ist negativ."),
+          F_(a < 0 ? a + b : null, "betraege", "Beide Schritte gehen nach links: Die Beträge werden addiert, das Ergebnis bleibt negativ.")]});
+    }
+  }
+  function genSach2(d, rng) {
+    for (;;) {
+      const typ = d === 1 ? "temp" : d === 2 ? pk(rng, ["temp", "konto"]) : pk(rng, ["konto", "tauch"]);
+      let t0, w, plus, frage, einheit;
+      if (typ === "temp") { t0 = ri(rng, -15, 8); w = ri(rng, 3, 15); plus = rng() < 0.6; einheit = "°C";
+        frage = `Am Morgen sind es ${z(t0)} °C. Bis zum Mittag wird es ${w} Grad ${plus ? "wärmer" : "kälter"}. Wie viel Grad sind es mittags?`; }
+      else if (typ === "konto") { t0 = -ri(rng, 5, 80) * 5; w = ri(rng, 4, 60) * 5; plus = rng() < 0.6; einheit = "€";
+        frage = `Auf Mias Konto stehen ${z(t0)} €. Sie ${plus ? `zahlt ${w} € ein` : `hebt noch ${w} € ab`}. Wie hoch ist der Kontostand danach?`; }
+      else { t0 = -ri(rng, 5, 40); w = ri(rng, 3, 30); plus = rng() < 0.6; einheit = "m";
+        frage = `Ein Taucher ist ${-t0} m unter der Wasseroberfläche, also bei ${z(t0)} m. Er ${plus ? "steigt" : "taucht"} ${w} m ${plus ? "auf" : "tiefer"}. Wo ist er dann?`; }
+      const c = plus ? t0 + w : t0 - w;
+      if (c === 0) continue;
+      return sauber({frage, art: "zahl", loesung: c, einheitText: einheit,
+        schritte: [{t: `Rechnung: ${z(t0)} ${plus ? "+" : "−"} ${w} = □`, w: c}],
+        fehler: [F_(plus ? t0 - w : t0 + w, "richtung", "Richtung verwechselt: wärmer, einzahlen, aufsteigen heißt plus; kälter, abheben, tiefer heißt minus."), F_(-c, "vorzeichen", T_VZ)]});
+    }
+  }
+
+  /* ---------- K3 Rechnen, Rechengesetze, Potenzen, Terme ---------- */
+  const T_VZR = "Vorzeichenregel: gleiche Vorzeichen ergeben plus, verschiedene Vorzeichen ergeben minus.";
+  function genMult(d, rng) {
+    if (d === 1) {
+      const a = ri(rng, 1, 9) * 10 + ri(rng, 2, 9), b = ri(rng, 3, 9), T = Math.floor(a / 10) * 10, E = a % 10;
+      return sauber({frage: `${a} · ${b} = ?`, art: "zahl", loesung: a * b,
+        schritte: [{t: `${T} · ${b} = □`, w: T * b}, {t: `${E} · ${b} = □`, w: E * b}, {t: "Zusammen: □", w: a * b}],
+        fehler: [F_(T * b + E, "teilprodukt", `Zerlege: ${a} · ${b} = ${T} · ${b} + ${E} · ${b}. Beide Teile werden mit ${b} multipliziert.`)]});
+    }
+    for (;;) {
+      const f = d === 2 ? [ri(rng, 2, 15), ri(rng, 2, 15)] : [ri(rng, 2, 12), ri(rng, 2, 9), ri(rng, 2, 6)];
+      const s = f.map(x => rng() < 0.5 ? -x : x);
+      if (!s.some(x => x < 0)) continue;
+      const c = s.reduce((p, q) => p * q, 1), neg = s.filter(x => x < 0).length;
+      const schritte = d === 2 ? [{t: `Betrag: ${f.join(" · ")} = □`, w: Math.abs(c)}, {t: "Vorzeichen bestimmen. Ergebnis: □", w: c}]
+        : [{t: "Wie viele Faktoren sind negativ? □", w: neg}, {t: "Gerade Anzahl: plus, ungerade: minus."}, {t: `Betrag: ${f.join(" · ")} = □`, w: Math.abs(c)}, {t: "Ergebnis: □", w: c}];
+      return sauber({frage: s.map((x, i) => i ? zk(x) : z(x)).join(" · ") + " = ?", art: "zahl", loesung: c, schritte, fehler: [F_(-c, "vorzeichen", T_VZR)]});
+    }
+  }
+  function genDiv(d, rng) {
+    if (d === 1) {
+      const h = ri(rng, 1, 9), e = ri(rng, 1, 9), q = h * 100 + e, b = ri(rng, 2, 9), a = q * b;
+      return sauber({frage: `${z(a)} : ${b} = ?`, art: "zahl", loesung: q,
+        schritte: [{t: `Hunderter: ${h * b} : ${b} = □`, w: h}, {t: `Zehner: 0 : ${b} = □`, w: 0}, {t: `Einer: ${e * b} : ${b} = □`, w: e}, {t: "Ergebnis: □", w: q}],
+        fehler: [F_(h * 10 + e, "nullmitte", "Null im Ergebnis vergessen: Ist eine Teilzahl kleiner als der Teiler, schreibst du eine 0 ins Ergebnis.")]});
+    }
+    for (;;) {
+      const q = ri(rng, 2, d === 2 ? 20 : 50) * (rng() < 0.5 ? -1 : 1), b = ri(rng, d === 2 ? 2 : 11, d === 2 ? 12 : 25) * (rng() < 0.5 ? -1 : 1);
+      if (q > 0 && b > 0) continue;
+      const a = q * b;
+      return sauber({frage: `${z(a)} : ${zk(b)} = ?`, art: "zahl", loesung: q,
+        schritte: [{t: `Betrag: ${Math.abs(a)} : ${Math.abs(b)} = □`, w: Math.abs(q)}, {t: "Vorzeichen bestimmen. Ergebnis: □", w: q}],
+        fehler: [F_(-q, "vorzeichen", T_VZR)]});
+    }
+  }
+  function genPotenz(d, rng) {
+    for (;;) {
+      const [b, e] = pk(rng, d === 1 ? [[2, ri(rng, 3, 6)], [3, ri(rng, 2, 4)], [10, ri(rng, 2, 6)], [ri(rng, 4, 12), 2], [5, 2]]
+        : d === 2 ? [[2, ri(rng, 7, 10)], [3, ri(rng, 3, 5)], [4, 3], [5, ri(rng, 3, 4)], [10, ri(rng, 7, 9)], [ri(rng, 13, 20), 2], [ri(rng, 4, 9), 3]]
+        : [[2, ri(rng, 10, 12)], [3, ri(rng, 5, 6)], [10, ri(rng, 10, 12)], [ri(rng, 21, 25), 2], [ri(rng, 10, 12), 3], [6, 4]]);
+      const c = Math.pow(b, e), tausch = Math.pow(e, b);
+      if (b * e === c) continue;
+      const schritte = [{t: e <= 6 ? `${b}${sup(e)} = ${Array(e).fill(b).join(" · ")}` : `${b}${sup(e)}: ${e}-mal den Faktor ${b}.`}];
+      if (b === 10) schritte.push({t: `Bei 10${sup(e)}: eine 1 mit ${e} Nullen.`});
+      schritte.push({t: "Ergebnis: □", w: c});
+      return sauber({frage: `${b}${sup(e)} = ?`, art: "zahl", loesung: c, schritte,
+        fehler: [F_(b * e, "potenz", `Eine Potenz ist wiederholte Multiplikation, nicht Basis mal Exponent: ${b}${sup(e)} = ${Array(Math.min(e, 6)).fill(b).join(" · ")}${e > 6 ? " · …" : ""}.`),
+          F_(tausch <= 1e13 && b !== e ? tausch : null, "potvertauscht", `Basis und Exponent vertauscht: Die große Zahl ${b} ist der Faktor, die kleine hochgestellte ${e} sagt, wie oft.`)]});
+    }
+  }
+  const T_PKT = "Punkt vor Strich: Zuerst · und :, danach + und −.", T_KL = "Was in Klammern steht, rechnest du zuerst.";
+  function genReihenfolge(d, rng) {
+    for (let v = 0; v < 500; v++) {
+      const N = (a, b) => ri(rng, a, b), neg = x => d === 3 && rng() < 0.45 ? -x : x;
+      const T = d === 1 ? N(1, 4) : d === 2 ? N(1, 7) : pk(rng, [1, 2, 5, 6]);
+      let txt, w, err, art, schritte;
+      const a = neg(N(2, d === 1 ? 30 : 60)), b = neg(N(2, 12)), c = neg(N(2, 12));
+      if (T === 1) { w = a + b * c; err = (a + b) * c; art = "punkt"; txt = `${z(a)} + ${zk(b)} · ${zk(c)}`; schritte = [{t: `Punkt vor Strich: ${zk(b)} · ${zk(c)} = □`, w: b * c}, {t: `${z(a)} + ${zk(b * c)} = □`, w}]; }
+      else if (T === 2) { w = a - b * c; err = (a - b) * c; art = "punkt"; txt = `${z(a)} − ${zk(b)} · ${zk(c)}`; schritte = [{t: `Punkt vor Strich: ${zk(b)} · ${zk(c)} = □`, w: b * c}, {t: `${z(a)} − ${zk(b * c)} = □`, w}]; }
+      else if (T === 3) { const e = N(2, 9); w = a * b + c * e; err = (a * b + c) * e; art = "punkt"; txt = `${z(a)} · ${zk(b)} + ${zk(c)} · ${e}`; schritte = [{t: `${z(a)} · ${zk(b)} = □`, w: a * b}, {t: `${zk(c)} · ${e} = □`, w: c * e}, {t: "Summe: □", w}]; }
+      else if (T === 4) { const q = N(2, 12), bb = c * q; w = a + q; err = (a + bb) / c; art = "punkt"; txt = `${z(a)} + ${zk(bb)} : ${zk(c)}`; schritte = [{t: `Punkt vor Strich: ${zk(bb)} : ${zk(c)} = □`, w: q}, {t: `${z(a)} + ${zk(q)} = □`, w}]; }
+      else if (T === 5) { w = (a + b) * c; err = a + b * c; art = "klammer"; txt = `(${z(a)} + ${zk(b)}) · ${zk(c)}`; schritte = [{t: `Klammer zuerst: ${z(a)} + ${zk(b)} = □`, w: a + b}, {t: `${zk(a + b)} · ${zk(c)} = □`, w}]; }
+      else if (T === 6) { w = a * (b - c); err = a * b - c; art = "klammer"; txt = `${z(a)} · (${z(b)} − ${zk(c)})`; schritte = [{t: `Klammer zuerst: ${z(b)} − ${zk(c)} = □`, w: b - c}, {t: `${z(a)} · ${zk(b - c)} = □`, w}]; }
+      else { const cc = N(2, 9), q = N(2, 12), bb = cc * N(1, 5), aa = bb + cc * q; w = q; err = aa - bb / cc; art = "klammer"; txt = `(${z(aa)} − ${z(bb)}) : ${cc}`; schritte = [{t: `Klammer zuerst: ${z(aa)} − ${z(bb)} = □`, w: aa - bb}, {t: `${z(aa - bb)} : ${cc} = □`, w}]; }
+      if (!Number.isInteger(err) || err === w || !Number.isInteger(w)) continue;
+      if (d < 3 && (w < 0 || schritte.some(s => s.w != null && s.w < 0))) continue;
+      return sauber({frage: txt + " = ?", art: "zahl", loesung: w, schritte, fehler: [F_(err, art, art === "punkt" ? T_PKT : T_KL)]});
+    }
+    return genReihenfolge(1, rng);
+  }
+  const T_DG = "Distributivgesetz: Jeder Teil wird mit dem Faktor multipliziert.";
+  function genGeschickt(d, rng) {
+    if (d === 1) {
+      const a = ri(rng, 3, 9), T = ri(rng, 2, 8) * 10, e = ri(rng, 1, 9), n = T + e;
+      return sauber({frage: `Rechne geschickt: ${a} · ${n} = ?`, art: "zahl", loesung: a * n,
+        schritte: [{t: `${a} · ${n} = ${a} · ${T} + ${a} · ${e}`}, {t: `${a} · ${T} = □`, w: a * T}, {t: `${a} · ${e} = □`, w: a * e}, {t: "Zusammen: □", w: a * n}],
+        fehler: [F_(a * T + e, "teilprodukt", T_DG)]});
+    }
+    if (d === 2) {
+      const a = ri(rng, 3, 19), [base, k] = pk(rng, [[100, -1], [100, -2], [100, 1], [100, 2], [50, -1], [50, 1], [200, -1], [200, 1]]), n = base + k;
+      return sauber({frage: `Rechne geschickt: ${a} · ${n} = ?`, art: "zahl", loesung: a * n,
+        schritte: [{t: `${n} = ${base} ${k < 0 ? "−" : "+"} ${Math.abs(k)}`}, {t: `${a} · ${base} = □`, w: a * base}, {t: `${a} · ${Math.abs(k)} = □`, w: a * Math.abs(k)}, {t: "Ergebnis: □", w: a * n}],
+        fehler: [F_(a * base + k, "teilprodukt", T_DG)]});
+    }
+    const a = ri(rng, 11, 49), b = ri(rng, 11, 89), c = 100 - b;
+    return sauber({frage: `Rechne geschickt: ${a} · ${b} + ${a} · ${c} = ?`, art: "zahl", loesung: a * 100,
+      schritte: [{t: `Gemeinsamen Faktor ${a} ausklammern: ${a} · (${b} + ${c})`}, {t: `${b} + ${c} = □`, w: 100}, {t: `${a} · 100 = □`, w: a * 100}],
+      fehler: [F_(a * b + c, "teilprodukt", T_DG), F_(100, "ausklammern", `Beim Ausklammern bleibt der gemeinsame Faktor stehen: ${a} · (${b} + ${c}).`)]});
+  }
+
+  /* ---------- K4 Größen ---------- */
+  const FALSCH = {10: [100], 100: [10, 1000], 1000: [100, 10], 10000: [100, 1000], 60: [100], 24: [60, 100]};
+  /* PAARE [groß, klein, Faktor]; o = {art, tipp(g, k, f), dez: Rückwärts mit Komma erlaubt, nullTipp} */
+  function umrechnen(d, rng, PAARE, o) {
+    for (;;) {
+      const [g, k, f] = pk(rng, PAARE), ft = (ff, fa) => F_(null, o.art(f, ff), o.tipp(g, k, f));
+      const fehl = (fn) => (FALSCH[f] || []).map(ff => Object.assign(ft(ff), {w: fn(ff)}));
+      const v = d === 1 ? "hin" : d === 2 ? pk(rng, ["mix", "rueck"]) : (o.dez ? "komma" : pk(rng, ["mix", "rueck"]));
+      if (v === "hin") {
+        const x = ri(rng, 2, 25);
+        return sauber({frage: `${z(x)} ${g} = ? ${k}`, art: "zahl", loesung: x * f, einheitText: k,
+          schritte: [{t: `1 ${g} = □ ${k}`, w: f}, {t: `${x} · ${z(f)} = □`, w: x * f}], fehler: fehl(ff => x * ff)});
+      }
+      if (v === "mix") {
+        const x = ri(rng, 1, 9), y = f >= 100 && rng() < 0.6 ? ri(rng, 1, 9) : ri(rng, 1, f - 1), c = x * f + y;
+        const fl = fehl(ff => x * ff + y);
+        fl.push(F_(Number(String(x) + String(y)), "nullen", o.nullTipp ? o.nullTipp(x, g, y, k, f) : `Nullen beachten: ${x} ${g} = ${z(x * f)} ${k}, dazu ${y} ${k}.`));
+        return sauber({frage: `${x} ${g} ${y} ${k} = ? ${k}`, art: "zahl", loesung: c, einheitText: k,
+          schritte: [{t: `${x} ${g} = □ ${k}`, w: x * f}, {t: `${z(x * f)} + ${y} = □`, w: c}], fehler: fl});
+      }
+      if (v === "rueck") {
+        const x = ri(rng, 2, 40), N = x * f;
+        return sauber({frage: `${z(N)} ${k} = ? ${g}`, art: "zahl", loesung: x, einheitText: g,
+          schritte: [{t: `1 ${g} = □ ${k}`, w: f}, {t: `${z(N)} : ${z(f)} = □`, w: x}], fehler: fehl(ff => r3(N / ff))});
+      }
+      const step = Math.max(1, f / 100), N = ri(rng, Math.floor(f / step) + 1, 9 * f / step) * step;   // höchstens 2 Nachkommastellen
+      if (N % f === 0) continue;
+      return sauber({frage: `${z(N)} ${k} = ? ${g}`, art: "zahl", loesung: r3(N / f), einheitText: g,
+        schritte: [{t: `1 ${g} = □ ${k}`, w: f}, {t: `${z(N)} : ${z(f)} = □ (Komma verschieben)`, w: r3(N / f)}], fehler: fehl(ff => r3(N / ff))});
+    }
+  }
+  const tippEinheit = (g, k, f) => `Falscher Umrechnungsfaktor. Merke: 1 ${g} = ${z(f)} ${k}.`;
+  const genLaenge = (d, rng) => umrechnen(d, rng, [["m", "cm", 100], ["m", "dm", 10], ["cm", "mm", 10], ["km", "m", 1000], ["dm", "cm", 10], ["m", "mm", 1000]], {art: () => "faktor", tipp: tippEinheit, dez: true});
+  const genMasse = (d, rng) => umrechnen(d, rng, [["kg", "g", 1000], ["t", "kg", 1000], ["g", "mg", 1000]], {art: () => "faktor", tipp: tippEinheit, dez: true});
+  function genZeit(d, rng) {
+    if (d === 3) {
+      for (;;) {
+        const h = ri(rng, 1, 5), m = ri(rng, 1, 59), N = h * 60 + m, f = [Math.floor(N / 100), N % 100];
+        if (f[1] >= 60 || (f[0] === h && f[1] === m)) continue;
+        return sauber({frage: `${N} min = ? h ? min`, art: "paar", loesung: [h, m], labels: ["h", "min"],
+          schritte: [{t: "1 h = □ min", w: 60}, {t: `Wie oft passt 60 in ${N}? □ h`, w: h}, {t: `Rest: ${N} − ${h * 60} = □ min`, w: m}],
+          fehler: [F_(f, "zeit100", "Zeit rechnet mit 60, nicht mit 100: 1 h = 60 min.")]});
+      }
+    }
+    return umrechnen(d, rng, [["h", "min", 60], ["min", "s", 60], ["d", "h", 24]], {art: () => "zeit100", tipp: (g, k, f) => `Bei der Zeit gilt: 1 ${g} = ${f} ${k}. Nicht mit 100 rechnen.`, dez: false,
+      nullTipp: (x, g, y, k, f) => `Bei der Zeit gilt 1 ${g} = ${f} ${k}: ${x} ${g} ${y} ${k} = ${x * f} + ${y} ${k}.`});
+  }
+  function genGeld(d, rng) {
+    if (d === 3 && rng() < 0.5) {
+      const e = ri(rng, 1, 30), c = ri(rng, 1, 9);
+      return sauber({frage: `${e},0${c} € = ? ct`, art: "zahl", loesung: e * 100 + c, einheitText: "ct",
+        schritte: [{t: `${e} € = □ ct`, w: e * 100}, {t: `,0${c} € sind □ ct`, w: c}, {t: "Zusammen: □", w: e * 100 + c}],
+        fehler: [F_(e * 10 + c, "nullen", `Die 0 nach dem Komma zählt: ${e},0${c} € = ${e} € und ${c} ct.`), F_(e + c, "faktor", "1 € = 100 ct.")]});
+    }
+    return umrechnen(d, rng, [["€", "ct", 100]], {art: () => "faktor", tipp: () => "Merke: 1 € = 100 ct.", dez: true});
+  }
+  function genSach4(d, rng) {
+    if (d === 1) {
+      const n = ri(rng, 2, 6), p = ri(rng, 6, 49) * 5 / 100, q = ri(rng, 10, 60) * 5 / 100, c = r3(n * p + q);
+      return sauber({frage: `Lena kauft ${n} Hefte zu je ${eur(p)} € und einen Stift für ${eur(q)} €. Wie viel muss sie bezahlen?`, art: "zahl", loesung: c, einheitText: "€",
+        schritte: [{t: `Hefte: ${n} · ${eur(p)} € = □ €`, w: r3(n * p)}, {t: `Dazu der Stift: □ €`, w: c}],
+        fehler: [F_(r3(p + q), "anzahl", `Lies genau: Es sind ${n} Hefte, also ${n} · ${eur(p)} €.`), F_(r3(n * (p + q)), "anzahl", "Der Stift wird nur einmal gekauft, nicht für jedes Heft.")]});
+    }
+    if (d === 2) {
+      for (;;) {
+        const h = ri(rng, 8, 19), m = ri(rng, 3, 11) * 5, dh = ri(rng, 0, 2), dm = ri(rng, 1, 11) * 5;
+        if (m + dm < 60) continue;
+        const end = h * 60 + m + dh * 60 + dm, E = [Math.floor(end / 60), end % 60];
+        if (E[0] > 23) continue;
+        return sauber({frage: `Ein Film beginnt um ${h}:${pad2(m)} Uhr und dauert ${dh ? dh + " h " : ""}${dm} min. Wann ist er zu Ende?`, art: "paar", loesung: E, labels: ["Uhr", "min"],
+          schritte: [{t: `Minuten zusammen: ${m} + ${dm} = □`, w: m + dm}, {t: `Das sind 1 h und □ min`, w: m + dm - 60}, {t: `Stunden: ${h} + ${dh} + 1 = □`, w: E[0]}],
+          fehler: [F_([h + dh, m + dm], "uhrzeit", "Eine Stunde hat 60 Minuten. Ab 60 Minuten: 1 Stunde dazu, 60 Minuten weg."), F_([h + dh + 1, m + dm], "uhrzeit", "Eine Stunde hat 60 Minuten. Ab 60 Minuten: 1 Stunde dazu, 60 Minuten weg.")]});
+      }
+    }
+    const w = ri(rng, 45, 95) * 10, n = ri(rng, 2, 5), tot = 2 * n * w;
+    return sauber({frage: `Juris Schulweg ist ${w} m lang. Er geht ihn an ${n} Tagen hin und zurück. Wie viele Kilometer sind das?`, art: "zahl", loesung: r3(tot / 1000), einheitText: "km",
+      schritte: [{t: `Hin und zurück: 2 · ${w} m = □ m`, w: 2 * w}, {t: `An ${n} Tagen: □ m`, w: tot}, {t: "In km (1 km = 1000 m): □", w: r3(tot / 1000)}],
+      fehler: [F_(tot, "umrechnen", "Gefragt sind Kilometer: 1 km = 1000 m, also durch 1000 teilen."), F_(r3(n * w / 1000), "anzahl", "Hin und zurück heißt: Der Weg wird zweimal gegangen."), F_(r3(tot / 100), "faktor", "1 km = 1000 m, nicht 100 m.")]});
+  }
+
+  /* ---------- K5 Geometrie-Grundbegriffe ---------- */
+  const WARTEN = [["spitz", "spitzer Winkel"], ["recht", "rechter Winkel"], ["stumpf", "stumpfer Winkel"], ["gestreckt", "gestreckter Winkel"], ["ueberstumpf", "überstumpfer Winkel"], ["voll", "Vollwinkel"]];
+  const winkelArt = w => w < 90 ? "spitz" : w === 90 ? "recht" : w < 180 ? "stumpf" : w === 180 ? "gestreckt" : w < 360 ? "ueberstumpf" : "voll";
+  const T_WA = "spitz: kleiner als 90°, recht: genau 90°, stumpf: zwischen 90° und 180°, gestreckt: 180°, überstumpf: zwischen 180° und 360°, voll: 360°.";
+  function genWinkelart(d, rng) {
+    const w = d === 1 ? (rng() < 0.15 ? 90 : ri(rng, 2, 34) * 5) : d === 2 ? (rng() < 0.1 ? 180 : ri(rng, 2, 70) * 5) : pk(rng, [ri(rng, 85, 95), ri(rng, 175, 185), ri(rng, 186, 359), 360, ri(rng, 1, 179)]);
+    const c = winkelArt(w), wahl = d === 1 ? WARTEN.slice(0, 3) : WARTEN;
+    const nb = {spitz: "stumpf", stumpf: "spitz", ueberstumpf: "stumpf", recht: "spitz", gestreckt: "ueberstumpf", voll: "gestreckt"};
+    return sauber({frage: `Ein Winkel ist ${w}° groß. Was für ein Winkel ist das?`, art: "wahl", loesung: c, wahl: wahl.map(x => ({k: x[0], t: x[1]})),
+      schritte: [{t: `Vergleiche ${w}° mit 90° und mit 180°.`}],
+      fehler: [F_(wahl.some(x => x[0] === nb[c]) ? nb[c] : null, "winkelart", T_WA)]});
+  }
+  function genSchaetzen(d, rng) {
+    for (;;) {
+      const w = d === 1 ? ri(rng, 2, 16) * 10 : d === 2 ? ri(rng, 3, 33) * 5 : ri(rng, 3, 69) * 5;
+      if (w === 180 || (w > 70 && w < 110) || (w > 250 && w < 290)) continue;
+      const opts = [w], err = w < 180 ? 180 - w : 360 - w, ok = x => x > 0 && x < 360 && x !== 180 && opts.every(o => Math.abs(o - x) >= 30);
+      const fehler = [];
+      if (err != null && ok(err)) { opts.push(err); fehler.push(F_(err, "schaetzen", w < 180 ? "Vergleiche mit dem rechten Winkel (90°): Ist der Winkel kleiner oder größer?" : "Der Winkel ist größer als ein gestreckter Winkel (180°). Du hast den Rest bis 360° geschätzt.")); }
+      let tries = 0;
+      while (opts.length < 4 && tries++ < 200) { const x = ri(rng, 2, d === 3 ? 70 : 34) * 5; if (ok(x)) opts.push(x); }
+      if (opts.length < 4) continue;
+      return sauber({frage: "Schätze: Wie groß ist der Winkel ungefähr?", art: "zahl", loesung: w, einheitText: "°", schaetzen: true, optionen: mix(rng, opts),
+        bild: {typ: "winkel", w, dreh: d === 3 ? ri(rng, 0, 11) * 30 : 0},
+        schritte: [{t: "Ein rechter Winkel hat 90°, ein gestreckter 180°."}, {t: `Ist er kleiner oder größer als 90°? Dann passt: □°`, w}], fehler});
+    }
+  }
+  const BUCH = "ABCDEFGH";
+  function genKoord(d, rng) {
+    for (;;) {
+      const lo = d === 3 ? -6 : 0, hi = d === 1 ? 8 : d === 2 ? 12 : 6;
+      const x = ri(rng, lo, hi), y = ri(rng, lo, hi);
+      if (x === y || (d === 3 && (x === 0 || y === 0 || (x > 0 && y > 0)))) continue;
+      if (d === 2 && rng() < 0.5) {
+        const pts = [[x, y], [y, x]];
+        while (pts.length < 4) { const p = [ri(rng, lo, hi), ri(rng, lo, hi)]; if (!pts.some(q => q[0] === p[0] && q[1] === p[1])) pts.push(p); }
+        const ord = mix(rng, pts), namen = ord.map((_, i) => BUCH[i]);
+        const iC = ord.indexOf(pts[0]), iF = ord.indexOf(pts[1]);
+        return sauber({frage: `Welcher Punkt hat die Koordinaten (${z(x)} | ${z(y)})?`, art: "wahl", loesung: namen[iC], wahl: namen.map(n => ({k: n, t: n})),
+          bild: {typ: "koord", min: lo, max: hi, punkte: ord.map((p, i) => ({n: namen[i], x: p[0], y: p[1]}))},
+          schritte: [{t: `Zuerst ${z(x)} nach rechts (x), dann ${z(y)} nach oben (y).`}],
+          fehler: [F_(namen[iF], "vertauscht", "Erst nach rechts (x-Wert), dann nach oben (y-Wert). Die Reihenfolge ist wichtig.")]});
+      }
+      return sauber({frage: "Lies die Koordinaten von Punkt A ab.", art: "paar", loesung: [x, y], labels: ["x", "y"],
+        bild: {typ: "koord", min: lo, max: hi, punkte: [{n: "A", x, y}]},
+        schritte: [{t: "x-Wert: Wie weit nach rechts (oder links)? □", w: x}, {t: "y-Wert: Wie weit nach oben (oder unten)? □", w: y}],
+        fehler: [F_([y, x], "vertauscht", "x und y vertauscht: Zuerst der x-Wert (nach rechts), dann der y-Wert (nach oben)."),
+          F_(d === 3 ? [-x, y] : null, "koordvorzeichen", "Links von der y-Achse ist der x-Wert negativ, unterhalb der x-Achse der y-Wert.")]});
+    }
+  }
+  function genSpiegeln(d, rng) {
+    for (;;) {
+      const senk = d === 1 ? true : d === 2 ? false : rng() < 0.5, m = ri(rng, 3, 9), x = ri(rng, 0, 12), y = ri(rng, 0, 12);
+      const a = senk ? x : y, b = senk ? y : x, a2 = 2 * m - a;
+      if (a === m || a2 < 0 || a2 > 12 || (d < 3 && a > m)) continue;
+      const P = senk ? [a2, b] : [b, a2], eAchse = senk ? [m, b] : [b, m], eKoord = senk ? [a, 2 * m - b] : [2 * m - b, a];
+      const badK = b === m || 2 * m - b < 0 || 2 * m - b > 12;
+      return sauber({frage: `Spiegle den Punkt P(${x} | ${y}) an der roten Geraden. Wo liegt der Bildpunkt P′?`, art: "paar", loesung: P, labels: ["x", "y"],
+        bild: {typ: "koord", min: 0, max: 12, achse: senk ? {x: m} : {y: m}, punkte: [{n: "P", x, y}]},
+        schritte: [{t: `Abstand von P zur Geraden: □ Kästchen`, w: Math.abs(a - m)}, {t: `Auf der anderen Seite gleich weit: ${senk ? "x" : "y"}′ = □`, w: a2}, {t: `${senk ? "y" : "x"} bleibt gleich: □`, w: b}],
+        fehler: [F_(eAchse, "achse", "Der Bildpunkt liegt nicht auf der Geraden, sondern auf der anderen Seite, genauso weit entfernt wie P."),
+          F_(badK ? null : eKoord, "spiegelkoord", `Bei einer ${senk ? "senkrechten" : "waagrechten"} Geraden ändert sich nur der ${senk ? "x" : "y"}-Wert.`)]});
+    }
+  }
+
+  /* ---------- K6 Umfang und Flächeninhalt ---------- */
+  const T_FU = "Umfang und Flächeninhalt verwechselt. Umfang: einmal ganz herum (2 · a + 2 · b). Flächeninhalt: a · b.";
+  function genUmfang(d, rng) {
+    if (d === 3) {
+      const a = ri(rng, 2, 9), b = ri(rng, 2, 19) * 5, U = 2 * (100 * a + b);
+      return sauber({frage: `Ein Rechteck ist ${a} m lang und ${b} cm breit. Berechne den Umfang in cm.`, art: "zahl", loesung: U, einheitText: "cm",
+        bild: {typ: "rechteck", a: a * 100, b, la: `${a} m`, lb: `${b} cm`},
+        schritte: [{t: `Gleiche Einheiten: ${a} m = □ cm`, w: 100 * a}, {t: `U = 2 · ${100 * a} + 2 · ${b} = □`, w: U}],
+        fehler: [F_(2 * (a + b), "umrechnen", "Erst gleiche Einheiten: 1 m = 100 cm."), F_(100 * a + b, "seiten", "Ein Rechteck hat vier Seiten: zweimal die Länge und zweimal die Breite.")]});
+    }
+    const e = pk(rng, ["cm", "m"]), R = d === 1 ? 12 : 60, a = ri(rng, 2, R), q = rng() < 0.25, b = q ? a : ri(rng, 2, R);
+    const U = 2 * (a + b);
+    return sauber({frage: q ? `Ein Quadrat hat die Seitenlänge ${a} ${e}. Wie groß ist sein Umfang?` : `Ein Rechteck ist ${a} ${e} lang und ${b} ${e} breit. Wie groß ist sein Umfang?`,
+      art: "zahl", loesung: U, einheitText: e, bild: {typ: "rechteck", a, b, la: `${a} ${e}`, lb: `${b} ${e}`},
+      schritte: q ? [{t: `Vier gleich lange Seiten: 4 · ${a} = □`, w: U}] : [{t: `2 · ${a} = □`, w: 2 * a}, {t: `2 · ${b} = □`, w: 2 * b}, {t: "U = □", w: U}],
+      fehler: [F_(a * b, "flaeche_umfang", T_FU), F_(a + b, "seiten", "Ein Rechteck hat vier Seiten: zweimal die Länge und zweimal die Breite.")]});
+  }
+  function genFlaeche(d, rng) {
+    if (d === 3) {
+      const a = ri(rng, 2, 9), b = ri(rng, 3, 19), A = 10 * a * b;
+      return sauber({frage: `Ein Rechteck ist ${a} dm lang und ${b} cm breit. Berechne den Flächeninhalt in cm².`, art: "einheit", loesung: {wert: A, einheit: "cm²"}, einheiten: ["cm", "cm²", "dm²"],
+        bild: {typ: "rechteck", a: a * 10, b, la: `${a} dm`, lb: `${b} cm`},
+        schritte: [{t: `Gleiche Einheiten: ${a} dm = □ cm`, w: 10 * a}, {t: `A = ${10 * a} · ${b} = □`, w: A}],
+        fehler: [F_({wert: a * b, einheit: null}, "umrechnen", "Erst gleiche Einheiten: 1 dm = 10 cm."), F_({wert: A, einheit: "cm"}, "einheit_qm", "Flächen misst man in Quadrat-Einheiten, hier cm²."),
+          F_({wert: 2 * (10 * a + b), einheit: null}, "flaeche_umfang", T_FU)]});
+    }
+    const e = pk(rng, d === 1 ? ["cm", "m"] : ["cm", "m", "dm"]), R = d === 1 ? 12 : 30, a = ri(rng, 2, R), b = ri(rng, 2, R);
+    return sauber({frage: `Ein Rechteck ist ${a} ${e} lang und ${b} ${e} breit. Wie groß ist sein Flächeninhalt?`, art: "einheit", loesung: {wert: a * b, einheit: e + "²"}, einheiten: [e, e + "²"],
+      bild: {typ: "rechteck", a, b, la: `${a} ${e}`, lb: `${b} ${e}`},
+      schritte: [{t: `A = Länge · Breite = ${a} · ${b} = □`, w: a * b}, {t: `Einheit: ${e} · ${e} = ${e}²`}],
+      fehler: [F_({wert: a * b, einheit: e}, "einheit_qm", `Flächen misst man in Quadrat-Einheiten: ${e}².`), F_({wert: 2 * (a + b), einheit: null}, "flaeche_umfang", T_FU)]});
+  }
+  const genFlaecheneinheit = (d, rng) => umrechnen(d, rng, [["m²", "dm²", 100], ["dm²", "cm²", 100], ["cm²", "mm²", 100], ["a", "m²", 100], ["ha", "a", 100], ...(d > 1 ? [["m²", "cm²", 10000], ["ha", "m²", 10000], ["km²", "ha", 100]] : [])],
+    {art: (f, ff) => ff * 10 === f || ff * 100 === f ? "faktor10" : "faktor", dez: true,
+     tipp: (g, k, f) => f === 100 ? `Bei Flächen ist der Faktor 100, nicht 10: 1 ${g} = 100 ${k}, denn 10 · 10 = 100.` : `Bei Flächen: 1 ${g} = ${z(f)} ${k} (100 · 100).`});
+  function genRueckwaerts(d, rng) {
+    if (d === 1) {
+      const a = ri(rng, 2, 10), b = ri(rng, 2, 12), A = a * b;
+      return sauber({frage: `Ein Rechteck hat den Flächeninhalt ${A} cm² und ist ${a} cm breit. Wie lang ist es?`, art: "zahl", loesung: b, einheitText: "cm",
+        schritte: [{t: `A = Länge · Breite, also Länge = ${A} : ${a} = □`, w: b}],
+        fehler: [F_(A - a, "operation", "Flächeninhalt = Länge · Breite. Rückwärts heißt: teilen, nicht subtrahieren."), F_(A * a, "operation", "Rückwärts rechnen: Statt mal brauchst du geteilt.")]});
+    }
+    if (d === 2) {
+      const a = ri(rng, 3, 30), b = ri(rng, 3, 30), U = 2 * (a + b);
+      return sauber({frage: `Ein Rechteck hat den Umfang ${U} cm und ist ${a} cm lang. Wie breit ist es?`, art: "zahl", loesung: b, einheitText: "cm",
+        schritte: [{t: `Halber Umfang = Länge + Breite: ${U} : 2 = □`, w: a + b}, {t: `Breite: ${a + b} − ${a} = □`, w: b}],
+        fehler: [F_(U - 2 * a, "halbieren", "U − 2 · a ergibt beide Breiten zusammen. Noch durch 2 teilen."), F_(U - a, "seiten", "Im Umfang steckt die Länge zweimal. Rechne: (U − 2 · a) : 2."), F_(U / 2, "halbieren", "U : 2 ist Länge + Breite. Davon noch die Länge abziehen.")]});
+    }
+    const s = ri(rng, 3, 15);
+    if (rng() < 0.5) return sauber({frage: `Ein Quadrat hat den Flächeninhalt ${s * s} cm². Wie lang ist eine Seite?`, art: "zahl", loesung: s, einheitText: "cm",
+      schritte: [{t: `A = s · s. Welche Zahl mal sich selbst ergibt ${s * s}? □`, w: s}],
+      fehler: [F_(s * s / 4, "quadrat", "Beim Quadrat ist A = s · s. Gesucht ist die Zahl, die mit sich selbst multipliziert A ergibt."), F_(s * s / 2, "quadrat", "Beim Quadrat ist A = s · s. Gesucht ist die Zahl, die mit sich selbst multipliziert A ergibt.")]});
+    return sauber({frage: `Ein Quadrat hat den Umfang ${4 * s} cm. Wie lang ist eine Seite?`, art: "zahl", loesung: s, einheitText: "cm",
+      schritte: [{t: `Vier gleiche Seiten: ${4 * s} : 4 = □`, w: s}],
+      fehler: [F_(2 * s, "seiten", "Ein Quadrat hat vier gleich lange Seiten: durch 4 teilen."), F_(s * s === 4 * s ? null : 16 * s * s, "flaeche_umfang", T_FU)]});
+  }
+
+  /* ---------- Kapitel und Kompetenzen (Reihenfolge anpassbar je Profil) ---------- */
+  const KAPITEL = [
+    {id: "k1", titel: "Natürliche Zahlen", kurz: "K1"},
+    {id: "k2", titel: "Ganze Zahlen", kurz: "K2"},
+    {id: "k3", titel: "Rechnen, Rechengesetze, Potenzen", kurz: "K3"},
+    {id: "k4", titel: "Größen und Einheiten", kurz: "K4"},
+    {id: "k5", titel: "Geometrie-Grundbegriffe", kurz: "K5"},
+    {id: "k6", titel: "Umfang und Flächeninhalt", kurz: "K6"}
+  ];
+  /* rahmen: erlaubte Zahlen (für den Testlauf): neg = negative Zahlen, dez = Nachkommastellen, max = größter Betrag */
+  const KOMP = [
+    ["k1_stelle", "k1", "Stellenwert", genStelle, {max: 1e12}],
+    ["k1_runden", "k1", "Runden", genRunden, {max: 1e10}],
+    ["k1_gross", "k1", "Große Zahlen lesen und schreiben", genGross, {max: 1e12}],
+    ["k1_strahl", "k1", "Zahlenstrahl", genStrahl, {max: 1e7}],
+    ["k2_ordnen", "k2", "Ganze Zahlen ordnen", genOrdnen, {neg: true, max: 1000}],
+    ["k2_betrag", "k2", "Betrag und Gegenzahl", genBetrag, {neg: true, max: 10000}],
+    ["k2_add", "k2", "Addieren mit negativen Zahlen", genAdd, {neg: true, max: 2000}],
+    ["k2_sub", "k2", "Subtrahieren mit negativen Zahlen", genSub, {neg: true, max: 2000}],
+    ["k2_sach", "k2", "Temperatur, Kontostand, Höhe", genSach2, {neg: true, max: 1000}],
+    ["k3_mult", "k3", "Multiplizieren (mit Vorzeichen)", genMult, {neg: true, max: 1e5}],
+    ["k3_div", "k3", "Dividieren (mit Vorzeichen)", genDiv, {neg: true, max: 1e5}],
+    ["k3_potenz", "k3", "Potenzen", genPotenz, {max: 1e13}],
+    ["k3_reihenfolge", "k3", "Rechenreihenfolge und Terme", genReihenfolge, {neg: true, max: 1e5}],
+    ["k3_geschickt", "k3", "Geschickt rechnen (Distributivgesetz)", genGeschickt, {max: 1e5}],
+    ["k4_laenge", "k4", "Längen umrechnen", genLaenge, {dez: 3, max: 1e5}],
+    ["k4_masse", "k4", "Massen umrechnen", genMasse, {dez: 3, max: 1e5}],
+    ["k4_zeit", "k4", "Zeit umrechnen", genZeit, {max: 1e5}],
+    ["k4_geld", "k4", "Geld umrechnen", genGeld, {dez: 2, max: 1e5}],
+    ["k4_sach", "k4", "Sachaufgaben mit Größen", genSach4, {dez: 3, max: 1e5}],
+    ["k5_winkelart", "k5", "Winkel benennen", genWinkelart, {max: 360}],
+    ["k5_schaetzen", "k5", "Winkel schätzen", genSchaetzen, {max: 360}],
+    ["k5_koord", "k5", "Koordinaten ablesen", genKoord, {neg: true, max: 12}],
+    ["k5_spiegeln", "k5", "Achsensymmetrie: Punkte spiegeln", genSpiegeln, {max: 24}],
+    ["k6_umfang", "k6", "Umfang von Rechteck und Quadrat", genUmfang, {max: 1e4}],
+    ["k6_flaeche", "k6", "Flächeninhalt von Rechteck und Quadrat", genFlaeche, {max: 1e4}],
+    ["k6_einheiten", "k6", "Flächeneinheiten umrechnen", genFlaecheneinheit, {dez: 3, max: 1e6}],
+    ["k6_rueckwaerts", "k6", "Seitenlänge aus Umfang oder Fläche", genRueckwaerts, {max: 1e4}]
+  ].map(([id, kap, titel, gen, rahmen]) => ({id, kap, titel, gen, rahmen}));
+  const KOMP_BY = {}; KOMP.forEach(k => { KOMP_BY[k.id] = k; });
+  KAPITEL.forEach(k => { k.komp = KOMP.filter(x => x.kap === k.id).map(x => x.id); });
+  const KAP_BY = {}; KAPITEL.forEach((k, i) => { k.i = i; KAP_BY[k.id] = k; });
+  const FEHLERNAME = {stelle: "Stelle verrutscht", stellenwert: "Ziffer statt Stellenwert", runden: "falsch auf-/abgerundet", rundstelle: "auf falsche Stelle gerundet",
+    nullen: "Nullen vergessen", schritt: "Schrittweite am Zahlenstrahl", zaehlen: "Striche verzählt", anordnung: "Anordnung negativer Zahlen", betrag: "Betrag negativ geschrieben",
+    gegenzahl: "Gegenzahl", abstand: "Abstand über die 0", vorzeichen: "Vorzeichen(regel)", betraege: "Beträge addiert statt subtrahiert (oder umgekehrt)",
+    minusminus: "Minus einer negativen Zahl", richtung: "Richtung plus/minus verwechselt", teilprodukt: "Teil nicht multipliziert (Distributivgesetz)", ausklammern: "Faktor beim Ausklammern vergessen",
+    nullmitte: "Null im Ergebnis vergessen", potenz: "Basis mal Exponent", potvertauscht: "Basis und Exponent vertauscht", punkt: "Punkt vor Strich", klammer: "Klammer zuerst",
+    faktor: "falscher Umrechnungsfaktor", faktor10: "Flächen: Faktor 10 statt 100", zeit100: "Zeit mit 100 statt 60", anzahl: "Anzahl überlesen", umrechnen: "Einheiten nicht angeglichen",
+    uhrzeit: "Uhrzeit über 60 Minuten", winkelart: "Winkelart verwechselt", schaetzen: "Winkel falsch eingeschätzt", vertauscht: "x und y vertauscht", koordvorzeichen: "Vorzeichen bei Koordinaten",
+    achse: "Spiegelpunkt auf der Achse", spiegelkoord: "falsche Koordinate gespiegelt", flaeche_umfang: "Umfang und Fläche verwechselt", seiten: "nicht alle Seiten gezählt",
+    einheit_qm: "Flächeneinheit fehlt (cm statt cm²)", operation: "falsche Rechenart", halbieren: "durch 2 vergessen", quadrat: "Quadrat-Seitenlänge"};
+
+  /* eine Aufgabe; Stufe 1 bringt zusätzlich ein Lösungsbeispiel (andere Zahlen, gleiche Struktur) mit */
+  function aufgabe(id, stufe, d, rng) {
+    const K = KOMP_BY[id]; if (!K) return null;
+    const t = K.gen(d, rng); t.komp = id; t.stufe = stufe; t.d = d;
+    if (stufe === 1) { let b, n = 0; do { b = K.gen(d, rng); } while (b.frage === t.frage && n++ < 20); t.beispiel = b; }
+    return t;
+  }
+  function antwortText(t, v) {
+    if (v == null) return "";
+    if (t.art === "paar") return t.labels && t.labels[0] === "Uhr" ? `${v[0]}:${pad2(v[1])} Uhr` : t.labels && t.labels[0] === "h" ? `${z(v[0])} h ${z(v[1])} min` : `(${z(v[0])} | ${z(v[1])})`;
+    if (t.art === "einheit") return `${z(v.wert)} ${v.einheit || ""}`.trim();
+    if (t.art === "wahl") { const o = (t.wahl || []).find(x => x.k === v); return o ? o.t : String(v); }
+    return z(v) + (t.einheitText ? (t.einheitText === "°" ? "°" : " " + t.einheitText) : "");
+  }
+  /* Auswahl für Stufe 1 und Schätzaufgaben: Lösung, erkannte Fehler, nahe Werte; 4 verschiedene */
+  function optionen(t, rng) {
+    if (t.art === "wahl") return t.wahl.map(x => x.k);
+    if (t.optionen) return t.optionen.slice();
+    const L = t.loesung, out = [L];
+    const add = v => { if (v == null || out.length >= 4) return; if (t.art === "zahl" && (!isFinite(v) || (v < 0 && L >= 0 && !t.fehler.some(f => f.w === v)))) return;
+      if (!out.some(o => t.art === "einheit" ? o.wert === v.wert && o.einheit === v.einheit : gleich(t.art, o, v))) out.push(v); };
+    mix(rng, t.fehler).forEach(f => add(t.art === "einheit" ? {wert: f.w.wert, einheit: f.w.einheit || L.einheit} : f.w));
+    const near = t.art === "zahl" ? [L + 1, L - 1, L * 10, L + 10, L - 10, L + 2, r3(L / 10), L + 100] : t.art === "paar" ? [[L[0] + 1, L[1]], [L[0], L[1] + 1], [L[0] - 1, L[1]], [L[0], L[1] - 1]]
+      : (t.einheiten || []).map(e => ({wert: L.wert, einheit: e})).concat([{wert: L.wert + 1, einheit: L.einheit}, {wert: L.wert * 10, einheit: L.einheit}]);
+    mix(rng, near).forEach(add);
+    return mix(rng, out);
+  }
+
+  /* ---------- Lernzustand ---------- */
+  const TAG_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const tagVon = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  function plusTage(tag, n) { const [y, m, dd] = tag.split("-").map(Number); return tagVon(new Date(y, m - 1, dd + n)); }
+  const sitzt = k => !!(k && k.tage && k.tage.length >= 3);
+  const schwierigkeit = (stufe, k) => stufe === 1 ? 1 : stufe === 2 ? ((k && k.tage.length >= 2) ? 2 : 1) : ((k && k.tage.length >= 3) ? 3 : 2);
+  /* nach einer Antwort: Stufe anpassen, Tag zählen (ab Stufe 2), Fälligkeit setzen. Liefert neuen Zustand (das alte Objekt bleibt) */
+  function nachAntwort(k, ok, stufe, tag, jetzt) {
+    k = k || {tage: [], z: null};
+    const z = Object.assign({stufe: 1, serie: 0, iv: 0, due: tag}, k.z || {});
+    if (ok) { z.serie = Math.max(0, z.serie) + 1; if (z.serie >= 2 && z.stufe < 3) { z.stufe++; z.serie = 0; } }
+    else { z.serie = Math.min(0, z.serie) - 1; if (z.serie <= -2 && z.stufe > 1) { z.stufe--; z.serie = 0; } }
+    const tage = (k.tage || []).slice();
+    if (ok && stufe >= 2 && !tage.includes(tag)) { z.iv = tage.length ? Math.min(FAELLIG.length - 1, z.iv + 1) : 0; tage.push(tag); tage.sort(); z.due = plusTage(tag, FAELLIG[z.iv]); }
+    else if (!ok) { z.iv = 0; z.due = plusTage(tag, 1); }
+    else if (!k.z) z.due = plusTage(tag, 1);
+    z.ok = ok ? 1 : 0; z.zeit = jetzt || Date.now();
+    return {tage: tage.slice(-60), z};
+  }
+  /* Ampel je Kompetenz: grau = noch nicht geübt, rot = zuletzt falsch oder Stufe 1 mit Fehlern, gelb = in Arbeit oder länger nicht wiederholt, grün = sitzt */
+  function ampel(k, tag) {
+    if (!k || !k.z) return "grau";
+    if (k.z.serie < 0 || k.z.ok === 0) return "rot";
+    if (sitzt(k)) return k.z.due && plusTage(k.z.due, 7) < tag ? "gelb" : "gruen";
+    return "gelb";
+  }
+  /* Plan eines Profils säubern: {fach, folge: [Kapitel-ids], bis, aktuell?} */
+  function plan(p) {
+    p = p || {};
+    const ids = KAPITEL.map(k => k.id);
+    let folge = Array.isArray(p.folge) ? p.folge.filter((x, i, a) => ids.includes(x) && a.indexOf(x) === i) : [];
+    ids.forEach(x => { if (!folge.includes(x)) folge.push(x); });
+    const bis = folge.includes(p.bis) ? p.bis : folge[0];
+    const beh = folge.slice(0, folge.indexOf(bis) + 1);
+    return {fach: "m5", folge, bis, beh, aktuell: beh.includes(p.aktuell) ? p.aktuell : bis};
+  }
+  /* Session: zuerst fällige Wiederholungen (gemischt über die behandelten Kapitel), dann Neues aus dem aktuellen Kapitel als Block.
+     st = {komp: {id: Zustand}}; nie Kompetenzen aus Kapiteln nach „behandelt bis“. Liefert [{komp, rolle: wdh|neu|extra, stufe, d}] */
+  function session(st, pl, tag, rng, n) {
+    n = n || 10; pl = plan(pl); st = st || {komp: {}};
+    const S = id => st.komp[id], behKomp = pl.beh.reduce((a, k) => a.concat(KAP_BY[k].komp), []);
+    const neuKand = KAP_BY[pl.aktuell].komp.filter(id => !sitzt(S(id)));
+    const faellig = mix(rng, behKomp.filter(id => S(id) && S(id).z && S(id).z.due <= tag && !neuKand.includes(id))).sort((a, b) => S(a).z.due < S(b).z.due ? -1 : S(a).z.due > S(b).z.due ? 1 : 0);
+    const wdh = faellig.slice(0, neuKand.length ? Math.min(6, n - 3) : n);
+    // verschränken: möglichst nie zweimal hintereinander dasselbe Kapitel
+    const gemischt = [], rest = wdh.slice();
+    while (rest.length) { const last = gemischt.length ? KOMP_BY[gemischt[gemischt.length - 1]].kap : null; let i = rest.findIndex(id => KOMP_BY[id].kap !== last); if (i < 0) i = 0; gemischt.push(rest.splice(i, 1)[0]); }
+    const out = gemischt.map(id => ({komp: id, rolle: "wdh"}));
+    // Block: begonnene zuerst (nach Fälligkeit), dann neue in Kapitelreihenfolge; je Kompetenz höchstens 3
+    const block = neuKand.filter(id => S(id) && S(id).z).sort((a, b) => S(a).z.due < S(b).z.due ? -1 : 1).concat(neuKand.filter(id => !(S(id) && S(id).z)));
+    let frei = n - out.length;
+    const nk = Math.min(block.length, Math.max(1, Math.ceil(frei / 3)));
+    for (let i = 0; i < nk && frei > 0; i++) { const m = Math.min(3, Math.ceil(frei / (nk - i))); for (let j = 0; j < m; j++) out.push({komp: block[i], rolle: "neu"}); frei -= m; }
+    // auffüllen: übrige behandelte Kompetenzen (am längsten nicht dran zuerst), sonst wiederholen
+    if (out.length < n) {
+      const da = new Set(out.map(o => o.komp));
+      const extra = mix(rng, behKomp.filter(id => !da.has(id))).sort((a, b) => ((S(a) && S(a).z && S(a).z.due) || "0") < ((S(b) && S(b).z && S(b).z.due) || "0") ? -1 : 1);
+      const pool = extra.length ? extra : behKomp;
+      for (let i = 0; out.length < n; i++) out.push({komp: pool[i % pool.length], rolle: "extra"});
+    }
+    return out.slice(0, n).map(o => { const k = S(o.komp), stufe = k && k.z ? k.z.stufe : 1; return Object.assign(o, {stufe, d: schwierigkeit(stufe, k)}); });
+  }
+  /* Kapitelstand: Anteil Kompetenzen mindestens einmal geschafft (Boss-Tor bei 100 %), Anteil sitzt */
+  function kapStand(st, kap) {
+    const ids = KAP_BY[kap].komp, S = id => st && st.komp && st.komp[id];
+    const geschafft = ids.filter(id => S(id) && S(id).tage.length >= 1).length, fest = ids.filter(id => sitzt(S(id))).length;
+    return {n: ids.length, geschafft, sitzt: fest, prozent: Math.round(100 * geschafft / ids.length), voll: fest === ids.length};
+  }
+  /* Bosskampf: 14 freie Aufgaben (Stufe 3) aus dem Kapitel, gemischt */
+  function bossAufgaben(kap, rng, n) {
+    n = n || 14; const ids = KAP_BY[kap].komp, out = [];
+    for (let i = 0; i < n; i++) { const id = ids[i % ids.length]; out.push(aufgabe(id, 3, rng() < 0.5 ? 2 : 3, rng)); }
+    return mix(rng, out);
+  }
+  return {FAELLIG, KAPITEL, KAP_BY, KOMP, KOMP_BY, FEHLERNAME, z, zk, eur, parseZahl, pruefe, gleich, aufgabe, optionen, antwortText,
+          tagVon, plusTage, sitzt, schwierigkeit, nachAntwort, ampel, plan, session, kapStand, bossAufgaben, winkelArt};
+})();
+</script>
+<script id="matheui">
+/* ---------- v14: Mathe 5 – Oberfläche (nutzt MK, LK.Lernstand und die Helfer des Hauptskripts erst zur Laufzeit) ----------
+   Fach als Pseudo-Buch „m5“: Wochenzähler in kk.v1.<pid>.m5 (wie ein Buch, wandert mit „Lernstand sichern“),
+   Kompetenzstand in kk.v1.mathe.<pid> (Kind.mathe), Plan im Profil (profil.mathe = {fach, folge, bis}).
+   Eigener Home-Bildschirm (scrMathe), die Session nutzt scrSession/scrEnd mit S.mathe = true. */
+const M5 = (function () {
+  const BUCH = "m5", TITEL = "Mathe 5 · Gymnasium Bayern";
+  const STUFE = {1: "Beispiel", 2: "Schritte", 3: "frei"};
+  const ROLLE = {wdh: "Wiederholung", neu: "Neu", extra: "Übung", nochmal: "Nochmal ähnlich", boss: "Bosskampf"};
+  const AMPEL = {gruen: "sitzt", gelb: "in Arbeit", rot: "üben", grau: "noch nicht geübt"};
+  const hat = pr => !!(pr && pr.mathe && pr.mathe.fach === BUCH);
+  const key = pid => "kk.v1.mathe." + pid;
+  const stand = pid => LK.Lernstand.matheSauber(store.get(key(pid)));
+  const setzen = (pid, st) => store.set(key(pid), st);
+  const heute = () => MK.tagVon(new Date());
+  function fortschritt(pid, pr) {
+    let p = store.get(packKey(pid, BUCH));
+    if (!p || typeof p !== "object" || !p.boxes) p = {einheit: null, station: null, boxes: {}, week: isoWeek(new Date()), sessions: 0, points: 0};
+    const pl = MK.plan(pr && pr.mathe);
+    if (!pl.beh.includes(p.einheit)) p.einheit = pl.bis;
+    zaehlerLaden(p);
+    return p;
+  }
+  const planVon = pr => MK.plan(Object.assign({}, pr && pr.mathe, {aktuell: fortschritt(pr.id, pr).einheit}));
+  const kapTitel = id => { const k = MK.KAP_BY[id]; return k ? k.kurz + " " + k.titel : id; };
+
+  /* ---------- Profilkarte ---------- */
+  function pickHtml(pr) {
+    const pl = planVon(pr);
+    return `<div class="pick" style="display:flex;flex-direction:column;gap:10px"><div class="row"><div class="field"><label for="selMKap-${esc(pr.id)}">Kapitel</label>
+      <select id="selMKap-${esc(pr.id)}">${pl.beh.map(k => `<option value="${k}"${k === pl.aktuell ? " selected" : ""}>${esc(kapTitel(k))}</option>`).join("")}</select></div></div>
+      <p class="note">Neues kommt aus diesem Kapitel, Wiederholung aus allen bisher behandelten (bis ${esc(kapTitel(pl.bis))}).</p></div>`;
+  }
+  const startBtn = pr => `<div class="modes-cq"><div class="modes"><button type="button" class="btn mode btn-primary is-last" data-mathe-start="${esc(pr.id)}"><span class="ic" aria-hidden="true">🧮</span>Rechnen<small>10 Aufgaben</small></button></div></div>`;
+  function wireCard(pr, card) {
+    const s = $("selMKap-" + pr.id);
+    if (s) s.onchange = () => { const p = fortschritt(pr.id, pr); p.einheit = s.value; p.standZeit = Date.now(); store.set(packKey(pr.id, BUCH), p);
+      store.set(LKEY + "." + pr.id, {pid: pr.id, book: BUCH, unit: s.value, station: null, zeit: Date.now()}); renderStand(pr); };
+    card.querySelectorAll("[data-mathe-start]").forEach(b => b.onclick = async () => {
+      try { Fun.unlock(); } catch (e) {} unlockSpeech();
+      b.disabled = true; const ok = await betreten(pr, true); b.disabled = false; if (ok) start();
+    });
+  }
+  const standText = pr => `${TITEL}, ${kapTitel(planVon(pr).aktuell)}`;
+
+  /* ---------- Betreten / Home ---------- */
+  async function betreten(pr, quiet) {
+    P = fortschritt(pr.id, pr);
+    CUR = {pr, book: BUCH, sample: false, mathe: true, key: packKey(pr.id, BUCH), prev: []};
+    store.set(packKey(pr.id, BUCH), P); saveLast();
+    if (!quiet) home();
+    return true;
+  }
+  function home() {
+    if (!CUR || !CUR.mathe) return;
+    P = fortschritt(CUR.pr.id, CUR.pr);
+    const pr = CUR.pr, pl = planVon(pr), st = stand(pr.id), t = heute(), C = 314.16, done = Math.min(P.sessions, GOAL);
+    const faellig = pl.beh.reduce((a, k) => a.concat(MK.KAP_BY[k].komp), []).filter(id => st.komp[id] && st.komp[id].z && st.komp[id].z.due <= t).length;
+    const ks = MK.kapStand(st, pl.aktuell), look = bossLookM(pl.aktuell), e = erfolgeVon(pr.id), tro = e.boss[look.key], offen = ks.prozent >= 100;
+    const n = ticketsVon(pr.id), h = new Date().getHours();
+    const zeile = id => { const k = st.komp[id], a = MK.ampel(k, t), K = MK.KOMP_BY[id];
+      return `<div class="mkomp"><span class="mampel a-${a}" title="${AMPEL[a]}" aria-label="${AMPEL[a]}"></span><span class="uname">${esc(K.titel)}</span>
+        <span class="ucount">${k ? Math.min(3, k.tage.length) + "/3 Tage" : "neu"}${k && k.z ? " · " + STUFE[k.z.stufe] : ""}</span></div>`; };
+    $("mHome").innerHTML = `<div><p class="eyebrow">${esc(TITEL)} · ${esc(kapTitel(pl.aktuell))}</p>
+      <h1>${h < 11 ? "Moin! Kurz ein paar Aufgaben?" : h < 18 ? "Hi! Rechnen wir ein bisschen?" : "Abends noch eine Runde Mathe?"}</h1></div>
+      <div class="home-grid"><div class="stack-col">
+        <section class="card"><div class="goal">
+          <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Wochenziel ${P.sessions} von ${GOAL}"><circle class="bg" cx="60" cy="60" r="50" fill="none" stroke-width="12"></circle>
+            <circle class="fg" cx="60" cy="60" r="50" fill="none" stroke-width="12" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="314.16" stroke-dashoffset="${C * (1 - done / GOAL)}"></circle>
+            <text x="60" y="64" text-anchor="middle" font-size="30">${P.sessions}/${GOAL}</text><text x="60" y="84" text-anchor="middle" font-size="11" class="sub">Sessions</text></svg>
+          <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:6px"><h2>Wochenziel</h2>
+            <p>${P.sessions >= GOAL ? "Ziel geschafft. Alles ab jetzt ist Bonus." : P.sessions === 0 ? "Diese Woche noch keine Mathe-Session. Fang einfach an." : `Noch ${GOAL - P.sessions} bis zum Wochenziel.`}</p>
+            <p class="note">Ein Vorschlag, kein Muss. Montag startet die Zählung neu.</p></div></div></section>
+        <button type="button" class="btn btn-primary mgo" id="mStart">🧮 Los geht's · 10 Aufgaben</button>
+        <p class="note">${faellig ? `Zuerst ${Math.min(faellig, 6)} fällige Wiederholung${Math.min(faellig, 6) === 1 ? "" : "en"} gemischt, dann Neues aus ${esc(MK.KAP_BY[pl.aktuell].kurz)} am Stück.` : `Heute ist nichts fällig: Neues aus ${esc(kapTitel(pl.aktuell))} am Stück.`} Eine Kompetenz sitzt, wenn du sie an 3 verschiedenen Tagen geschafft hast.</p>
+        <section class="card bonus"><div class="row" style="justify-content:space-between"><h3>Bonus-Spiele</h3><span class="pill">🎟 ${n} ${n === 1 ? "Ticket" : "Tickets"}</span></div>
+          <p class="note">${n ? "Löse ein Ticket ein: Flipper, Ballon-Jagd oder Emoji-Memory." : "Tickets gibt es für einen besiegten Boss (2), ein Kapitel, in dem alles sitzt (2), und eine perfekte Session (1, einmal am Tag)."}</p>
+          <button type="button" class="btn btn-ghost" id="mBonus"${n ? "" : " disabled"}>🎮 Bonus-Spiel aussuchen</button></section>
+      </div><div class="stack-col">
+        <section class="card boss"><div class="row" style="justify-content:space-between"><h3>Bosskampf ${esc(MK.KAP_BY[pl.aktuell].kurz)}</h3><span class="pill">${ks.prozent} %</span></div>
+          <div class="boss-top"><div class="boss-fig${offen ? "" : " schlaf"}" aria-hidden="true">${bossSvg(look, offen ? (tro ? "besiegt" : "kampf") : "schlaf")}</div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding-top:14px"><div class="meter" aria-hidden="true"><span style="width:${ks.prozent}%"></span></div>
+          <p class="muted">${!offen ? `Das Boss-Tor öffnet, wenn du jede Kompetenz aus ${esc(MK.KAP_BY[pl.aktuell].kurz)} einmal ohne Beispiel geschafft hast (${ks.geschafft}/${ks.n}). ${esc(look.name)} schläft noch.`
+            : tro ? `Besiegt am ${new Date(tro.zeit).toLocaleDateString("de-DE")} mit ${tro.herzen} von ${LK.BOSS_HERZEN} Herzen. Du kannst jederzeit wieder antreten.` : `Das Boss-Tor ist offen! ${esc(look.name)} wartet. Jede richtige Antwort ist ein Treffer, du hast ${LK.BOSS_HERZEN} Herzen. Keine Eile.`}</p></div></div>
+          ${offen ? `<button type="button" class="btn btn-primary boss-go" id="mBoss">⚔️ Bosskampf starten</button>` : ""}
+          <div class="shelf">${Object.keys(e.boss).filter(k => k.startsWith(BUCH + "|")).map(k => `<span class="trophy-pill">🏆 ${esc(kapTitel(k.slice(3)))}</span>`).concat(Object.keys(e.voll).filter(k => k.startsWith(BUCH + "|")).map(k => `<span class="trophy-pill">💯 ${esc(kapTitel(k.slice(3)))}</span>`)).join("")}</div></section>
+        <section class="card"><div class="row" style="justify-content:space-between"><h2>Deine Kompetenzen</h2><span class="pill">${pl.beh.reduce((a, k) => a + MK.kapStand(st, k).sitzt, 0)} sitzen</span></div>
+          ${[pl.aktuell].concat(pl.beh.slice().reverse().filter(k => k !== pl.aktuell)).map(k => `<h3 style="margin-top:10px">${esc(kapTitel(k))}</h3>${MK.KAP_BY[k].komp.map(zeile).join("")}`).join("")}
+          <div class="legend"><span><i class="mampel a-gruen"></i>sitzt</span><span><i class="mampel a-gelb"></i>in Arbeit</span><span><i class="mampel a-rot"></i>zuletzt falsch</span><span><i class="mampel a-grau"></i>noch nicht geübt</span></div></section>
+        <details class="card" id="mEltern"><summary><b>Für Eltern: Bericht</b></summary><div id="mBericht"><p class="note">Wird geladen …</p></div></details>
+      </div></div>`;
+    $("mStart").onclick = () => { try { Fun.unlock(); } catch (x) {} unlockSpeech(); start(); };
+    $("mBonus").onclick = () => openSpiele();
+    if ($("mBoss")) $("mBoss").onclick = () => { try { Fun.unlock(); } catch (x) {} startBoss(); };
+    $("mEltern").addEventListener("toggle", () => { if ($("mEltern").open) bericht(); });
+    show("scrMathe");
+  }
+
+  /* ---------- Elternbericht: Ampel je Kompetenz, häufigste Fehlerarten (28 Tage), Zeit diese Woche ---------- */
+  async function bericht() {
+    const pr = CUR.pr, pl = planVon(pr), st = stand(pr.id), t = heute();
+    let ev = []; try { ev = (await Verlauf.all()).filter(e => e && e.profil === pr.id && e.buch === BUCH); } catch (e) {}
+    const seit = Date.now() - 28 * 864e5, woche = isoWeek(new Date());
+    const neu = ev.filter(e => Date.parse(e.zeit) >= seit), wo = ev.filter(e => isoWeek(new Date(e.zeit)) === woche);
+    const zahl = {}; neu.filter(e => e.ergebnis === "bad").forEach(e => { const a = e.abweichung || "sonst"; zahl[a] = (zahl[a] || 0) + 1; });
+    const top = Object.keys(zahl).sort((a, b) => zahl[b] - zahl[a]).slice(0, 6);
+    const min = Math.round(wo.reduce((s, e) => s + Math.min(10 * 60000, +e.dauer_ms || 0), 0) / 60000);
+    const ok28 = neu.filter(e => e.ergebnis === "ok").length;
+    const zeilen = pl.beh.map(k => `<tr><th colspan="3" style="text-align:left;padding-top:8px">${esc(kapTitel(k))}</th></tr>` + MK.KAP_BY[k].komp.map(id => {
+      const s = st.komp[id], a = MK.ampel(s, t);
+      return `<tr><td><span class="mampel a-${a}"></span> ${AMPEL[a]}</td><td>${esc(MK.KOMP_BY[id].titel)}</td><td class="muted">${s ? `${s.tage.length} Tag${s.tage.length === 1 ? "" : "e"} richtig${s.z && s.z.due ? ", fällig " + s.z.due.split("-").reverse().join(".") : ""}` : "–"}</td></tr>`;
+    }).join("")).join("");
+    $("mBericht").innerHTML = `<p class="note">Nur aus den Daten dieses Geräts (und geholten Lernständen). Grün = an 3 verschiedenen Tagen richtig, Gelb = in Arbeit oder länger nicht wiederholt, Rot = zuletzt falsch.</p>
+      <div class="stats"><div class="stat"><b>${min} min</b>Mathe diese Woche</div><div class="stat"><b>${wo.length}</b>Aufgaben diese Woche</div><div class="stat"><b>${neu.length ? Math.round(100 * ok28 / neu.length) : 0} %</b>richtig (28 Tage)</div></div>
+      <h3>Häufigste Fehlerarten (28 Tage)</h3>${top.length ? `<ul>${top.map(a => `<li><b>${esc(a === "sonst" ? "ohne erkanntes Muster" : MK.FEHLERNAME[a] || a)}</b>: ${zahl[a]}×</li>`).join("")}</ul>` : `<p class="muted">Noch keine Fehler erfasst.</p>`}
+      <h3>Kompetenzen</h3><table class="mtab">${zeilen}</table>`;
+  }
+
+  /* ---------- Session ---------- */
+  function neuerS(extra) {
+    const mut = mutSessionNeu();
+    S = Object.assign({mathe: true, modus: "schreiben", queue: [], i: 0, phase: "main", points: 0, firstOk: 0, extra: 0, nochmal: new Set(), ergebnis: [], streak: 0, mut: mut.st, t0: Date.now(), fbAt: 0}, extra || {});
+    return mut;
+  }
+  function start() {
+    if (!CUR || !CUR.mathe) return;
+    const pl = planVon(CUR.pr), st = stand(CUR.pr.id);
+    const mut = neuerS();
+    S.queue = MK.session(st, pl, heute(), Math.random, 10);
+    S.mainLen = S.queue.length; S.vorher = JSON.parse(JSON.stringify(st));
+    Fun.reset(); show("scrSession"); $("quitConfirm").hidden = true; renderBossHud();
+    zeige();
+    if (mutAn()) { const r = LK.MUT.start(S.mut, {pauseTage: mut.tage}); if (r) mutZeigen(r, "fb", true); }
+  }
+  function startBoss() {
+    const pl = planVon(CUR.pr), kap = pl.aktuell;
+    if (MK.kapStand(stand(CUR.pr.id), kap).prozent < 100) { toast("Das Boss-Tor ist noch zu."); return; }
+    neuerS({boss: {key: BUCH + "|" + kap, kap, look: bossLookM(kap), kampf: LK.bossStart(10), gestellt: [], hpAlt: null}});
+    S.queue = MK.bossAufgaben(kap, Math.random, 14).map(t => ({komp: t.komp, rolle: "boss", stufe: 3, d: t.d, t}));
+    Fun.reset(); show("scrSession"); $("quitConfirm").hidden = true; renderBossHud();
+    zeige();
+  }
+  function bossLookM(kap) {
+    const i = (MK.KAP_BY[kap] || {i: 0}).i;
+    return {key: BUCH + "|" + kap, hue: (40 + i * 67) % 360, form: i % 4, name: ["Zahlen-Zwerg", "Minus-Monster", "Klammer-Krake", "Einheiten-Yeti", "Winkel-Wurm", "Flächen-Fresser"][i % 6]};
+  }
+
+  /* Eingabe: Felder (Ziffernblock), aktives Feld, Einheit */
+  const anzeige = s => { if (!s) return ""; const neg = s[0] === "-", r = neg ? s.slice(1) : s, [i, d] = r.split(","); const g = i.length >= 5 ? i.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : i; return (neg ? "−" : "") + g + (d != null ? "," + d : ""); };
+  function feldSetzen(f) { if (f && f.el) f.el.textContent = anzeige(f.wert) || " "; }
+  function tippen(ch) {
+    const E = S && S.eingabe; if (!E || S.locked) return;
+    const f = E.felder[E.aktiv]; if (!f) return;
+    if (ch === "⌫") f.wert = f.wert.slice(0, -1);
+    else if (ch === "−") f.wert = f.wert[0] === "-" ? f.wert.slice(1) : "-" + f.wert;
+    else if (ch === ",") { if (!f.wert.includes(",")) f.wert = (f.wert === "" || f.wert === "-" ? f.wert + "0" : f.wert) + ","; }
+    else if (/^\d$/.test(ch) && f.wert.replace(/\D/g, "").length < 13) f.wert = (f.wert === "0" ? "" : f.wert === "-0" ? "-" : f.wert) + ch;
+    if (f.el) f.el.classList.remove("schlecht");
+    feldSetzen(f);
+  }
+  const PAD = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "−", "0", ","];
+  const padHtml = (minus, komma) => `<div class="mpad" role="group" aria-label="Ziffernblock">${PAD.map(k => `<button type="button" data-k="${k}"${(k === "−" && !minus) || (k === "," && !komma) ? " disabled" : ""} aria-label="${k === "−" ? "Minus" : k === "," ? "Komma" : k}">${k}</button>`).join("")}
+    <button type="button" data-k="⌫" class="del" aria-label="Löschen">⌫</button><button type="button" class="ok" id="mCheck">Prüfen</button></div>`;
+  function padVerdrahten(host, onCheck) {
+    host.querySelectorAll(".mpad [data-k]").forEach(b => { b.addEventListener("pointerdown", e => e.preventDefault()); b.onclick = () => tippen(b.dataset.k); });
+    $("mCheck").onclick = onCheck; S.onCheck = onCheck;
+  }
+  const feldHtml = (i, label) => `<span class="mfeld-w">${label ? `<small>${esc(label)}</small>` : ""}<button type="button" class="mfeld" data-feld="${i}" aria-label="Eingabe ${label || ""}"> </button></span>`;
+  function felderVerdrahten(host, n) {
+    S.eingabe = {felder: [], aktiv: 0, einheit: null};
+    const els = host.querySelectorAll("[data-feld]");
+    for (let i = 0; i < n; i++) S.eingabe.felder.push({wert: "", el: els[i]});
+    const fokus = i => { S.eingabe.aktiv = i; els.forEach((x, j) => x.classList.toggle("aktiv", j === i)); };
+    els.forEach((x, i) => x.onclick = () => fokus(i));
+    fokus(0);
+  }
+  const zahlAus = f => MK.parseZahl(f.wert);
+
+  /* Bild als SVG (Zahlenstrahl, Koordinatensystem, Winkel, Rechteck) */
+  function bildSvg(b) {
+    if (!b) return "";
+    const ink = "var(--ink)", mut = "var(--muted)";
+    if (b.typ === "strahl") {
+      const x = i => 30 + i * 46, W = 30 * 2 + b.n * 46;
+      let s = `<line x1="10" y1="50" x2="${W - 6}" y2="50" stroke="${ink}" stroke-width="2"/><path d="M${W - 6} 44l10 6-10 6" fill="${ink}"/>`;
+      for (let i = 0; i <= b.n; i++) s += `<line x1="${x(i)}" y1="${i % 5 ? 42 : 36}" x2="${x(i)}" y2="${i % 5 ? 58 : 64}" stroke="${ink}" stroke-width="2"/>`;
+      b.werte.forEach(v => { s += `<text x="${x(v.i)}" y="84" text-anchor="middle" font-size="15" fill="${ink}" font-weight="700">${esc(v.t)}</text>`; });
+      s += `<path d="M${x(b.marke)} 32l-8-14h16z" fill="var(--accent)"/>`;
+      return `<svg viewBox="0 0 ${W + 10} 92" role="img" aria-label="Zahlenstrahl mit Pfeil">${s}</svg>`;
+    }
+    if (b.typ === "koord") {
+      const n = b.max - b.min, c = Math.min(34, 380 / n), o = 26, X = v => o + (v - b.min) * c, Y = v => o + (b.max - v) * c, W = o * 2 + n * c;
+      let s = "";
+      for (let v = b.min; v <= b.max; v++) { s += `<line x1="${X(v)}" y1="${Y(b.min)}" x2="${X(v)}" y2="${Y(b.max)}" stroke="var(--line)" stroke-width="1"/><line x1="${X(b.min)}" y1="${Y(v)}" x2="${X(b.max)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/>`; }
+      const x0 = Math.max(b.min, Math.min(b.max, 0)), y0 = x0;
+      s += `<line x1="${X(b.min)}" y1="${Y(y0)}" x2="${X(b.max) + 10}" y2="${Y(y0)}" stroke="${ink}" stroke-width="2"/><line x1="${X(x0)}" y1="${Y(b.min)}" x2="${X(x0)}" y2="${Y(b.max) - 10}" stroke="${ink}" stroke-width="2"/>`;
+      s += `<text x="${X(b.max) + 12}" y="${Y(y0) + 5}" font-size="13" fill="${mut}">x</text><text x="${X(x0) + 6}" y="${Y(b.max) - 10}" font-size="13" fill="${mut}">y</text>`;
+      const sch = n > 12 ? 2 : 1;
+      for (let v = b.min; v <= b.max; v++) if (v !== 0 && v % sch === 0) s += `<text x="${X(v)}" y="${Y(y0) + 15}" font-size="11" text-anchor="middle" fill="${mut}">${MK.z(v)}</text><text x="${X(x0) - 5}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="${mut}">${MK.z(v)}</text>`;
+      s += `<text x="${X(x0) - 5}" y="${Y(y0) + 15}" font-size="11" text-anchor="end" fill="${mut}">0</text>`;
+      if (b.achse) s += b.achse.x != null ? `<line x1="${X(b.achse.x)}" y1="${Y(b.min)}" x2="${X(b.achse.x)}" y2="${Y(b.max)}" stroke="var(--bad)" stroke-width="3"/>` : `<line x1="${X(b.min)}" y1="${Y(b.achse.y)}" x2="${X(b.max)}" y2="${Y(b.achse.y)}" stroke="var(--bad)" stroke-width="3"/>`;
+      b.punkte.forEach(p => { s += `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5.5" fill="var(--accent)" stroke="${ink}" stroke-width="1.5"/><text x="${X(p.x) + 8}" y="${Y(p.y) - 8}" font-size="15" font-weight="800" fill="${ink}">${esc(p.n)}</text>`; });
+      return `<svg viewBox="0 0 ${W + 20} ${W}" role="img" aria-label="Koordinatensystem">${s}</svg>`;
+    }
+    if (b.typ === "winkel") {
+      const cx = 160, cy = 130, r = 110, a1 = b.dreh * Math.PI / 180, a2 = (b.dreh + b.w) * Math.PI / 180;
+      const P = (a, rr) => [cx + rr * Math.cos(a), cy - rr * Math.sin(a)], [x1, y1] = P(a1, r), [x2, y2] = P(a2, r), [u1, v1] = P(a1, 34), [u2, v2] = P(a2, 34);
+      const xs = [cx, x1, x2, u1, u2], ys = [cy, y1, y2, v1, v2];
+      for (let g = 0; g < 360; g += 15) if ((g - b.dreh + 360) % 360 <= b.w) { const [px, py] = P(g * Math.PI / 180, 34); xs.push(px); ys.push(py); }
+      const vx = Math.min(...xs) - 14, vy = Math.min(...ys) - 14, vw = Math.max(...xs) - vx + 14, vh = Math.max(...ys) - vy + 14;
+      return `<svg viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="Winkel" style="max-width:${Math.round(vw * 1.25)}px"><path d="M${u1} ${v1}A34 34 0 ${b.w > 180 ? 1 : 0} 0 ${u2} ${v2}" fill="none" stroke="var(--accent)" stroke-width="4"/>
+        <line x1="${cx}" y1="${cy}" x2="${x1}" y2="${y1}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="4" fill="${ink}"/></svg>`;
+    }
+    if (b.typ === "rechteck") {
+      const m = Math.max(b.a, b.b), w = 40 + 220 * b.a / m, h = 30 + 120 * b.b / m;
+      return `<svg viewBox="0 0 ${w + 110} ${h + 60}" role="img" aria-label="Rechteck ${esc(b.la)} mal ${esc(b.lb)}" style="max-width:360px"><rect x="20" y="16" width="${w}" height="${h}" fill="var(--paper)" stroke="${ink}" stroke-width="2.5"/>
+        <text x="${20 + w / 2}" y="${h + 42}" text-anchor="middle" font-size="16" font-weight="700" fill="${ink}">${esc(b.la)}</text><text x="${w + 28}" y="${16 + h / 2 + 5}" font-size="16" font-weight="700" fill="${ink}">${esc(b.lb)}</text></svg>`;
+    }
+    return "";
+  }
+  const schrittTxt = (s, wert) => esc(s.t).replace("□", wert != null ? `<b>${esc(MK.z(wert))}</b>` : "□");
+  const loesungsweg = t => `<ol class="mweg">${t.schritte.map(s => `<li>${schrittTxt(s, s.w)}</li>`).join("")}<li><b>Lösung: ${esc(MK.antwortText(t, t.loesung))}</b></li></ol>`;
+
+  function zeige() {
+    mutWeg();
+    const q = S.queue[S.i], pid = CUR.pr.id;
+    if (!q.t) { const k = stand(pid).komp[q.komp]; q.stufe = k && k.z ? k.z.stufe : 1; q.d = MK.schwierigkeit(q.stufe, k); q.t = MK.aufgabe(q.komp, q.stufe, q.d, Math.random); }
+    const t = q.t; S.cur = q; q.stufeEff = q.stufeEff || (S.boss ? 3 : q.stufe); S.t0 = Date.now(); S.locked = false; S.eingabe = null; S.onCheck = null; S.lz = null;
+    $("fbWrap").innerHTML = "";
+    const n = S.i + 1, tot = S.queue.length;
+    $("progBar").style.width = (100 * S.i / tot) + "%"; $("progText").textContent = `${n}/${tot}`;
+    if (S.boss) { const k = S.boss.kampf; $("progBar").style.width = (100 * (1 - k.hp / k.max)) + "%"; $("progText").textContent = `Zug ${k.zuege + 1}`; }
+    const K = MK.KOMP_BY[q.komp];
+    const meta = `<div class="task-meta"><span class="pill">${esc(MK.KAP_BY[K.kap].kurz)}</span><span class="pill ${q.rolle === "wdh" ? "rev" : "u1"}">${ROLLE[q.rolle]}</span><span class="pill">${esc(K.titel)}</span>${S.boss ? "" : `<span class="pill dir">${STUFE[q.stufeEff]}</span>`}</div>`;
+    const kopf = `<div class="prompt mfrage">${esc(t.frage)}</div>${t.bild ? `<div class="mbild">${bildSvg(t.bild)}</div>` : ""}`;
+    const el = $("task");
+    // Auswahl: Stufe 1, Schätzaufgaben, Benennen (wahl)
+    if (t.art === "wahl" || t.schaetzen || q.stufeEff === 1) {
+      const bsp = q.stufeEff === 1 && t.beispiel ? `<div class="mbsp"><p class="eyebrow">So geht's</p><p class="mfrage-k">${esc(t.beispiel.frage)}</p>${t.beispiel.bild ? `<div class="mbild klein">${bildSvg(t.beispiel.bild)}</div>` : ""}${loesungsweg(t.beispiel)}</div><p class="eyebrow">Jetzt du</p>` : "";
+      const opts = MK.optionen(t, Math.random);
+      el.innerHTML = meta + bsp + kopf + `<div class="options">${opts.map((o, k) => `<button class="opt" data-k="${k}">${esc(MK.antwortText(t, o))}</button>`).join("")}</div>`;
+      el.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+        if (S.locked) return;
+        const v = opts[+b.dataset.k], r = MK.pruefe(t, v);
+        el.querySelectorAll(".opt").forEach(x => { x.disabled = true; if (MK.pruefe(t, opts[+x.dataset.k]).res === "ok") x.classList.add("is-good"); });
+        if (r.res !== "ok") b.classList.add("is-bad");
+        fertig(r.res, {art: r.art, tipp: r.tipp, eingabe: MK.antwortText(t, v)});
+      });
+      return;
+    }
+    if (q.stufeEff === 2) return zeigeSchritte(el, meta, kopf, t);
+    zeigeFrei(el, meta + kopf, t, true);
+  }
+  /* Stufe 3: freie Eingabe (zahl, paar, einheit) */
+  function zeigeFrei(el, oben, t, hilfe, anhaengen) {
+    const minus = !!MK.KOMP_BY[t.komp].rahmen.neg, komma = !!MK.KOMP_BY[t.komp].rahmen.dez;
+    const felder = t.art === "paar" ? `<div class="mfelder">${feldHtml(0, t.labels[0])}<span class="msep">${t.labels[0] === "Uhr" ? ":" : t.labels[0] === "h" ? "" : "|"}</span>${feldHtml(1, t.labels[1])}</div>`
+      : `<div class="mfelder">${feldHtml(0, "")}${t.einheitText ? `<span class="meinheit">${esc(t.einheitText)}</span>` : ""}</div>`;
+    const einh = t.art === "einheit" ? `<div class="einh" role="group" aria-label="Einheit wählen">${t.einheiten.map(e => `<button type="button" class="btn btn-ghost btn-small" data-einh="${esc(e)}">${esc(e)}</button>`).join("")}</div>` : "";
+    const html = `<div class="mantwort">${felder}${einh}<p class="hint" id="mHint"></p>${padHtml(minus, komma)}${hilfe ? `<button type="button" class="link" id="mHilfe">Ich brauch die Schritte</button>` : ""}</div>`;
+    if (anhaengen) el.insertAdjacentHTML("beforeend", html); else el.innerHTML = oben + html;
+    const host = el.querySelector(".mantwort") || el;
+    felderVerdrahten(host, t.art === "paar" ? 2 : 1);
+    host.querySelectorAll("[data-einh]").forEach(b => b.onclick = () => { S.eingabe.einheit = b.dataset.einh; host.querySelectorAll("[data-einh]").forEach(x => x.classList.toggle("btn-primary", x === b)); });
+    if ($("mHilfe")) $("mHilfe").onclick = () => { S.cur.stufeEff = 2; S.cur.hilfe = true; zeigeSchritte(el, el.querySelector(".task-meta").outerHTML, `<div class="prompt mfrage">${esc(t.frage)}</div>${t.bild ? `<div class="mbild">${bildSvg(t.bild)}</div>` : ""}`, t); };
+    padVerdrahten(host, () => {
+      if (S.locked) return;
+      const E = S.eingabe, h = $("mHint"); let v;
+      if (t.art === "paar") { v = [zahlAus(E.felder[0]), zahlAus(E.felder[1])]; if (v.some(isNaN)) { h.textContent = "Bitte beide Felder ausfüllen."; return; } }
+      else { const x = zahlAus(E.felder[0]); if (isNaN(x)) { h.textContent = "Bitte eine Zahl eingeben."; return; }
+        if (t.art === "einheit") { if (!E.einheit) { h.textContent = "Wähle noch die Einheit."; return; } v = {wert: x, einheit: E.einheit}; } else v = x; }
+      const r = MK.pruefe(t, v);
+      E.felder.forEach(f => f.el && f.el.classList.add(r.res === "ok" ? "gut" : "schlecht"));
+      const lzFehler = S.lz ? S.lz.fehler : 0;
+      fertig(r.res === "ok" && !lzFehler ? "ok" : "bad", {art: r.art, tipp: r.tipp, eingabe: MK.antwortText(t, v), zwischen: lzFehler && r.res === "ok"});
+    });
+  }
+  /* Stufe 2: Teilschritte mit Lücken, eine nach der anderen */
+  function zeigeSchritte(el, meta, kopf, t) {
+    const lz = S.lz = {k: 0, fehler: 0, versuch: 0, finalArt: "", finalTipp: "", eingabe: ""};
+    const slots = t.schritte.filter(s => s.w != null);
+    const last = t.schritte[t.schritte.length - 1], finalIstLuecke = t.art === "zahl" && last.w != null && MK.gleich("zahl", last.w, t.loesung);
+    let k = 0;
+    const html = t.schritte.map(s => s.w == null ? `<li>${esc(s.t)}</li>` : (() => { const i = k++; const [a, b] = s.t.split("□"); return `<li class="mschritt" data-zeile="${i}"${i ? " hidden" : ""}>${esc(a)}<button type="button" class="mfeld" data-feld="${i}"> </button>${esc(b)}</li>`; })()).join("");
+    el.innerHTML = meta + kopf + `<ol class="mschritte">${html}</ol><div class="mantwort"><p class="hint" id="mHint"></p>${padHtml(!!MK.KOMP_BY[t.komp].rahmen.neg, !!MK.KOMP_BY[t.komp].rahmen.dez)}</div>`;
+    const felder = el.querySelectorAll(".mschritte [data-feld]");
+    S.eingabe = {felder: Array.from(felder).map(e => ({wert: "", el: e})), aktiv: 0, einheit: null};
+    const aktiv = i => { S.eingabe.aktiv = i; felder.forEach((x, j) => x.classList.toggle("aktiv", j === i)); };
+    const weiter = () => {
+      lz.k++; lz.versuch = 0;
+      if (lz.k < slots.length) { const z = el.querySelector(`[data-zeile="${lz.k}"]`); if (z) z.hidden = false; aktiv(lz.k); return; }
+      felder.forEach(x => x.classList.remove("aktiv"));
+      if (finalIstLuecke) return fertig(lz.fehler ? "bad" : "ok", {art: lz.finalArt, tipp: lz.finalTipp, eingabe: lz.eingabe});
+      el.querySelector(".mantwort").remove();
+      zeigeFrei(el, "", t, false, true);
+    };
+    aktiv(0);
+    if (!slots.length) { el.querySelector(".mantwort").remove(); zeigeFrei(el, "", t, false, true); return; }
+    padVerdrahten(el, () => {
+      if (S.locked) return;
+      const f = S.eingabe.felder[lz.k], v = zahlAus(f), s = slots[lz.k], h = $("mHint");
+      if (isNaN(v)) { h.textContent = "Bitte eine Zahl eingeben."; return; }
+      const final = finalIstLuecke && lz.k === slots.length - 1;
+      if (Math.abs(v - s.w) < 1e-9) { f.el.classList.remove("schlecht"); f.el.classList.add("gut"); h.textContent = ""; if (final && !lz.eingabe) lz.eingabe = MK.antwortText(t, v); return weiter(); }
+      lz.fehler++; lz.versuch++;
+      if (final && !lz.finalArt) { const r = MK.pruefe(t, v); lz.finalArt = r.art; lz.finalTipp = r.tipp; lz.eingabe = MK.antwortText(t, v); }
+      f.el.classList.add("schlecht");
+      if (lz.versuch < 2) { const r = final ? MK.pruefe(t, v) : {}; h.textContent = r.tipp ? "Tipp: " + r.tipp : "Noch nicht. Schau dir diesen Schritt nochmal genau an."; f.wert = ""; setTimeout(() => feldSetzen(f), 450); return; }
+      f.wert = String(s.w).replace(".", ","); feldSetzen(f); h.textContent = `Hier gehört ${MK.z(s.w)} hin. Weiter geht's.`;
+      setTimeout(weiter, 900);
+    });
+  }
+
+  const LOB = ["Richtig!", "Stark gerechnet.", "Genau so.", "Sauber.", "Treffer.", "Läuft."];
+  function fertig(res, info) {
+    if (S.locked) return; S.locked = true;
+    const q = S.cur, t = q.t, B = S.boss, pid = CUR.pr.id;
+    let bz = null;
+    try { logEvent({buch: BUCH, lang: "de", id: q.komp, t: "mathe", gen: "stufe" + q.stufeEff, dir: MK.KOMP_BY[q.komp].kap},
+      res, {why: res === "ok" ? "" : (info.art || "falsch"), input: info.eingabe || "", hilfe: !!q.hilfe, phase: B ? "boss" : q.rolle === "nochmal" ? "fehlerrunde" : "haupt"}); } catch (e) {}
+    if (B) { bz = LK.bossZug(B.kampf, res); if (res === "ok") S.firstOk++; }
+    else {
+      const st = stand(pid);
+      st.komp[q.komp] = MK.nachAntwort(st.komp[q.komp], res === "ok", q.stufeEff, heute(), Date.now());
+      setzen(pid, st);
+      S.ergebnis.push({komp: q.komp, res, art: info.art || ""});
+      if (res === "ok") { S.points += q.stufeEff === 3 ? 10 : q.stufeEff === 2 ? 8 : 6; if (q.rolle !== "nochmal") S.firstOk++; }
+      if (res !== "ok" && q.rolle !== "nochmal" && S.extra < 3 && !S.nochmal.has(q.komp)) { S.nochmal.add(q.komp); S.extra++; S.queue.push({komp: q.komp, rolle: "nochmal"}); }
+    }
+    const titel = B ? bossTitel(res, bz, B.kampf) : res === "ok" ? pick(LOB) : "Noch nicht ganz.";
+    const zeilen = [];
+    if (res !== "ok" && info.eingabe) zeilen.push(`<p class="muted">Du: ${esc(info.eingabe)}</p>`);
+    if (res !== "ok" && info.tipp) zeilen.push(`<p class="fb-ex"><b>Tipp:</b> ${esc(info.tipp)}</p>`);
+    else if (res !== "ok" && info.zwischen) zeilen.push(`<p class="fb-ex">Das Ergebnis stimmt, aber ein Zwischenschritt war falsch. Schau dir den Weg nochmal an.</p>`);
+    else if (res !== "ok") zeilen.push(`<p class="fb-ex">Vergleiche deinen Weg Schritt für Schritt mit dem Lösungsweg.</p>`);
+    zeilen.push(`<p class="fb-sol">Richtig ist: <b>${esc(MK.antwortText(t, t.loesung))}</b></p>`);
+    zeilen.push(`<details${res !== "ok" ? " open" : ""}><summary>Lösungsweg</summary>${loesungsweg(t)}</details>`);
+    if (!B && res !== "ok" && q.rolle !== "nochmal" && S.nochmal.has(q.komp) && S.queue[S.queue.length - 1].komp === q.komp) zeilen.push(`<p class="note">Am Ende kommt eine ähnliche Aufgabe nochmal.</p>`);
+    $("fbWrap").innerHTML = `<section class="fb ${res === "ok" ? "ok" : "bad"}" role="status"><div class="fb-title">${esc(titel)}</div>${zeilen.join("")}
+      <div class="row"><button class="btn btn-primary" id="btnNext">Weiter</button></div></section>`;
+    S.fbAt = Date.now();
+    $("btnNext").onclick = naechste;
+    if (B) { renderBossHud(bz); if (B.kampf.ende) $("btnNext").textContent = B.kampf.ende === "sieg" ? "Zum Sieg 🏆" : "Weiter"; }
+    S.streak = res === "ok" ? S.streak + 1 : 0;
+    let mr = null; try { if (S.mut && !B && mutAn()) mr = LK.MUT.nach(S.mut, res); } catch (e) {}
+    try { Fun.afterReveal({t: "mathe"}, res, S.streak, true); } catch (e) {}
+    if (mr) mutZeigen(mr, "fix");
+    setTimeout(() => { const nb = $("btnNext"); if (nb) { nb.focus({preventScroll: true}); nb.scrollIntoView({block: "nearest", behavior: "smooth"}); } }, 80);
+  }
+  function naechste() {
+    if (S.boss) {
+      if (S.boss.kampf.ende) return bossEnde();
+      S.i++;
+      if (S.i >= S.queue.length) S.queue = S.queue.concat(MK.bossAufgaben(S.boss.kap, Math.random, 14).map(t => ({komp: t.komp, rolle: "boss", stufe: 3, d: t.d, t})));
+      return zeige();
+    }
+    S.i++;
+    if (S.i >= S.queue.length) return ende();
+    zeige();
+  }
+  function ende() {
+    const pid = CUR.pr.id, st = stand(pid), pl = planVon(CUR.pr), jetzt = Date.now();
+    LK.Lernstand.zaehlerPlus(P, geraetId(), isoWeek(new Date()), S.points);
+    store.set(packKey(pid, BUCH), P); saveLast();
+    const sich = store.get(sicherKey(pid)) || {zeit: null, offen: 0}; sich.offen = (sich.offen || 0) + 1; store.set(sicherKey(pid), sich);
+    const sichHot = !sich.zeit || sich.offen >= 2;
+    // Belohnungen: Kapitel ganz sicher (2 Tickets), perfekte Session (1 Ticket am Tag)
+    const e = erfolgeVon(pid), lohn = []; let tickets = 0;
+    pl.beh.forEach(k => { if (MK.kapStand(st, k).voll) { const r = LK.Lernstand.einheitVoll(e, BUCH + "|" + k, jetzt); if (r.neu) { tickets += r.tickets; lohn.push(`💯 ${kapTitel(k)}: alle Kompetenzen sitzen! +${r.tickets} Bonus-Tickets`); } } });
+    const total = S.mainLen;
+    if (total >= 8 && S.firstOk >= total) { const tk = LK.Lernstand.perfekt(e, tagSchluessel(new Date()), jetzt); tickets += tk; lohn.push(tk ? "⭐ Perfekte Session, alles beim ersten Versuch! +1 Bonus-Ticket" : "⭐ Perfekte Session! (Das Ticket gibt es einmal am Tag.)"); }
+    if (tickets) erfolgeSetzen(pid, e);
+    const nT = ticketsVon(pid), rate = S.firstOk / Math.max(1, total), stars = rate >= 0.85 ? 3 : rate >= 0.6 ? 2 : 1, t = heute();
+    const geuebt = Array.from(new Set(S.ergebnis.map(r => r.komp)));
+    const star = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="${on ? "s-on" : "s-off"}" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/></svg>`;
+    const zeile = id => { const a0 = MK.ampel(S.vorher.komp[id], t), a1 = MK.ampel(st.komp[id], t), k = st.komp[id];
+      return `<div class="move"><span><span class="mampel a-${a1}"></span> ${esc(MK.KOMP_BY[id].titel)}</span><span class="${a1 === "gruen" && a0 !== "gruen" ? "up" : a1 === "rot" ? "down" : "stay"}">${k ? Math.min(3, k.tage.length) + "/3 Tage · " + STUFE[k.z ? k.z.stufe : 1] : ""}</span></div>`; };
+    $("endCard").innerHTML = `<div style="text-align:center;display:flex;flex-direction:column;gap:8px"><p class="eyebrow">Mathe · fertig für heute</p>
+      <div class="stars" role="img" aria-label="${stars} von 3 Sternen">${[1, 2, 3].map(k => star(k <= stars)).join("")}</div>
+      <h1>${stars === 3 ? "Stark gerechnet." : stars === 2 ? "Solide Runde." : "Geschafft. Das zählt."}</h1>
+      <p class="muted">${S.extra ? "Die Aufgaben vom Typ „nochmal ähnlich“ helfen, dass es hängen bleibt." : "Weiter so: Was sitzen soll, kommt in ein paar Tagen wieder."}</p></div>
+      ${mutEndeKarte(LK.MUT.endeSit(S.firstOk, total, lohn.some(z => z.indexOf("💯") === 0)))}
+      ${lohn.length ? `<div class="lohn" role="status"><div class="ticket">${tickets ? "🎟 Belohnung!" : "⭐ Perfekt!"}</div>${lohn.map(z => `<p>${esc(z)}</p>`).join("")}${tickets && nT ? `<button type="button" class="btn btn-primary" id="btnSpielEnd">🎮 Bonus-Spiel (${nT} ${nT === 1 ? "Ticket" : "Tickets"})</button>` : ""}</div>` : ""}
+      <div class="stats"><div class="stat"><b>${S.points}</b>Punkte</div><div class="stat"><b>${S.firstOk}/${total}</b>beim ersten Versuch</div><div class="stat"><b>${Math.min(P.sessions, 99)}/${GOAL}</b>Wochenziel (+1)</div></div>
+      <div><h3>Geübt</h3><div class="moves">${geuebt.map(zeile).join("")}</div></div>
+      <div class="row" style="justify-content:space-between"><button class="btn btn-ghost btn-small sich-btn${sichHot ? " is-hot" : ""}" id="btnSichern">💾 Lernstand sichern</button>
+        <span class="row"><button class="btn btn-ghost" id="btnHome">Home</button><button class="btn btn-primary" id="btnAgain">Nochmal</button></span></div>`;
+    vorbereiten([pid]);
+    $("btnSichern").onclick = () => sichern([pid], $("btnSichern"));
+    $("btnHome").onclick = home; $("btnAgain").onclick = start;
+    if ($("btnSpielEnd")) $("btnSpielEnd").onclick = () => openSpiele();
+    show("scrEnd");
+    const fun = Fun.on();
+    if (lohn.length) { if (!Fun.song() && fun) Fun.fanfare(); } else if (fun) Fun.fanfare();
+    confetti(lohn.length ? 3 : stars);
+  }
+  function bossEnde() {
+    const B = S.boss, k = B.kampf, pid = CUR.pr.id, sieg = k.ende === "sieg", bn = kapTitel(B.kap);
+    let lohn = null;
+    if (sieg) { const e = erfolgeVon(pid); lohn = LK.Lernstand.bossSieg(e, B.key, k.herzen, Date.now()); erfolgeSetzen(pid, e); merkeUngesichert(pid); }
+    const n = ticketsVon(pid);
+    $("endCard").innerHTML = `<div class="boss-end"><div class="boss-fig" aria-hidden="true">${bossSvg(B.look, sieg ? "besiegt" : "kampf")}</div><p class="eyebrow">Bosskampf ${esc(bn)}</p>
+      <h1>${sieg ? "Boss besiegt! 🏆" : `Knapp! ${esc(B.look.name)} war diesmal stärker.`}</h1>${mutEndeKarte(sieg ? "sieg" : "bossVerloren")}
+      <p class="muted">${sieg ? `${k.treffer} Treffer in ${k.zuege} Zügen, noch <span class="hearts" style="font-size:1.1rem">${herzHtml(k)}</span> übrig.` : `Du hast ${k.treffer} Treffer gelandet, es fehlen nur noch ${k.hp} von ${k.max} Lebenspunkten. Eine Übungsrunde, dann klappt's.`}</p>
+      ${sieg ? `<div class="lohn" role="status"><div class="ticket">🏆 Trophäe ${esc(bn)}</div>${lohn.neu ? `<p><b>🎟 +${lohn.tickets} Bonus-Tickets</b> für deinen ersten Sieg in ${esc(bn)}.</p>` : lohn.besser ? "<p>Neues Bestergebnis mit mehr Herzen!</p>" : "<p>Die Trophäe hattest du schon. Tickets gibt es für den ersten Sieg je Kapitel.</p>"}
+        ${n ? `<button type="button" class="btn btn-primary" id="btnSpielEnd">🎮 Bonus-Spiel (${n} ${n === 1 ? "Ticket" : "Tickets"})</button>` : ""}</div>` : ""}</div>
+      <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="btnHome">Home</button>${sieg ? "" : `<button type="button" class="btn btn-ghost" id="btnUeben">Erst üben</button>`}<button type="button" class="btn ${sieg ? "btn-ghost" : "btn-primary"}" id="btnBossAgain">Nochmal kämpfen</button></div>`;
+    $("btnHome").onclick = home; $("btnBossAgain").onclick = startBoss;
+    if ($("btnUeben")) $("btnUeben").onclick = start;
+    if ($("btnSpielEnd")) $("btnSpielEnd").onclick = () => openSpiele();
+    show("scrEnd");
+    if (sieg) { confetti(3); if (!Fun.song() && Fun.on()) Fun.fanfare(); }
+  }
+  /* Tastatur am Computer: Ziffern, Minus, Komma, Rücktaste, Enter */
+  document.addEventListener("keydown", e => {
+    if (!S || !S.mathe || $("scrSession").hidden) return;
+    if (e.key === "Enter") { e.preventDefault(); const nb = $("btnNext"); if (nb && Date.now() - S.fbAt > 250) return naechste(); if (!S.locked && S.onCheck) S.onCheck(); return; }
+    const m = e.key === "-" ? "−" : e.key === "," || e.key === "." ? "," : e.key === "Backspace" ? "⌫" : /^\d$/.test(e.key) ? e.key : null;
+    if (m && S.eingabe && !e.metaKey && !e.ctrlKey) { e.preventDefault(); tippen(m); }
+  });
+
+  /* ---------- Profil bearbeiten: Fach Mathe, Kapitelfolge, „behandelt bis“ ---------- */
+  function editHtml(p) {
+    return `<div class="row"><div class="field"><label for="edMathe">Mathematik</label><select id="edMathe"><option value="">kein Mathe</option><option value="${BUCH}"${hat(p) ? " selected" : ""}>${esc(TITEL)}</option></select></div></div>
+      <div class="wdh" id="edMPlan"></div>`;
+  }
+  function editPlan() {
+    const host = $("edMPlan"); if (!host || !EDIT) return;
+    const p = EDIT.p;
+    if (!EDIT.matheKopie) { EDIT.matheKopie = true; if (p.mathe) p.mathe = JSON.parse(JSON.stringify(p.mathe)); }
+    if (!hat(p)) { host.hidden = true; host.innerHTML = ""; return; }
+    const pl = MK.plan(p.mathe); p.mathe.folge = pl.folge; p.mathe.bis = pl.bis;
+    host.hidden = false;
+    host.innerHTML = `<h2>Mathe: Kapitel und Stand</h2><p class="note">Reihenfolge wie im Unterricht (mit den Pfeilen verschieben) und bis wohin die Klasse gekommen ist. Spätere Kapitel kommen nie dran. Die Aufgaben sind selbst erzeugt, keine Schulbuchtexte.</p>
+      <ol class="mfolge">${pl.folge.map((k, i) => `<li><span>${esc(kapTitel(k))}</span><span class="row"><button type="button" class="btn btn-ghost btn-small" data-hoch="${i}" aria-label="nach oben"${i ? "" : " disabled"}>↑</button><button type="button" class="btn btn-ghost btn-small" data-runter="${i}" aria-label="nach unten"${i < pl.folge.length - 1 ? "" : " disabled"}>↓</button></span></li>`).join("")}</ol>
+      <div class="field"><label for="edMBis">Im Unterricht behandelt bis</label><select id="edMBis">${pl.folge.map(k => `<option value="${k}"${k === pl.bis ? " selected" : ""}>${esc(kapTitel(k))}</option>`).join("")}</select></div>`;
+    const tausch = (i, j) => { const f = p.mathe.folge; [f[i], f[j]] = [f[j], f[i]]; editPlan(); };
+    host.querySelectorAll("[data-hoch]").forEach(b => b.onclick = () => tausch(+b.dataset.hoch, +b.dataset.hoch - 1));
+    host.querySelectorAll("[data-runter]").forEach(b => b.onclick = () => tausch(+b.dataset.runter, +b.dataset.runter + 1));
+    $("edMBis").onchange = () => { p.mathe.bis = $("edMBis").value; };
+  }
+  function editVerdrahten() {
+    const s = $("edMathe"); if (!s) return;
+    s.onchange = () => { const p = EDIT.p; EDIT.matheKopie = true; if (s.value) p.mathe = p.mathe && p.mathe.fach === BUCH ? p.mathe : {fach: BUCH, folge: MK.KAPITEL.map(k => k.id), bis: "k1"}; else delete p.mathe; editPlan(); };
+    editPlan();
+  }
+
+  /* Stil (eigener Block, damit das Hauptstylesheet unverändert bleibt) */
+  try {
+    const css = document.createElement("style"); css.id = "mathe-css";
+    css.textContent = `.mgo{min-height:64px;font-size:1.2rem}
+.mfrage{font-size:clamp(1.3rem,3.6vw,1.8rem)}
+.mbild svg{width:100%;max-width:520px;height:auto;max-height:320px;display:block;margin-inline:auto}
+.mbild.klein svg{max-width:300px}
+.mbsp{border:2px dashed var(--line);border-radius:14px;padding:14px 16px;background:var(--paper);display:flex;flex-direction:column;gap:8px}
+.mfrage-k{font-weight:700;font-size:1.1rem}
+.mweg{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:4px}
+.mschritte{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:12px;font-size:1.15rem}
+.mschritt{line-height:2.4}
+.mantwort{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.mfelder{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.mfeld-w{display:inline-flex;flex-direction:column;gap:2px}
+.mfeld-w small{color:var(--muted);font-weight:700}
+.mfeld{min-width:6ch;min-height:56px;padding:6px 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);font-size:1.6rem;font-weight:800;text-align:right;font-variant-numeric:tabular-nums;vertical-align:middle}
+.mschritte .mfeld{min-height:46px;font-size:1.3rem;min-width:5ch}
+.mfeld.aktiv{border-color:var(--accent);outline:3px solid var(--accent);outline-offset:1px}
+.mfeld.gut{border-color:var(--good);background:var(--good-bg);outline:none}
+.mfeld.schlecht{border-color:var(--bad);background:var(--bad-bg)}
+.msep,.meinheit{font-size:1.5rem;font-weight:800;padding-bottom:10px}
+.mpad{display:grid;grid-template-columns:repeat(3,minmax(64px,1fr));gap:8px;width:min(100%,380px)}
+.mpad button{min-height:62px;font-size:1.55rem;font-weight:800;border-radius:14px;border:1.5px solid var(--line);border-bottom-width:4px;background:var(--card);color:var(--ink);touch-action:manipulation}
+.mpad button:active:not([disabled]){transform:translateY(2px);border-bottom-width:2px}
+.mpad button[disabled]{opacity:.35}
+.mpad .del{font-size:1.3rem}
+.mpad .ok{grid-column:span 2;background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.einh{display:flex;gap:8px;flex-wrap:wrap}
+.mampel{width:14px;height:14px;border-radius:50%;display:inline-block;flex:none;vertical-align:middle}
+.a-gruen{background:var(--good)}.a-gelb{background:var(--half)}.a-rot{background:var(--bad)}.a-grau{background:var(--line)}
+.mkomp{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.mkomp .uname{flex:1;min-width:0}
+.mtab{width:100%;border-collapse:collapse;font-size:.95rem}.mtab td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.mfolge{display:flex;flex-direction:column;gap:6px;padding-left:1.4em;margin:0}.mfolge li{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#mEltern summary{cursor:pointer}`;
+    document.head.appendChild(css);
+  } catch (e) {}
+
+  return {BUCH, TITEL, hat, stand, fortschritt, pickHtml, startBtn, wireCard, standText, betreten, home, start, startBoss, editHtml, editVerdrahten};
+})();
+</script>
 <script>
 "use strict";
 /* ============================================================
@@ -2472,7 +3654,8 @@ function show(id) {
   try { spAbort(); } catch (e) {}
   try { mutWeg(); } catch (e) {}
   if (id !== "scrSpiel") { try { Spiele.stop(); } catch (e) {} }   // v13: kein Spiel läuft unsichtbar weiter
-  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit","scrSpiel","scrSettings"].forEach(s => $(s).hidden = s !== id);
+  if (id === "scrHome" && CUR && CUR.mathe) id = "scrMathe";   // v14: Mathe hat einen eigenen Home-Bildschirm
+  ["scrProfile","scrHome","scrSession","scrEnd","scrEdit","scrSpiel","scrSettings","scrMathe"].forEach(s => $(s).hidden = s !== id);
   window.scrollTo(0, 0);
   renderTop(id);
 }
@@ -3417,6 +4600,7 @@ function lastStand(pid) {
 /* Anzeige „Weiter bei …“ aus dem gewählten Buch und dem gespeicherten Fortschritt */
 function standText(pr) {
   const book = chosenBook(pr); if (!book) return "";
+  if (book === M5.BUCH) return M5.standText(pr);
   if (book === SAMPLE_ID) {
     const p = store.get(sampleKey(pr.id)) || {}, u = UNITS[p.unit] ? +p.unit : 1, st = UNITS[u].stations[p.station] ? +p.station : 1;
     return `Beispielkarten, Unit ${u} · Station ${st}`;
@@ -3426,7 +4610,7 @@ function standText(pr) {
   const st = e.stations.find(s => s.id === prog.station);
   return `${bookShort(meta.titel)}, ${unitShort(e.titel)}${st ? " · " + LK.stShort(st) : ""}`;
 }
-const curScreen = () => ["scrProfile", "scrHome", "scrSession", "scrEnd", "scrEdit"].find(id => !$(id).hidden) || "scrProfile";
+const curScreen = () => ["scrProfile", "scrHome", "scrSession", "scrEnd", "scrEdit", "scrMathe"].find(id => !$(id).hidden) || "scrProfile";
 
 /* ---------- Lernpakete-Klappe: ohne Paket aufgeklappt oben, sonst zugeklappt am Ende ---------- */
 let metasReady = false;
@@ -3457,6 +4641,7 @@ function booksFor(pr) {
   const mine = [pr.en, pr.fr].filter(Boolean).map(id => METAS.find(m => m.id === id)).filter(Boolean);
   const b = mine.map(m => { const pv = LK.vorgaenger(METAS, m.id); return {id: m.id, titel: m.titel + (pv.length ? " + Wiederholung " + pv.map(x => x.toUpperCase()).join(", ") : "")}; });
   if (pr.sample || !b.length) b.push({id: SAMPLE_ID, titel: "Beispielkarten (Englisch, ohne Lernpaket)"});
+  if (M5.hat(pr)) b.push({id: M5.BUCH, titel: M5.TITEL});   // v14: Mathe ohne Lernpaket
   return b;
 }
 const fehlendeBuecher = pr => [pr.en, pr.fr].filter(id => id && !METAS.some(m => m.id === id));
@@ -3531,7 +4716,7 @@ async function startFor(pr, modus, btn) {
   if (btn) btn.disabled = true;
   const ok = await enterProfile(pr, chosenBook(pr), true);
   if (btn) btn.disabled = false;
-  if (ok) startSession(modus); else renderProfiles();
+  if (ok) { if (CUR && CUR.mathe) M5.start(); else startSession(modus); } else renderProfiles();
 }
 
 /* ---------- Profilkarten ---------- */
@@ -3555,14 +4740,14 @@ function profileCard(pr) {
   const books = booksFor(pr);
   const bookSel = books.length > 1 ? `<div class="row"><div class="field"><label for="selBook-${esc(pr.id)}">Buch</label><select id="selBook-${esc(pr.id)}">${books.map(b => `<option value="${esc(b.id)}">${esc(b.titel)}</option>`).join("")}</select></div></div>` : "";
   // Auswahl immer sichtbar direkt über den Knöpfen; die Knöpfe starten genau diese Einheit/Station (kein zweiter Startweg)
-  const pick = `<div class="pick" style="display:flex;flex-direction:column;gap:10px">${bookSel}
+  const pick = book === M5.BUCH ? `<div class="pick" style="display:flex;flex-direction:column;gap:10px">${bookSel}</div>` + M5.pickHtml(pr) : `<div class="pick" style="display:flex;flex-direction:column;gap:10px">${bookSel}
       <div class="row">
         <div class="field"><label for="selUnit-${esc(pr.id)}">${book === SAMPLE_ID ? "Unit" : "Einheit"}</label><select id="selUnit-${esc(pr.id)}"></select></div>
         <div class="field"><label for="selStation-${esc(pr.id)}">Station</label><select id="selStation-${esc(pr.id)}"></select></div>
       </div>
       <p class="note" id="standNote-${esc(pr.id)}"></p></div>`;
   return `<section class="card profile" data-pid="${esc(pr.id)}" style="${farbStyle(pr)}" aria-labelledby="h-${esc(pr.id)}">${head}${miss}
-    ${pick}<p class="stand" id="stand-${esc(pr.id)}"></p>${modeButtons(pr.id)}</section>`;
+    ${pick}<p class="stand" id="stand-${esc(pr.id)}"></p>${book === M5.BUCH ? M5.startBtn(pr) : modeButtons(pr.id)}</section>`;
 }
 function renderStand(pr) {
   const el = $("stand-" + pr.id); if (!el) return;
@@ -3577,6 +4762,7 @@ function wireProfile(pr) {
   // jede Änderung der Auswahl gilt sofort als „letzter Stand“ dieses Kindes
   const keepLast = (unit, station) => { store.set(LKEY + "." + pr.id, {pid: pr.id, book, unit, station, zeit: Date.now()}); renderStand(pr); };
   if (sb) { sb.value = book; sb.onchange = () => { store.set("kk.v1.sel." + pr.id, {book: sb.value, zeit: Date.now()}); store.del(LKEY + "." + pr.id); renderProfiles(); }; }
+  if (book === M5.BUCH) { M5.wireCard(pr, card); renderStand(pr); return; }
   const su = $("selUnit-" + pr.id), ss = $("selStation-" + pr.id), note = $("standNote-" + pr.id);
   if (book === SAMPLE_ID) {
     loadProfile(pr.id); const prog = P;
@@ -3680,6 +4866,7 @@ function renderEdit() {
     <div class="row"><div class="field"><label for="edJgst">Jahrgangsstufe</label><select id="edJgst"><option value="">–</option>${jg.map(j => `<option value="${j}"${+p.jgst === j ? " selected" : ""}>${j}</option>`).join("")}</select></div></div>
     <div class="row"><div class="field"><label for="edEn">Englisch-Buch</label><select id="edEn">${buchOptionen("en", p.en)}</select></div>
       <div class="field"><label for="edFr">Französisch-Buch</label><select id="edFr">${buchOptionen("fr", p.fr)}</select></div></div>
+    ${M5.editHtml(p)}
     <p class="note">Das gewählte Buch ist der aktuelle Stand. Frühere Bände derselben Reihe kommen automatisch als Wiederholung dazu.</p>
     <div class="wdh" id="edWdh" aria-labelledby="edWdhH"></div>
     <label class="opt-tog"><input type="checkbox" id="edFak"${p.fak ? " checked" : ""}> Freiwillige Teile üben (Plateaus, Bonus, freiwillige Stationen)</label>
@@ -3714,6 +4901,7 @@ function renderEdit() {
   $("edEn").onchange = () => { const b = LK.BEKANNTE_BUECHER.find(x => x.id === $("edEn").value); if (b && !$("edJgst").value) $("edJgst").value = String(b.jgst); renderWdh(); };
   $("edFr").onchange = () => renderWdh();
   renderWdh();
+  M5.editVerdrahten();
   $("edCancel").onclick = () => { EDIT = null; renderProfiles(); show("scrProfile"); };
   $("edSave").onclick = saveEdit;
   if (!EDIT.neu) {
@@ -3747,6 +4935,7 @@ async function saveEdit() {
   // v12.1: Vorgängerband „behandelt bis“ (leer = ganz) und freiwillige Teile
   if (p.bis && !Object.keys(p.bis).length) delete p.bis;
   p.fak = !!$("edFak").checked;
+  if (!M5.hat(p)) delete p.mathe;   // v14
   if (old) PROFILES = PROFILES.map(x => x.id === p.id ? p : x); else PROFILES.push(p);
   saveProfiles();
   // neues Buch gewählt: Karte zeigt es gleich an
@@ -3765,7 +4954,7 @@ async function saveEdit() {
 async function deleteProfile(pid) {
   PROFILES = PROFILES.filter(p => p.id !== pid); saveProfiles();
   delete AVATARS[pid]; try { await AvatarDB.del(pid); } catch (e) {}
-  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k === erfolgeKey(pid) || k === rekordKey(pid) || k === MUT_KEY(pid) || k.startsWith("kk.v1.recent." + pid + ".");
+  const mine = k => k === "kk.v1." + pid || k.startsWith("kk.v1." + pid + ".") || k === "kk.v1.sel." + pid || k === "kk.v1.last." + pid || k === modusKey(pid) || k === modusZeitKey(pid) || k === sicherKey(pid) || k === erfolgeKey(pid) || k === rekordKey(pid) || k === MUT_KEY(pid) || k === "kk.v1.mathe." + pid || k.startsWith("kk.v1.recent." + pid + ".");
   lsKeys().filter(mine).forEach(k => store.del(k));
   const g = store.get(LKEY); if (g && g.pid === pid) store.del(LKEY);
   if (CUR && CUR.pr.id === pid) CUR = null;
@@ -3808,6 +4997,7 @@ function sammleKind(pid, alle) {
   const g = store.get(LKEY), last = store.get(LKEY + "." + pid) || (g && g.pid === pid ? g : null), mw = store.get(modusKey(pid));
   return {profil: Object.assign({}, pr), foto: AVATARS[pid] || null, modus: mw ? {wert: mw, zeit: store.get(modusZeitKey(pid)) || 0} : null,
     auswahl: store.get("kk.v1.sel." + pid), stand: last, buecher, erfolge: erfolgeVon(pid),
+    mathe: store.get("kk.v1.mathe." + pid) || undefined,   // v14
     verlauf: (alle || []).filter(e => e && e.profil === pid).map(e => { const c = Object.assign({}, e); delete c.nr; return c; })};
 }
 /* zusammengeführten Lernstand speichern (neu: nur die neuen Lernverlauf-Einträge) */
@@ -3822,6 +5012,7 @@ async function schreibeKind(k, neu) {
   if (k.stand) store.set(LKEY + "." + id, k.stand);
   Object.keys(k.buecher).forEach(b => store.set(b === SAMPLE_ID ? sampleKey(id) : packKey(id, b), k.buecher[b]));
   if (k.erfolge) erfolgeSetzen(id, LK.Lernstand.erfolgeSauber(k.erfolge));
+  if (k.mathe) store.set("kk.v1.mathe." + id, LK.Lernstand.matheSauber(k.mathe));   // v14
   if (neu && neu.length) { try { await Verlauf.addMany(neu); } catch (e) {} renderVerlaufTools(); }
 }
 /* Datei vorab bauen: das Teilen-Menü muss direkt im Tipp aufgehen, langes Warten davor verbietet Safari */
@@ -3963,6 +5154,7 @@ async function getPaket(id) {
 }
 /* quiet: Home vorbereiten, aber nicht anzeigen (Übungsart-Knopf startet gleich die Session). Liefert true, wenn es geklappt hat. */
 async function enterProfile(pr, book, quiet) {
+  if (book === M5.BUCH) return M5.betreten(pr, quiet);   // v14
   if (book === SAMPLE_ID || !book) {
     loadProfile(pr.id); CUR = {pr, book: SAMPLE_ID, sample: true};
     saveProfile(); saveLast(); renderHome(); if (!quiet) show("scrHome"); return true;
@@ -4058,7 +5250,7 @@ function renderTop(screen) {
     const root = document.documentElement.style, on = CUR && screen !== "scrProfile" && screen !== "scrEdit", f = on ? farbeOf(CUR.pr) : null;
     [["--accent", "accent"], ["--accent-ink", "ink"], ["--accent-text", "text"]].forEach(([v, k]) => { if (f) root.setProperty(v, f[k]); else root.removeProperty(v); });
   } catch (e) {}
-  if (screen === "scrHome" && CUR) r.innerHTML = `<span class="pill who"><span class="top-ava" aria-hidden="true">${avatarInner(CUR.pr)}</span>${esc(CUR.pr.name)}${CUR.pr.jgst ? " · Jgst. " + esc(CUR.pr.jgst) : ""}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
+  if ((screen === "scrHome" || screen === "scrMathe") && CUR) r.innerHTML = `<span class="pill who"><span class="top-ava" aria-hidden="true">${avatarInner(CUR.pr)}</span>${esc(CUR.pr.name)}${CUR.pr.jgst ? " · Jgst. " + esc(CUR.pr.jgst) : ""}</span><button class="link" id="lnkSwitch">Profil wechseln</button>`;
   else r.innerHTML = "";
   const l = $("lnkSwitch"); if (l) l.onclick = () => { CUR = null; renderProfiles(); show("scrProfile"); };
   // v13.3: Einstellungen über das Zahnrad (nicht in Session, Spiel, Bearbeiten und auf der Einstellungsseite selbst)
@@ -4066,9 +5258,10 @@ function renderTop(screen) {
     r.insertAdjacentHTML("beforeend", `<button type="button" class="btn btn-ghost gear" id="btnSettings" aria-label="Einstellungen" title="Einstellungen">⚙️</button>`);
     $("btnSettings").onclick = () => openSettings(screen);
   }
-  document.title = CUR && screen !== "scrProfile" && screen !== "scrEdit" ? "Lern! " + sprache(curLang()).name : "Lern!";
+  document.title = CUR && screen !== "scrProfile" && screen !== "scrEdit" ? "Lern! " + (CUR.mathe ? "Mathe" : sprache(curLang()).name) : "Lern!";
   renderVoicePicker();
-  $("footNote").textContent = CUR && !CUR.sample && screen !== "scrProfile"
+  $("footNote").textContent = CUR && CUR.mathe && screen !== "scrProfile" ? "Mathe-Aufgaben aus eigenen Aufgabengeneratoren, keine Schulbuchtexte."
+    : CUR && !CUR.sample && screen !== "scrProfile"
     ? `Inhalte aus dem Lernpaket ${CUR.book}${CUR.prev && CUR.prev.length ? " (mit " + CUR.prev.map(k => k.id).join(", ") + ")" : ""}, nur auf diesem Gerät. Nicht weitergeben.`
     : "Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.";
 }
@@ -4295,6 +5488,7 @@ function renderBoxes(counts, label) {
     </div>`).join("");
 }
 function renderHome() {
+  if (CUR && CUR.mathe) return M5.home();   // v14
   const h = new Date().getHours();
   $("homeHello").textContent = h < 11 ? "Moin. Kurze Runde vor dem Tag?" : h < 18 ? "Hi! Bock auf 8 Minuten?" : "Abends lernt das Hirn im Schlaf weiter.";
   const done = Math.min(P.sessions, GOAL), C = 314.16;
@@ -4701,7 +5895,7 @@ function finishTask(res, info) {
   setTimeout(() => { const n = $("btnNext"); if (n) { n.focus({preventScroll: true}); n.scrollIntoView({block: "nearest", behavior: "smooth"}); } }, 80);
 }
 document.addEventListener("keydown", e => {
-  if (e.key !== "Enter" || !S || $("scrSession").hidden) return;
+  if (e.key !== "Enter" || !S || S.mathe || $("scrSession").hidden) return;
   const n = $("btnNext");
   if (n && Date.now() - S.fbAt > 250 && document.activeElement !== n) { e.preventDefault(); nextTask(); }
 });
@@ -5101,7 +6295,7 @@ $("btnBonus").onclick = () => { if (CUR) openSpiele(); };
 /* ---------- Abbrechen ---------- */
 $("btnQuit").onclick = () => { $("quitText").textContent = S && S.boss ? "Kampf abbrechen? Du kannst jederzeit neu antreten." : "Abbrechen? Diese Session zählt dann nicht."; $("quitConfirm").hidden = false; };
 $("btnQuitNo").onclick = () => { $("quitConfirm").hidden = true; };
-$("btnQuitYes").onclick = () => { if (S && !S.boss) recentAdd(S.queue.slice(0, S.i + 1).map(t => t.id)); S = null; renderBossHud(); renderHome(); show("scrHome"); };
+$("btnQuitYes").onclick = () => { if (S && S.mathe) { S = null; renderBossHud(); M5.home(); return; } if (S && !S.boss) recentAdd(S.queue.slice(0, S.i + 1).map(t => t.id)); S = null; renderBossHud(); renderHome(); show("scrHome"); };
 
 
 
