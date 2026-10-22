@@ -400,6 +400,8 @@ details.pack > * + * { margin-top: 14px; }
 .memo button.paar { border-color: var(--good); opacity: .7; }
 .tools-edit { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
 .tools-edit h2 { font-size: 1.15rem; }
+/* Felder direkt in senkrechten Spalten (Name, Farbe, „behandelt bis“) nicht auf 140 px Höhe strecken (flex-basis gilt dort für die Höhe) */
+.edit > .field, .wdh > .field { flex: none; }
 /* v13.2: Lernprofil */
 .stil-tipp { background: var(--paper); border-left: 4px solid var(--star); border-radius: 10px; padding: 8px 12px; font-size: .95rem; }
 .stil-edit { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
@@ -440,7 +442,7 @@ details.pack > * + * { margin-top: 14px; }
   <!-- PROFILWAHL -->
   <main id="scrProfile">
     <div style="display:flex;flex-direction:column;gap:18px" id="profileCol">
-      <div id="profileHead"><p class="eyebrow">Englisch und Französisch üben</p><h1 id="profileH1">Wer lernt heute?</h1></div>
+      <div id="profileHead"><p class="eyebrow">Englisch, Französisch und Mathe üben</p><h1 id="profileH1">Wer lernt heute?</h1></div>
       <div class="profiles" id="profiles"></div>
       <input type="file" id="avatarIn" class="vh" accept="image/*" tabindex="-1" aria-hidden="true">
       <input type="file" id="lernstandIn" class="vh" accept=".json,application/json" tabindex="-1" aria-hidden="true">
@@ -578,7 +580,7 @@ details.pack > * + * { margin-top: 14px; }
 
   <footer>
     <span id="footNote">Prototyp, Beispielinhalte. Eigene Übungssätze, keine Texte oder Wortlisten aus dem Lehrwerk.</span>
-    <span id="appVersion">Lern! v14.0</span>
+    <span id="appVersion">Lern! v14.1</span>
   </footer>
 </div>
 <canvas id="confetti" hidden></canvas>
@@ -1389,7 +1391,7 @@ const Lernstand = (function () {
   /* Dateiinhalt bauen (info: {zeit: ISO, geraet}) */
   function datei(kinder, info) {
     info = info || {};
-    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v14.0", geraet: info.geraet || "",
+    return {schema: SCHEMA, gesichert: info.zeit || new Date().toISOString(), app: "Lern! v14.1", geraet: info.geraet || "",
       hinweis: "Lernstand zum Weiterlernen auf einem anderen Gerät. In Lern! unter Profil › „Lernstand holen“ öffnen. Enthält Eingaben des Kindes.",
       kinder: (kinder || []).map(sauberesKind).filter(Boolean)};
   }
@@ -2330,9 +2332,12 @@ const LK = (function () {
 </script>
 <script id="mathekern">
 /* ---------- v14: Mathe-Kern (DOM-frei, global MK) ----------
-   Fach „Mathe 5“ (Gymnasium Bayern, Kapitelplan nach LehrplanPLUS M5). Keine Schulbuchtexte: jede Aufgabe kommt aus einem
-   eigenen Generator mit Zufallszahlen. Je Kompetenz ein Generator gen(d, rng) mit Schwierigkeit d = 1–3; er liefert
-   {frage, art: zahl|paar|einheit|wahl, loesung, schritte: [{t, w?}], fehler: [{w, art, tipp}], bild?, einheitText?, wahl?, optionen?, schaetzen?}.
+   Fach „Mathe 5“ (Gymnasium Bayern). v14.1: Kapitel I–VI in der Folge des Schulbuchs der Klasse (nur Themenbezeichnungen,
+   keine Schulbuchtexte): jede Aufgabe kommt aus einem eigenen Generator mit Zufallszahlen. Je Kompetenz ein Generator gen(d, rng)
+   mit Schwierigkeit d = 1–3; er liefert {frage, art: zahl|paar|einheit|wahl|winkel|menge, loesung, schritte: [{t, w?}],
+   fehler: [{w, art, tipp}], bild?, einheitText?, wahl?, optionen?, schaetzen?, tol? (winkel), eigenschaften? (menge)}.
+   v14.1 Geometrie zum Anfassen: winkel = Schenkel ziehen (Toleranz je Stufe), paar mit bild.tippen = Punkt im Gitter antippen,
+   wahl mit bild.geraden = zwei Geraden antippen, menge = Eigenschaften abhaken. Die Prüflogik dazu steckt rein in MK.geo.
    Typische Fehler sind als Wert hinterlegt; pruefe() erkennt sie und liefert die erklärende Rückmeldung.
    Stufen je Kompetenz: 1 = Musterlösung + Parallelaufgabe (Auswahl), 2 = vorgegebene Teilschritte mit Lücken, 3 = frei.
    Stufe steigt nach 2 richtigen in Folge, sinkt nach 2 falschen in Folge.
@@ -2365,8 +2370,10 @@ const MK = (function () {
     if (!/^-?\d+(\.\d+)?$/.test(t)) return NaN;
     return +t;
   }
-  function gleich(art, a, b) {
+  function gleich(art, a, b, tol) {
     if (a == null || b == null) return false;
+    if (art === "winkel") return typeof a === "number" && Math.abs(a - b) <= (tol || 0) + 1e-9;
+    if (art === "menge") return Array.isArray(a) && Array.isArray(b) && a.slice().sort().join("|") === b.slice().sort().join("|");
     if (art === "zahl") return typeof a === "number" && Math.abs(a - b) < 1e-9;
     if (art === "paar") return Array.isArray(a) && Array.isArray(b) && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
     if (art === "einheit") return typeof a === "object" && Math.abs(a.wert - b.wert) < 1e-9 && (a.einheit == null || b.einheit == null || a.einheit === b.einheit);
@@ -2385,6 +2392,12 @@ const MK = (function () {
     return t;
   }
   function pruefe(t, e) {
+    if (t.art === "winkel") {
+      if (typeof e !== "number" || !isFinite(e)) return {res: "bad", art: "", tipp: ""};
+      if (gleich("winkel", e, t.loesung, t.tol)) return {res: "ok"};
+      for (const f of t.fehler) if (gleich("winkel", e, f.w, t.tol)) return {res: "bad", art: f.art, tipp: f.tipp};
+      return {res: "bad", art: "", tipp: ""};
+    }
     if (t.art === "einheit") {
       if (!e || e.einheit == null) return {res: "bad", art: "", tipp: ""};
       if (Math.abs(e.wert - t.loesung.wert) < 1e-9 && e.einheit === t.loesung.einheit) return {res: "ok"};
@@ -2794,7 +2807,7 @@ const MK = (function () {
       const P = senk ? [a2, b] : [b, a2], eAchse = senk ? [m, b] : [b, m], eKoord = senk ? [a, 2 * m - b] : [2 * m - b, a];
       const badK = b === m || 2 * m - b < 0 || 2 * m - b > 12;
       return sauber({frage: `Spiegle den Punkt P(${x} | ${y}) an der roten Geraden. Wo liegt der Bildpunkt P′?`, art: "paar", loesung: P, labels: ["x", "y"],
-        bild: {typ: "koord", min: 0, max: 12, achse: senk ? {x: m} : {y: m}, punkte: [{n: "P", x, y}]},
+        bild: {typ: "koord", min: 0, max: 12, achse: senk ? {x: m} : {y: m}, punkte: [{n: "P", x, y}], tippen: true},
         schritte: [{t: `Abstand von P zur Geraden: □ Kästchen`, w: Math.abs(a - m)}, {t: `Auf der anderen Seite gleich weit: ${senk ? "x" : "y"}′ = □`, w: a2}, {t: `${senk ? "y" : "x"} bleibt gleich: □`, w: b}],
         fehler: [F_(eAchse, "achse", "Der Bildpunkt liegt nicht auf der Geraden, sondern auf der anderen Seite, genauso weit entfernt wie P."),
           F_(badK ? null : eKoord, "spiegelkoord", `Bei einer ${senk ? "senkrechten" : "waagrechten"} Geraden ändert sich nur der ${senk ? "x" : "y"}-Wert.`)]});
@@ -2858,48 +2871,713 @@ const MK = (function () {
       fehler: [F_(2 * s, "seiten", "Ein Quadrat hat vier gleich lange Seiten: durch 4 teilen."), F_(s * s === 4 * s ? null : 16 * s * s, "flaeche_umfang", T_FU)]});
   }
 
-  /* ---------- Kapitel und Kompetenzen (Reihenfolge anpassbar je Profil) ---------- */
+  /* ========== v14.1: neue Generatoren (Kapitel I–VI) ========== */
+
+  /* ---------- Geometrie-Hilfen (rein, ohne DOM): von matheui für Ziehen und Antippen genutzt, im Testlauf geprüft ---------- */
+  const geo = (function () {
+    /* Gitter-Geometrie eines Koordinaten-Bilds (SVG-Einheiten): Abstand c je Kästchen, Rand o */
+    function koordGeo(b) {
+      const n = b.max - b.min, c = Math.min(34, 380 / n), o = 26;
+      return {n, c, o, W: o * 2 + n * c, X: v => o + (v - b.min) * c, Y: v => o + (b.max - v) * c};
+    }
+    /* Antippen rastet auf den nächsten Gitterpunkt ein; außerhalb des Gitters (mehr als ein halbes Kästchen) -> null */
+    function gitterPunkt(b, sx, sy) {
+      const g = koordGeo(b), x = b.min + (sx - g.o) / g.c, y = b.max - (sy - g.o) / g.c;
+      if (!isFinite(x) || !isFinite(y) || x < b.min - 0.5 || x > b.max + 0.5 || y < b.min - 0.5 || y > b.max + 0.5) return null;
+      return [Math.max(b.min, Math.min(b.max, Math.round(x))), Math.max(b.min, Math.min(b.max, Math.round(y)))];
+    }
+    /* Winkel (ganze Grad, 0–359) des Zeigers (px, py) um den Scheitel (cx, cy), gegen den Uhrzeigersinn ab dem ersten Schenkel (dreh);
+       SVG-Koordinaten (y nach unten). Zeiger genau auf dem Scheitel -> null */
+    function winkelAus(cx, cy, px, py, dreh) {
+      const dx = px - cx, dy = cy - py;
+      if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return null;
+      const a = Math.atan2(dy, dx) * 180 / Math.PI - (dreh || 0);
+      return ((Math.round(a) % 360) + 360) % 360;
+    }
+    /* Punkt eines Winkels: Richtung (Grad, gegen den Uhrzeigersinn) und Länge ab dem Scheitel, SVG-Koordinaten */
+    const punktBei = (cx, cy, grad, r) => [cx + r * Math.cos(grad * Math.PI / 180), cy - r * Math.sin(grad * Math.PI / 180)];
+    function abstandPS(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy;
+      const t = L ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / L)) : 0;
+      return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    }
+    /* Treffer Gerade: Index der nächstgelegenen Strecke (Gitter-Einheiten) bis max entfernt, sonst -1 */
+    function naechsteGerade(geraden, x, y, max) {
+      let best = -1, bd = Infinity;
+      (geraden || []).forEach((g, i) => { const d = abstandPS(x, y, g.x1, g.y1, g.x2, g.y2); if (d < bd) { bd = d; best = i; } });
+      return bd <= (max == null ? 0.6 : max) ? best : -1;
+    }
+    /* Gerade durch (px, py) mit Richtung (dx, dy), auf das Quadrat [lo, hi]² zugeschnitten -> Strecke */
+    function klippen(px, py, dx, dy, lo, hi) {
+      let t0 = -Infinity, t1 = Infinity;
+      [[px, dx], [py, dy]].forEach(([p, d]) => {
+        if (d === 0) { if (p < lo || p > hi) { t0 = 1; t1 = 0; } return; }
+        const a = (lo - p) / d, b = (hi - p) / d; t0 = Math.max(t0, Math.min(a, b)); t1 = Math.min(t1, Math.max(a, b));
+      });
+      if (t0 > t1) return null;
+      return {x1: r3(px + t0 * dx), y1: r3(py + t0 * dy), x2: r3(px + t1 * dx), y2: r3(py + t1 * dy)};
+    }
+    return {koordGeo, gitterPunkt, winkelAus, punktBei, abstandPS, naechsteGerade, klippen};
+  })();
+
+  /* Ziffern von rechts (Einer zuerst) und zurück */
+  const ziff = n => String(n).split("").map(Number).reverse();
+  const ausZiff = a => Number(a.slice().reverse().join("")) || 0;
+  const qsum = n => String(n).split("").reduce((s, c) => s + +c, 0);
+  const KEYS = "abcdefgh";
+
+  /* ---------- I Teilbarkeit ---------- */
+  const T_TEIL = {2: "Bei 2 zählt nur die letzte Ziffer: 0, 2, 4, 6 oder 8.", 5: "Bei 5 zählt nur die letzte Ziffer: 0 oder 5. Die Quersumme hilft hier nicht.",
+    10: "Durch 10 teilbar sind nur Zahlen mit der Endziffer 0. Endziffer 5 reicht nur für die 5.", 3: "Bei 3 hilft die letzte Ziffer nicht: Bilde die Quersumme. Ist sie durch 3 teilbar, dann auch die Zahl."};
+  function teilRegel(t, d, rng) {
+    const lo = d === 1 ? 100 : d === 2 ? 100 : 1000, hi = d === 1 ? 999 : d === 2 ? 9999 : 99999;
+    const zuf = bed => { for (let i = 0; i < 5000; i++) { const n = ri(rng, lo, hi); if (bed(n)) return n; } return null; };
+    const loes = zuf(n => n % t === 0);
+    const falle = t === 2 ? zuf(n => n % 2 === 1 && +String(n)[0] % 2 === 0) : t === 5 ? zuf(n => n % 5 !== 0 && qsum(n) % 5 === 0)
+      : t === 10 ? zuf(n => n % 10 === 5) : zuf(n => n % 3 !== 0 && [3, 6, 9].includes(n % 10));
+    const xs = [loes, falle];
+    while (xs.length < 4) { const n = zuf(n => n % t !== 0 && !xs.includes(n)); xs.push(n); }
+    const ord = mix(rng, xs), key = i => KEYS[i];
+    const schritte = t === 3 ? [{t: "Bilde die Quersumme: Addiere alle Ziffern."}, {t: `Quersumme von ${z(loes)}: □`, w: qsum(loes)}, {t: "Sie ist durch 3 teilbar, also auch die Zahl."}]
+      : [{t: t === 2 ? "Schau nur auf die letzte Ziffer: 0, 2, 4, 6, 8?" : t === 5 ? "Schau nur auf die letzte Ziffer: 0 oder 5?" : "Schau nur auf die letzte Ziffer: 0?"}, {t: `Letzte Ziffer von ${z(loes)}: □`, w: loes % 10}];
+    return sauber({frage: `Welche Zahl ist durch ${t} teilbar?`, art: "wahl", loesung: key(ord.indexOf(loes)), wahl: ord.map((n, i) => ({k: key(i), t: z(n)})), schritte,
+      fehler: [F_(key(ord.indexOf(falle)), t === 3 ? "endziffer3" : t === 5 ? "quersumme5" : t === 10 ? "endziffer10" : "endziffer2", T_TEIL[t])]});
+  }
+  function teilerAnzahl(d, rng) {
+    for (;;) {
+      const n = d === 2 ? ri(rng, 12, 60) : ri(rng, 60, 200), teiler = [];
+      for (let k = 1; k <= n; k++) if (n % k === 0) teiler.push(k);
+      if (teiler.length < 4) continue;
+      const paare = teiler.filter(k => k * k <= n).map(k => [k, n / k]), quad = paare.some(p => p[0] === p[1]);
+      return sauber({frage: `Wie viele Teiler hat ${n}?`, art: "zahl", loesung: teiler.length,
+        schritte: [{t: `Teilerpaare: ${paare.map(p => p[0] + " · " + p[1]).join(", ")}`}, {t: "Anzahl der Teilerpaare: □", w: paare.length},
+          {t: quad ? "Der Teiler in der Mitte (Zahl mal sich selbst) zählt nur einmal. Teiler insgesamt: □" : "Jedes Paar bringt zwei Teiler. Teiler insgesamt: □", w: teiler.length}],
+        fehler: [F_(teiler.length - 2, "teiler1n", `1 und ${n} selbst sind auch Teiler von ${n}.`), F_(teiler.length - 1, "teiler1n", `1 und ${n} selbst sind auch Teiler von ${n}.`),
+          F_(quad ? teiler.length + 1 : null, "teilerquadrat", "Bei einer Quadratzahl zählt der mittlere Teiler (z. B. 6 · 6 = 36) nur einmal.")]});
+    }
+  }
+  function vielfach(d, rng) {
+    for (;;) {
+      const t = d === 1 ? ri(rng, 3, 9) : d === 2 ? ri(rng, 6, 15) : ri(rng, 12, 25), G = d === 1 ? ri(rng, 20, 90) : d === 2 ? ri(rng, 50, 300) : ri(rng, 100, 999);
+      if (G % t === 0) continue;
+      const q = Math.floor(G / t), c = (q + 1) * t;
+      return sauber({frage: `Welches ist das kleinste Vielfache von ${t}, das größer als ${G} ist?`, art: "zahl", loesung: c,
+        schritte: [{t: `${G} : ${t} = □ Rest ${G - q * t}`, w: q}, {t: `Nächstes Vielfaches: ${t} · ${q + 1} = □`, w: c}],
+        fehler: [F_(q * t, "vielfach", `${q * t} ist kleiner als ${G}. Gesucht ist das erste Vielfache darüber.`),
+          F_(G + t, "vielfach", `${G} ist kein Vielfaches von ${t}. Rechne ${G} : ${t} und nimm das nächste Vielfache.`)]});
+    }
+  }
+  function genTeilbar(d, rng) {
+    const v = d === 1 ? pk(rng, ["regel", "regel", "vielfach"]) : pk(rng, ["regel3", "teiler", "vielfach"]);
+    if (v === "regel" || v === "regel3") return teilRegel(v === "regel3" ? (d === 3 && rng() < 0.3 ? pk(rng, [2, 5, 10]) : 3) : pk(rng, [2, 5, 10]), d, rng);
+    return v === "teiler" ? teilerAnzahl(d, rng) : vielfach(d, rng);
+  }
+
+  /* ---------- I Zahlenmengen ℕ und ℤ ---------- */
+  const MENGEN = [{k: "nz", t: "zu ℕ und zu ℤ"}, {k: "z", t: "nur zu ℤ"}, {k: "keine", t: "weder zu ℕ noch zu ℤ"}];
+  const T_NZ = "Jede natürliche Zahl ist auch eine ganze Zahl: ℕ ist ein Teil von ℤ.", T_ZN = "Negative Zahlen gehören nicht zu ℕ, aber zu ℤ.", T_KOMMA = "Ganze Zahlen haben keine Stelle nach dem Komma.";
+  function genMengen(d, rng) {
+    if (d === 1 || (d === 2 && rng() < 0.4)) {
+      const v = pk(rng, d === 1 ? ["pos", "neg", "neg"] : ["pos", "neg", "dez"]);
+      if (v === "pos") { const x = ri(rng, 1, 99); return sauber({frage: `Zu welcher Zahlenmenge gehört ${z(x)}?`, art: "wahl", loesung: "nz", wahl: MENGEN,
+        schritte: [{t: "ℕ = {1; 2; 3; …}, ℤ = {…; −2; −1; 0; 1; 2; …}"}, {t: `${z(x)} ist eine natürliche Zahl, also auch eine ganze Zahl.`}], fehler: [F_("z", "mengeN", T_NZ)]}); }
+      if (v === "neg") { const x = -ri(rng, 1, 99); return sauber({frage: `Zu welcher Zahlenmenge gehört ${z(x)}?`, art: "wahl", loesung: "z", wahl: MENGEN,
+        schritte: [{t: "ℕ = {1; 2; 3; …}, ℤ = {…; −2; −1; 0; 1; 2; …}"}, {t: `${z(x)} ist negativ: nicht in ℕ, aber in ℤ.`}], fehler: [F_("nz", "mengeZ", T_ZN)]}); }
+      const x = (ri(rng, 1, 40) + 0.5) * (rng() < 0.5 ? -1 : 1);
+      return sauber({frage: `Zu welcher Zahlenmenge gehört ${z(x)}?`, art: "wahl", loesung: "keine", wahl: MENGEN,
+        schritte: [{t: `${z(x)} liegt zwischen zwei ganzen Zahlen.`}], fehler: [F_(x < 0 ? "z" : "nz", "mengeKomma", T_KOMMA)]});
+    }
+    if (d === 2) {
+      const neg = -ri(rng, 1, 60), pos = ri(rng, 1, 60), dez = -(ri(rng, 1, 30) + 0.5), dritte = rng() < 0.5 ? ri(rng, 61, 99) : ri(rng, 1, 30) + 0.5;
+      const xs = mix(rng, [neg, pos, dez, dritte]), key = x => KEYS[xs.indexOf(x)];
+      return sauber({frage: "Welche Zahl gehört zu ℤ, aber nicht zu ℕ?", art: "wahl", loesung: key(neg), wahl: xs.map((x, i) => ({k: KEYS[i], t: z(x)})),
+        schritte: [{t: "Gesucht ist eine ganze Zahl, die keine natürliche Zahl ist: also negativ und ohne Komma."}],
+        fehler: [F_(key(pos), "mengeN", `${z(pos)} ist eine natürliche Zahl und gehört damit zu ℕ.`), F_(key(dez), "mengeKomma", T_KOMMA)]});
+    }
+    const a = -ri(rng, 2, 15), b = ri(rng, 2, 15), c = b - a - 1;
+    return sauber({frage: `Wie viele ganze Zahlen liegen zwischen ${z(a)} und ${z(b)}?`, art: "zahl", loesung: c,
+      schritte: [{t: `Negative Zahlen von ${z(a + 1)} bis −1: □`, w: -a - 1}, {t: "Dazu kommt die 0."}, {t: `Positive Zahlen von 1 bis ${b - 1}: □`, w: b - 1}, {t: "Zusammen: □", w: c}],
+      fehler: [F_(c + 2, "grenzen", `„Zwischen“ heißt: ohne die beiden Randzahlen ${z(a)} und ${z(b)}.`), F_(c - 1, "nullvergessen", "Die 0 ist auch eine ganze Zahl und zählt mit."),
+        F_(c + 1, "grenzen", `„Zwischen“ heißt: ohne die beiden Randzahlen ${z(a)} und ${z(b)}.`)]});
+  }
+
+  /* ---------- II Schriftlich addieren und subtrahieren ---------- */
+  function addOhneUebertrag(xs) { const L = Math.max(...xs.map(x => String(x).length)), out = []; for (let i = 0; i < L; i++) out.push(xs.reduce((s, x) => s + (ziff(x)[i] || 0), 0) % 10); return ausZiff(out); }
+  function subFehler(a, b) {   // [ohne Übertrag, kleinere von größerer Ziffer]
+    const A = ziff(a), B = ziff(b), o1 = [], o2 = [];
+    A.forEach((x, i) => { const y = B[i] || 0; o1.push((x - y + 10) % 10); o2.push(Math.abs(x - y)); });
+    return [ausZiff(o1), ausZiff(o2)];
+  }
+  const T_UEB = "Übertrag vergessen: Ist eine Spalte 10 oder mehr, schreibst du die Einer hin und nimmst 1 in die nächste Spalte mit.";
+  function genSchriftlich(d, rng) {
+    for (;;) {
+      const op = d === 1 ? "+" : d === 2 ? pk(rng, ["+", "−"]) : pk(rng, ["+", "−", "−"]);
+      if (op === "+") {
+        const n = d === 3 ? 3 : 2, xs = [];
+        for (let i = 0; i < n; i++) xs.push(d === 1 ? ri(rng, 100, 899) : d === 2 ? ri(rng, 1000, 8999) : ri(rng, 1000, 49999));
+        const c = xs.reduce((p, q) => p + q, 0), ou = addOhneUebertrag(xs);
+        if (ou === c) continue;
+        const L = String(c).length, schritte = []; let u = 0;
+        for (let i = 0; i < Math.min(L, 5); i++) {
+          const ds = xs.map(x => ziff(x)[i] || 0), s = ds.reduce((p, q) => p + q, 0) + u;
+          if (i >= Math.max(...xs.map(x => String(x).length))) break;
+          schritte.push({t: `${STELLEN[i]}: ${ds.join(" + ")}${u ? ` + ${u} (Übertrag)` : ""} = □`, w: s}); u = Math.floor(s / 10);
+        }
+        schritte.push({t: "Ergebnis: □", w: c});
+        return sauber({frage: `Rechne schriftlich: ${xs.map(z).join(" + ")}`, art: "zahl", loesung: c, bild: {typ: "stellen", zeilen: xs, op: "+"}, schritte,
+          fehler: [F_(ou, "uebertrag", T_UEB)]});
+      }
+      const a = d === 2 ? ri(rng, 2000, 9999) : ri(rng, 10000, 99999), b = d === 2 ? ri(rng, 100, a - 500) : ri(rng, 1000, a - 1000), c = a - b;
+      const [ou, kg] = subFehler(a, b);
+      if (ou === c || kg === c) continue;
+      const A = ziff(a), B = ziff(b), schritte = []; let u = 0;
+      for (let i = 0; i < A.length && schritte.length < 5; i++) {
+        const y = (B[i] || 0) + u, x = A[i] - y, leih = x < 0;
+        schritte.push({t: `${STELLEN[i]}: ${A[i]} − ${B[i] || 0}${u ? " − 1 (Übertrag)" : ""}${leih ? ", geht nicht: 10 dazu, 1 Übertrag" : ""}. Ziffer: □`, w: leih ? x + 10 : x});
+        u = leih ? 1 : 0;
+      }
+      schritte.push({t: "Ergebnis: □", w: c});
+      return sauber({frage: `Rechne schriftlich: ${z(a)} − ${z(b)}`, art: "zahl", loesung: c, bild: {typ: "stellen", zeilen: [a, b], op: "−"}, schritte,
+        fehler: [F_(ou, "uebertrag", "Übertrag vergessen: Wenn du in einer Spalte 10 dazunimmst, musst du in der nächsten Spalte 1 mehr abziehen."),
+          F_(kg, "ziffertausch", "Nicht einfach die kleinere von der größeren Ziffer abziehen: Oben minus unten. Geht es nicht, nimm 10 dazu und merk dir 1 Übertrag.")]});
+    }
+  }
+
+  /* ---------- II Terme mit + und −, Klammern ---------- */
+  const T_KLPM = "Was in Klammern steht, rechnest du zuerst. Die Klammer wird als Ganzes abgezogen.";
+  function genTermePM(d, rng) {
+    for (;;) {
+      const v = d === 1 ? pk(rng, ["minusSumme", "links"]) : d === 2 ? pk(rng, ["zweiKl", "minusDiff"]) : pk(rng, ["tSumme", "tDiff", "tVonDiff"]);
+      const a = ri(rng, d === 1 ? 30 : 60, d === 1 ? 99 : 300), b = ri(rng, 5, d === 1 ? 30 : 60), c = ri(rng, 3, d === 1 ? 25 : 50), e = ri(rng, 2, 40);
+      let txt, w, fehler, schritte;
+      if (v === "minusSumme" || v === "tSumme") {
+        w = a - (b + c); txt = v === "tSumme" ? `Subtrahiere von ${a} die Summe aus ${b} und ${c}.` : `${a} − (${b} + ${c}) = ?`;
+        schritte = [...(v === "tSumme" ? [{t: `Term: ${a} − (${b} + ${c})`}] : []), {t: `Klammer zuerst: ${b} + ${c} = □`, w: b + c}, {t: `${a} − ${b + c} = □`, w}];
+        fehler = [F_(a - b + c, "klammer", T_KLPM)];
+      } else if (v === "links") {
+        w = a - b - c; txt = `${a} − ${b} − ${c} = ?`;
+        schritte = [{t: "Ohne Klammer: von links nach rechts."}, {t: `${a} − ${b} = □`, w: a - b}, {t: `${a - b} − ${c} = □`, w}];
+        fehler = [F_(a - (b - c), "linksrechts", `Ohne Klammer rechnest du von links nach rechts: erst ${a} − ${b}, dann − ${c}.`)];
+      } else if (v === "zweiKl") {
+        if (c <= e) continue;
+        w = (a + b) - (c - e); txt = `(${a} + ${b}) − (${c} − ${e}) = ?`;
+        schritte = [{t: `Erste Klammer: ${a} + ${b} = □`, w: a + b}, {t: `Zweite Klammer: ${c} − ${e} = □`, w: c - e}, {t: `${a + b} − ${c - e} = □`, w}];
+        fehler = [F_(a + b - c - e, "minusklammer", "Minus vor der Klammer: Erst die Klammer ausrechnen, dann das Ergebnis abziehen.")];
+      } else if (v === "minusDiff" || v === "tDiff") {
+        if (b <= c) continue;
+        w = a - (b - c); txt = v === "tDiff" ? `Subtrahiere die Differenz von ${b} und ${c} von ${a}.` : `${a} − (${b} − ${c}) = ?`;
+        schritte = [...(v === "tDiff" ? [{t: `Term: ${a} − (${b} − ${c})`}] : []), {t: `Klammer zuerst: ${b} − ${c} = □`, w: b - c}, {t: `${a} − ${b - c} = □`, w}];
+        fehler = [F_(a - b - c, "klammer", T_KLPM)];
+      } else {
+        w = (a - b) + c; txt = `Addiere zur Differenz von ${a} und ${b} die Zahl ${c}.`;
+        schritte = [{t: `Term: (${a} − ${b}) + ${c}`}, {t: `Differenz: ${a} − ${b} = □`, w: a - b}, {t: `${a - b} + ${c} = □`, w}];
+        fehler = [F_(a - (b + c), "termtext", `Die Differenz von ${a} und ${b} ist ${a} − ${b}. Dazu wird ${c} addiert, nicht abgezogen.`)];
+      }
+      if (w < 0 || schritte.some(s => s.w != null && s.w < 0) || fehler.some(f => f.w < 0)) continue;
+      return sauber({frage: txt, art: "zahl", loesung: w, schritte, fehler});
+    }
+  }
+
+  /* ---------- II Geschickt rechnen mit + und − (Vertauschen, Zusammenfassen) ---------- */
+  function genGeschicktPlus(d, rng) {
+    for (;;) {
+      if (d === 1) {
+        const a = ri(rng, 11, 89), c = 100 - a, b = ri(rng, 11, 99);
+        if (a % 10 === 0) continue;
+        return sauber({frage: `Rechne geschickt: ${a} + ${b} + ${c} = ?`, art: "zahl", loesung: 100 + b,
+          schritte: [{t: `Vertauschen (Kommutativgesetz): ${a} + ${c} + ${b}`}, {t: `${a} + ${c} = □`, w: 100}, {t: `100 + ${b} = □`, w: 100 + b}],
+          fehler: [F_(90 + b, "uebertrag", `${a} + ${c}: Die Einer ergeben 10, also 1 Zehner Übertrag. Zusammen genau 100.`)]});
+      }
+      if (d === 2) {
+        const A = ri(rng, 150, 999), b = ri(rng, 11, 89), c = 100 - b;
+        if (b % 10 === 0) continue;
+        return sauber({frage: `Rechne geschickt: ${A} − ${b} − ${c} = ?`, art: "zahl", loesung: A - 100,
+          schritte: [{t: `Zusammenfassen: ${A} − ${b} − ${c} = ${A} − (${b} + ${c})`}, {t: `${b} + ${c} = □`, w: 100}, {t: `${A} − 100 = □`, w: A - 100}],
+          fehler: [F_(A - b + c, "minusklammer", `Wer erst ${b} und dann ${c} abzieht, zieht zusammen ${b} + ${c} ab.`)]});
+      }
+      const a = ri(rng, 12, 89), b = ri(rng, 20, 99), c = ri(rng, 5, 60);
+      if (b === c) continue;
+      const xs = mix(rng, [-a, b, a, -c]);
+      return sauber({frage: `Rechne geschickt: ${xs.map((x, i) => i ? zk(x) : z(x)).join(" + ")} = ?`, art: "zahl", loesung: b - c,
+        schritte: [{t: `Gegenzahlen zusammen: ${z(-a)} + ${a} = □`, w: 0}, {t: `Rest: ${b} + ${zk(-c)} = □`, w: b - c}],
+        fehler: [F_(b - c - 2 * a, "gegenzahl0", `Eine Zahl und ihre Gegenzahl ergeben zusammen 0: ${z(-a)} + ${a} = 0.`), F_(c - b, "vorzeichen", T_VZ)]});
+    }
+  }
+
+  /* ---------- III Parallel und senkrecht (Geraden antippen) ---------- */
+  const RICHT = [[[1, 0], [0, 1], [1, 1], [1, -1]], [[1, 2], [2, -1], [2, 1], [1, -2]], [[1, 3], [3, -1], [3, 1], [1, -3], [2, 3], [3, -2]]];
+  const GNAME = ["g", "h", "k", "l"];
+  const winkelDir = ([dx, dy]) => { let a = Math.atan2(dy, dx) * 180 / Math.PI; a = ((a % 180) + 180) % 180; return a; };
+  const winkelZw = (u, v) => { const x = Math.abs(winkelDir(u) - winkelDir(v)) % 180; return Math.min(x, 180 - x); };
+  function genLage(d, rng) {
+    const pool = RICHT.slice(0, d).reduce((a, b) => a.concat(b), []);
+    for (let v = 0; v < 2000; v++) {
+      const par = rng() < 0.5, D = pk(rng, pool), dirs = [D];
+      if (par) dirs.push(D); else { const s = pool.filter(q => q[0] * D[0] + q[1] * D[1] === 0); if (!s.length) continue; dirs.push(pk(rng, s)); }
+      dirs.push(pk(rng, pool)); dirs.push(pk(rng, pool));
+      const segs = [], pts = [];
+      for (const dr of dirs) { const P = [ri(rng, 2, 8), ri(rng, 2, 8)], s = geo.klippen(P[0], P[1], dr[0], dr[1], 0, 10); pts.push(P); segs.push(s); }
+      if (segs.some(s => !s || Math.hypot(s.x2 - s.x1, s.y2 - s.y1) < 5)) continue;
+      // keine zwei Geraden aufeinander, parallele mit Abstand
+      let schlecht = false;
+      for (let i = 0; i < 4 && !schlecht; i++) for (let j = i + 1; j < 4; j++) {
+        const u = dirs[i], w = dirs[j];
+        if (u[0] * w[1] - u[1] * w[0] === 0) { const cr = Math.abs((pts[j][0] - pts[i][0]) * u[1] - (pts[j][1] - pts[i][1]) * u[0]) / Math.hypot(u[0], u[1]); if (cr < 1.5) { schlecht = true; break; } }
+      }
+      if (schlecht) continue;
+      // jede Gerade an ihrer Mitte eindeutig antippbar
+      const geraden = segs.map((s, i) => Object.assign({n: GNAME[i]}, s));
+      if (geraden.some((g, i) => geo.naechsteGerade(geraden, (g.x1 + g.x2) / 2, (g.y1 + g.y2) / 2, 0.6) !== i || geraden.some((h, j) => j !== i && geo.abstandPS((g.x1 + g.x2) / 2, (g.y1 + g.y2) / 2, h.x1, h.y1, h.x2, h.y2) < 1))) continue;
+      const paare = [], fehler = [];
+      for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+        const u = dirs[i], w = dirs[j], isPar = u[0] * w[1] - u[1] * w[0] === 0, isSenk = u[0] * w[0] + u[1] * w[1] === 0, wz = winkelZw(u, w);
+        paare.push({k: `${i}-${j}`, t: `${GNAME[i]} und ${GNAME[j]}`, par: isPar, senk: isSenk, wz});
+      }
+      const treffer = paare.filter(p => par ? p.par : p.senk);
+      if (treffer.length !== 1) continue;
+      paare.forEach(p => {
+        if (p === treffer[0]) return;
+        if (par ? p.senk : p.par) fehler.push(F_(p.k, "parsenk", par ? "Verwechselt: Senkrechte Geraden bilden einen rechten Winkel. Parallele Geraden haben die gleiche Richtung und schneiden sich nie."
+          : "Verwechselt: Parallele Geraden schneiden sich nie. Senkrechte Geraden bilden einen rechten Winkel (90°)."));
+        else if (par ? p.wz > 0 && p.wz <= 20 : p.wz >= 70 && p.wz < 90) fehler.push(F_(p.k, par ? "fastparallel" : "fastsenkrecht", par ? "Sieh genau hin: Parallele Geraden steigen gleich, z. B. je 1 Kästchen nach rechts genau gleich viele nach oben. Diese beiden kommen sich langsam näher."
+          : "Fast, aber nicht ganz 90°. Prüfe den Winkel mit der Ecke eines Blattes oder dem Geodreieck."));
+      });
+      if (!fehler.length) continue;
+      const [i, j] = treffer[0].k.split("-").map(Number), sp = dr => `${dr[0]} nach rechts, ${Math.abs(dr[1])} nach ${dr[1] < 0 ? "unten" : "oben"}`;
+      return sauber({frage: `Welche zwei Geraden sind ${par ? "parallel" : "senkrecht"} zueinander?`, art: "wahl", loesung: treffer[0].k, wahl: paare.map(p => ({k: p.k, t: p.t})),
+        bild: {typ: "koord", min: 0, max: 10, ohneAchsen: true, geraden, punkte: []}, tippGeraden: true,
+        schritte: par ? [{t: "Parallel heißt: gleiche Richtung, die Geraden schneiden sich nie."}, {t: `${GNAME[i]} und ${GNAME[j]} gehen beide ${sp(dirs[i])} (oder ein Vielfaches davon).`}]
+          : [{t: "Senkrecht heißt: Die Geraden bilden einen rechten Winkel (90°)."}, {t: `${GNAME[i]}: ${sp(dirs[i])}; ${GNAME[j]}: ${sp(dirs[j])}. Um 90° gedreht.`}],
+        fehler: fehler.slice(0, 3)});
+    }
+    return genLage(1, rng);
+  }
+
+  /* ---------- III Abstand Punkt–Gerade, Lotfußpunkt (Punkt antippen) ---------- */
+  function genAbstand(d, rng) {
+    for (;;) {
+      const v = d === 1 ? "dist" : d === 2 ? pk(rng, ["dist", "lot"]) : pk(rng, ["lotdiag", "lotdiag", "dist"]);
+      if (v === "lotdiag") {
+        const auf = rng() < 0.5, c = auf ? ri(rng, -4, 4) : ri(rng, 6, 14), px = ri(rng, 0, 10), py = ri(rng, 0, 10);
+        const off = auf ? py - (px + c) : py - (c - px);
+        if (Math.abs(off) < 2 || Math.abs((px + py + c) % 2) !== 0) continue;
+        const F = auf ? [(px + py - c) / 2, (px + py + c) / 2] : [(px - py + c) / 2, (py - px + c) / 2];
+        if (!F.every(x => Number.isInteger(x) && x >= 0 && x <= 10)) continue;
+        const s = auf ? geo.klippen(0, c, 1, 1, 0, 10) : geo.klippen(0, c, 1, -1, 0, 10);
+        if (!s || Math.hypot(s.x2 - s.x1, s.y2 - s.y1) < 5) continue;
+        const senk = auf ? [px, px + c] : [px, c - px], waag = auf ? [py - c, py] : [c - py, py];
+        const T = "Das Lot steht senkrecht auf g, nicht senkrecht auf der x-Achse. Geh von P aus im rechten Winkel zu g: je 1 Kästchen zur Seite und 1 hoch oder runter.";
+        return sauber({frage: "Setze den Lotfußpunkt F: Wo trifft das Lot von P die Gerade g?", art: "paar", loesung: F, labels: ["x", "y"],
+          bild: {typ: "koord", min: 0, max: 10, geraden: [Object.assign({n: "g"}, s)], punkte: [{n: "P", x: px, y: py}], tippen: true},
+          schritte: [{t: "Das Lot von P auf g steht senkrecht auf g. g verläuft schräg, also verläuft das Lot auch schräg (über Eck durch die Kästchen)."}, {t: "x-Wert von F: □", w: F[0]}, {t: "y-Wert von F: □", w: F[1]}],
+          fehler: [F_(senk, "lotsenkrecht", T), F_(waag, "lotsenkrecht", T)]});
+      }
+      const senkG = rng() < 0.5, m = ri(rng, 1, 9), px = ri(rng, 0, 10), py = ri(rng, 0, 10), a = senkG ? px : py, b = senkG ? py : px;
+      if (Math.abs(a - m) < 2) continue;
+      const s = senkG ? {x1: m, y1: 0, x2: m, y2: 10} : {x1: 0, y1: m, x2: 10, y2: m};
+      const bild = {typ: "koord", min: 0, max: 10, geraden: [Object.assign({n: "g"}, s)], punkte: [{n: "P", x: px, y: py}]};
+      if (v === "dist") {
+        const dd = Math.abs(a - m);
+        return sauber({frage: "Wie viele Kästchen ist der Punkt P von der Geraden g entfernt?", art: "zahl", loesung: dd, einheitText: "Kästchen", bild,
+          schritte: [{t: "Der Abstand ist die kürzeste Verbindung: senkrecht zur Geraden."}, {t: `P: ${senkG ? "x" : "y"} = ${a}, g: ${senkG ? "x" : "y"} = ${m}. Abstand: □`, w: dd}],
+          fehler: [F_(a, "abstandkoord", `Gesucht ist der Abstand zur Geraden g, nicht der ${senkG ? "x" : "y"}-Wert von P. Zähl die Kästchen zwischen P und g.`),
+            F_(dd + 1, "linien", "Zähl die Kästchen zwischen P und g, nicht die Gitterlinien.")]});
+      }
+      const F = senkG ? [m, b] : [b, m], gesp = senkG ? [2 * m - a, b] : [b, 2 * m - a];
+      return sauber({frage: "Setze den Lotfußpunkt F: Wo trifft das Lot von P die Gerade g?", art: "paar", loesung: F, labels: ["x", "y"], bild: Object.assign(bild, {tippen: true}),
+        schritte: [{t: `Das Lot steht senkrecht auf g. Von P aus geht es ${senkG ? "waagrecht" : "senkrecht"} bis zur Geraden.`}, {t: "x-Wert von F: □", w: F[0]}, {t: "y-Wert von F: □", w: F[1]}],
+        fehler: [F_(gesp, "lotspiegel", "Der Lotfußpunkt F liegt auf der Geraden g, nicht auf der anderen Seite.")]});
+    }
+  }
+
+  /* ---------- III Kreis: Radius und Durchmesser, Lage eines Punktes ---------- */
+  const LAGE = [{k: "innen", t: "innerhalb des Kreises"}, {k: "auf", t: "auf dem Kreis"}, {k: "aussen", t: "außerhalb des Kreises"}];
+  function genKreis(d, rng) {
+    for (;;) {
+      const v = d === 1 ? "rd" : d === 2 ? pk(rng, ["rd", "lage"]) : pk(rng, ["lage", "reihe", "rd"]);
+      if (v === "rd") {
+        const r = ri(rng, 2, d === 1 ? 12 : 30), gibR = rng() < 0.5;
+        if (gibR) return sauber({frage: `Ein Kreis hat den Radius ${r} cm. Wie groß ist sein Durchmesser?`, art: "zahl", loesung: 2 * r, einheitText: "cm", bild: {typ: "kreis", zeige: "r", label: `r = ${r} cm`},
+          schritte: [{t: "Der Durchmesser geht durch den Mittelpunkt einmal ganz hindurch: d = 2 · r."}, {t: `d = 2 · ${r} = □`, w: 2 * r}],
+          fehler: [F_(r, "rd", "Der Durchmesser ist doppelt so lang wie der Radius: d = 2 · r."), F_(r / 2, "rd", "Umgekehrt: Der Durchmesser ist doppelt so lang wie der Radius, nicht halb so lang.")]});
+        return sauber({frage: `Ein Kreis hat den Durchmesser ${2 * r} cm. Wie groß ist sein Radius?`, art: "zahl", loesung: r, einheitText: "cm", bild: {typ: "kreis", zeige: "d", label: `d = ${2 * r} cm`},
+          schritte: [{t: "Der Radius reicht vom Mittelpunkt bis zum Kreis: r = d : 2."}, {t: `r = ${2 * r} : 2 = □`, w: r}],
+          fehler: [F_(2 * r, "rd", "Der Radius ist halb so lang wie der Durchmesser: r = d : 2."), F_(4 * r, "rd", "Umgekehrt: Der Radius ist halb so lang wie der Durchmesser, nicht doppelt so lang.")]});
+      }
+      if (v === "reihe") {
+        const n = ri(rng, 2, 4), r = ri(rng, 2, 9);
+        return sauber({frage: `${n} gleich große Kreise mit dem Radius ${r} cm liegen in einer Reihe und berühren sich. Wie lang ist die Reihe von links nach rechts?`, art: "zahl", loesung: 2 * r * n, einheitText: "cm",
+          bild: {typ: "kreis", zeige: "r", label: `r = ${r} cm`, reihe: n},
+          schritte: [{t: `Jeder Kreis ist so breit wie sein Durchmesser: 2 · ${r} = □ cm`, w: 2 * r}, {t: `${n} Kreise: ${n} · ${2 * r} = □`, w: 2 * r * n}],
+          fehler: [F_(r * n, "rd", "Jeder Kreis ist so breit wie sein Durchmesser, also 2 · r, nicht r."), F_(2 * r + n, "operation", `${n} Kreise nebeneinander: Die Breite eines Kreises mal ${n}.`)]});
+      }
+      const gibR = rng() < 0.5, r = ri(rng, 4, 12), fall = pk(rng, gibR ? ["aussen", "aussen2", "innen"] : ["auf", "aussen"]);
+      let s, loes, falsch;
+      if (fall === "aussen") { s = ri(rng, r + 1, 2 * r - 1); loes = "aussen"; falsch = "innen"; }
+      else if (fall === "aussen2") { s = 2 * r; loes = "aussen"; falsch = "auf"; }
+      else if (fall === "innen") { s = ri(rng, Math.floor(r / 2) + 1, r - 1); loes = "innen"; falsch = "aussen"; }
+      else { s = r; loes = "auf"; falsch = "innen"; }
+      const T = gibR && fall === "innen" ? `Der Radius ${r} cm ist schon der Abstand vom Mittelpunkt zum Kreis. Nicht noch halbieren: ${s} cm < ${r} cm, also innerhalb.`
+        : `Vergleiche den Abstand mit dem Radius, nicht mit dem Durchmesser. Radius: ${r} cm.`;
+      return sauber({frage: `Ein Kreis um M hat ${gibR ? `den Radius ${r} cm` : `den Durchmesser ${2 * r} cm`}. Der Punkt P ist ${s} cm von M entfernt. Wo liegt P?`, art: "wahl", loesung: loes, wahl: LAGE,
+        bild: {typ: "kreis", zeige: gibR ? "r" : "d", label: gibR ? `r = ${r} cm` : `d = ${2 * r} cm`, },   // v14.1: P nicht einzeichnen, sonst verrät das Bild die Lösung
+        schritte: [gibR ? {t: `Radius: □ cm`, w: r} : {t: `Radius = Durchmesser : 2 = □ cm`, w: r}, {t: `Vergleiche ${s} cm mit dem Radius: kleiner = innerhalb, gleich = auf dem Kreis, größer = außerhalb.`}],
+        fehler: [F_(falsch, "durchmesser", T)]});
+    }
+  }
+
+  /* ---------- III Winkel einstellen (Schenkel ziehen) ---------- */
+  const TOLW = {1: 10, 2: 5, 3: 3};
+  function genWinkelStellen(d, rng) {
+    for (;;) {
+      const ueber = d === 3 && rng() < 0.4;
+      const a = ueber ? ri(rng, 195, 345) : d === 1 ? ri(rng, 2, 16) * 10 : d === 2 ? ri(rng, 3, 33) * 5 : ri(rng, 10, 170);
+      if (ueber ? Math.abs(a - 180) < 15 || Math.abs(a - 270) < 4 : Math.abs(a - 90) < 15) continue;
+      const dreh = d === 1 ? 0 : pk(rng, [0, 0, 30, 60, 90, 180, 270, 300]), f = ueber ? 360 - a : 180 - a;
+      return sauber({frage: `Stelle einen Winkel von ${a}° ein: Zieh den farbigen Schenkel.`, art: "winkel", loesung: a, tol: TOLW[d], einheitText: "°",
+        bild: {typ: "winkelzeiger", dreh, voll: ueber, start: 0},
+        schritte: ueber ? [{t: "Überstumpf: größer als 180°. Der Winkel geht über den gestreckten Winkel hinaus."}, {t: `Auf der anderen Seite bleiben 360° − ${a}° = □°`, w: 360 - a}]
+          : [{t: "Lies auf der Skala, die am ersten Schenkel mit 0° beginnt."}, a < 90 ? {t: `Spitzer Winkel: Bis 90° fehlen □°`, w: 90 - a} : {t: `Stumpfer Winkel: über 90° hinaus noch □°`, w: a - 90}],
+        fehler: [F_(f, ueber ? "vollwinkel" : "gegenwinkel", ueber ? `Das ist der Winkel auf der anderen Seite: 360° − ${a}° = ${f}°. Ein überstumpfer Winkel ist größer als 180°.`
+          : `Falsche Skala: ${f}° = 180° − ${a}°. Lies auf der Skala, die am ersten Schenkel mit 0° beginnt.`)]});
+    }
+  }
+
+  /* ---------- III Vierecke: Namen und Eigenschaften (Figur im Gitter) ---------- */
+  const VNAME = {quadrat: "Quadrat", rechteck: "Rechteck", raute: "Raute", parallelogramm: "Parallelogramm", trapez: "Trapez", drachen: "Drachen"};
+  const VWAHL = Object.keys(VNAME).map(k => ({k, t: VNAME[k]}));
+  const EIG = [{k: "rw", t: "4 rechte Winkel"}, {k: "sg", t: "alle 4 Seiten gleich lang"}, {k: "gg", t: "gegenüberliegende Seiten gleich lang"},
+    {k: "p2", t: "2 Paare paralleler Seiten"}, {k: "p1", t: "mindestens 1 Paar paralleler Seiten"}, {k: "ds", t: "Diagonalen senkrecht zueinander"}];
+  function eigenschaften(P) {
+    const e = i => [P[(i + 1) % 4][0] - P[i][0], P[(i + 1) % 4][1] - P[i][1]], E = [0, 1, 2, 3].map(e), l2 = v => v[0] * v[0] + v[1] * v[1];
+    const dot = (u, v) => u[0] * v[0] + u[1] * v[1], kr = (u, v) => u[0] * v[1] - u[1] * v[0];
+    const o = {rw: E.every((v, i) => dot(v, E[(i + 1) % 4]) === 0), sg: E.every(v => l2(v) === l2(E[0])), gg: l2(E[0]) === l2(E[2]) && l2(E[1]) === l2(E[3]),
+      p2: kr(E[0], E[2]) === 0 && kr(E[1], E[3]) === 0, p1: kr(E[0], E[2]) === 0 || kr(E[1], E[3]) === 0,
+      ds: dot([P[2][0] - P[0][0], P[2][1] - P[0][1]], [P[3][0] - P[1][0], P[3][1] - P[1][1]]) === 0};
+    o.drache = (l2(E[0]) === l2(E[1]) && l2(E[2]) === l2(E[3])) || (l2(E[1]) === l2(E[2]) && l2(E[3]) === l2(E[0]));
+    o.name = o.rw && o.sg ? "quadrat" : o.rw ? "rechteck" : o.sg ? "raute" : o.p2 ? "parallelogramm" : o.p1 ? "trapez" : o.drache && o.ds ? "drachen" : "";
+    return o;
+  }
+  /* Viereck ABCD (gegen den Uhrzeigersinn) mit Ecken im Gitter 0–10; schraeg = gedreht */
+  function viereck(typ, schraeg, rng) {
+    for (let v = 0; v < 3000; v++) {
+      let P;
+      if (typ === "quadrat" || typ === "rechteck") {
+        const a = ri(rng, 2, 6), b = schraeg ? ri(rng, 1, 3) : 0, m = typ === "rechteck" ? pk(rng, schraeg ? [2] : [1, 1, 2]) : 1;
+        let u = [a, b], w = [-b * m, a * m];
+        if (typ === "rechteck" && !schraeg) w = [0, ri(rng, 2, 6)];
+        P = [[0, 0], u, [u[0] + w[0], u[1] + w[1]], w];
+      } else if (typ === "raute") { const p = ri(rng, 1, 5), q = ri(rng, 1, 5); if (p === q) continue; P = schraeg && rng() < 0.5 ? [[0, 0], [p, q], [p + q, p + q], [q, p]] : [[0, -q], [p, 0], [0, q], [-p, 0]]; }
+      else if (typ === "parallelogramm") { const a = ri(rng, 3, 7), s = ri(rng, -3, 3), h = ri(rng, 2, 5); if (s === 0) continue; P = [[0, 0], [a, 0], [a + s, h], [s, h]]; }
+      else if (typ === "trapez") { const a = ri(rng, 4, 8), s = ri(rng, -2, 3), c = ri(rng, 2, a + 1), h = ri(rng, 2, 5); P = [[0, 0], [a, 0], [s + c, h], [s, h]]; }
+      else { const w = ri(rng, 1, 4), h1 = ri(rng, 1, 3), h2 = ri(rng, 2, 6); if (h1 === h2) continue; P = [[0, -h2], [w, 0], [0, h1], [-w, 0]]; }
+      if (schraeg && (typ === "parallelogramm" || typ === "trapez" || typ === "drachen") && rng() < 0.5) P = P.map(([x, y]) => [y, -x]);   // um 90° gedreht
+      const mx = Math.min(...P.map(p => p[0])), my = Math.min(...P.map(p => p[1])), W = Math.max(...P.map(p => p[0])) - mx, H = Math.max(...P.map(p => p[1])) - my;
+      if (W > 10 || H > 10 || W < 2 || H < 2) continue;
+      const ox = ri(rng, 0, 10 - W) - mx, oy = ri(rng, 0, 10 - H) - my;
+      P = P.map(([x, y]) => [x + ox, y + oy]);
+      if (eigenschaften(P).name === typ) return P;
+    }
+    return null;
+  }
+  const V_FEHLER = {
+    quadrat: {name: [["rechteck", "viereckgenau", "Alle vier Seiten sind gleich lang und alle Winkel 90°: Das ist ein Quadrat. Nenne den genauesten Namen."],
+      ["raute", "viereckgenau", "Alle Winkel sind rechte Winkel: Das ist ein Quadrat, eine besondere Raute. Nenne den genauesten Namen."]],
+      eig: [["-ds", "eigenschaft", "Beim Quadrat stehen die Diagonalen senkrecht zueinander."], ["-p1", "p1vergessen", "Wer 2 Paare paralleler Seiten hat, hat auch mindestens 1 Paar."]]},
+    rechteck: {name: [["parallelogramm", "viereckgenau", "Vier rechte Winkel: Rechteck ist der genauere Name."], ["quadrat", "viereckseiten", "Die Seiten sind nicht alle gleich lang, also kein Quadrat."]],
+      eig: [["+ds", "eigenschaft", "Beim Rechteck stehen die Diagonalen nicht senkrecht zueinander, das gilt nur beim Quadrat."], ["+sg", "eigenschaft", "Beim Rechteck sind nur gegenüberliegende Seiten gleich lang."]]},
+    raute: {name: [["drachen", "viereckgenau", "Alle vier Seiten sind gleich lang: Das ist eine Raute (ein besonderer Drachen)."], ["quadrat", "viereckwinkel", "Keine rechten Winkel, also kein Quadrat."]],
+      eig: [["+rw", "eigenschaft", "Die Raute hat keine rechten Winkel (sonst wäre sie ein Quadrat)."], ["-ds", "eigenschaft", "Bei der Raute stehen die Diagonalen senkrecht zueinander."]]},
+    parallelogramm: {name: [["trapez", "viereckgenau", "Zwei Paare paralleler Seiten: Parallelogramm ist genauer als Trapez."], ["rechteck", "viereckwinkel", "Keine rechten Winkel, also kein Rechteck."]],
+      eig: [["+rw", "eigenschaft", "Die Winkel sind keine rechten Winkel."], ["-p1", "p1vergessen", "Wer 2 Paare paralleler Seiten hat, hat auch mindestens 1 Paar."]]},
+    trapez: {name: [["parallelogramm", "viereckparallel", "Nur ein Paar Seiten ist parallel: Das ist ein Trapez."]],
+      eig: [["+p2", "eigenschaft", "Beim Trapez ist nur ein Seitenpaar parallel."], ["+gg", "eigenschaft", "Hier sind die gegenüberliegenden Seiten nicht gleich lang."]]},
+    drachen: {name: [["raute", "viereckseiten", "Nur je zwei benachbarte Seiten sind gleich lang: Drachen, keine Raute."]],
+      eig: [["+sg", "eigenschaft", "Beim Drachen sind nur je zwei benachbarte Seiten gleich lang."], ["+p1", "eigenschaft", "Beim Drachen sind keine Seiten parallel."]]}};
+  function genVierecke(d, rng) {
+    const typ = pk(rng, Object.keys(VNAME)), schraeg = d >= 2 && rng() < 0.6, P = viereck(typ, schraeg, rng) || viereck(typ, false, rng);
+    const e = eigenschaften(P), L = EIG.filter(x => e[x.k]).map(x => x.k).sort();
+    const bild = {typ: "koord", min: 0, max: 10, ohneAchsen: true, polygon: P, punkte: []};
+    if (d === 3 && rng() < 0.7) {
+      const fehler = V_FEHLER[typ].eig.map(([op, art, tipp]) => { const k = op.slice(1), s = op[0] === "+" ? L.concat([k]) : L.filter(x => x !== k); return F_(Array.from(new Set(s)).sort(), art, tipp); });
+      return sauber({frage: "Welche Eigenschaften hat dieses Viereck? Wähle alle passenden aus.", art: "menge", loesung: L, eigenschaften: EIG, bild,
+        schritte: [{t: `Das Viereck ist ein${typ === "raute" ? "e" : ""} ${VNAME[typ]}.`}, {t: "Prüfe Seiten (gleich lang? parallel?), Winkel (90°?) und Diagonalen."}], fehler});
+    }
+    return sauber({frage: "Wie heißt dieses Viereck? Wähle den genauesten Namen.", art: "wahl", loesung: typ, wahl: VWAHL, bild,
+      schritte: [{t: "Prüfe: Sind Seiten parallel? Gleich lang? Gibt es rechte Winkel?"}, {t: `Hier: ${EIG.filter(x => e[x.k]).map(x => x.t).join(", ") || "nur benachbarte Seiten paarweise gleich lang"}.`}],
+      fehler: V_FEHLER[typ].name.map(([w, art, tipp]) => F_(w, art, tipp))});
+  }
+  /* ---------- III Fehlende Ecke setzen (Punkt antippen) ---------- */
+  const EGEN = {quadrat: "Quadrats", rechteck: "Rechtecks", parallelogramm: "Parallelogramms"};
+  function genEcke(d, rng) {
+    for (;;) {
+      const typ = d === 1 ? pk(rng, ["quadrat", "rechteck"]) : d === 2 ? pk(rng, ["parallelogramm", "rechteck", "parallelogramm"]) : pk(rng, ["quadrat", "rechteck", "parallelogramm"]);
+      const P = viereck(typ, d === 3, rng); if (!P) continue;
+      const k = ri(rng, 0, 3), Q = [0, 1, 2, 3].map(i => P[(i + k) % 4]), [A, B, C, D] = Q;   // Startecke zufällig
+      const f1 = [B[0] + C[0] - A[0], B[1] + C[1] - A[1]], f2 = [A[0] + B[0] - C[0], A[1] + B[1] - C[1]];
+      return sauber({frage: `A, B und C sind Ecken eines ${EGEN[typ]} ABCD. Setze die fehlende Ecke D.`, art: "paar", loesung: D, labels: ["x", "y"],
+        bild: {typ: "koord", min: 0, max: 10, linie: [A, B, C], punkte: [{n: "A", x: A[0], y: A[1]}, {n: "B", x: B[0], y: B[1]}, {n: "C", x: C[0], y: C[1]}], tippen: true},
+        schritte: [{t: "ABCD geht einmal herum: D liegt gegenüber von B. Von A aus geht es genauso weit wie von B nach C."}, {t: "x-Wert von D: □", w: D[0]}, {t: "y-Wert von D: □", w: D[1]}],
+        fehler: [F_(f1, "ecke", "Reihenfolge beachten: ABCD geht einmal herum, D ist der Nachbar von A und C."), F_(f2, "ecke", "Reihenfolge beachten: ABCD geht einmal herum, D ist der Nachbar von A und C.")]});
+    }
+  }
+
+  /* ---------- IV Schriftlich multiplizieren und dividieren ---------- */
+  function genSchriftMalGeteilt(d, rng) {
+    for (;;) {
+      if (d === 1) {
+        const a = ri(rng, 101, 999), b = ri(rng, 3, 9), A = ziff(a), ou = ausZiff(A.map(x => (x * b) % 10)), c = a * b;
+        if (ou === c || a % 10 === 0) continue;
+        const schritte = []; let u = 0;
+        A.forEach((x, i) => { const s = x * b + u; schritte.push({t: `${STELLEN[i]}: ${x} · ${b}${u ? ` + ${u} (Übertrag)` : ""} = □`, w: s}); u = Math.floor(s / 10); });
+        schritte.push({t: "Ergebnis: □", w: c});
+        return sauber({frage: `Rechne schriftlich: ${z(a)} · ${b}`, art: "zahl", loesung: c, bild: {typ: "stellen", zeilen: [a, b], op: "·"}, schritte,
+          fehler: [F_(ou, "uebertrag", "Übertrag vergessen: Schreib die Einer des Teilprodukts hin und zähl die Zehner bei der nächsten Stelle dazu.")]});
+      }
+      if (d === 2) {
+        const a = ri(rng, 23, 999), b = ri(rng, 12, 99), b1 = Math.floor(b / 10), b0 = b % 10, c = a * b;
+        if (!b0) continue;
+        return sauber({frage: `Rechne schriftlich: ${z(a)} · ${b}`, art: "zahl", loesung: c, bild: {typ: "stellen", zeilen: [a, b], op: "·"},
+          schritte: [{t: `${z(a)} · ${b1} = □ (Zehner, eine Stelle nach links eingerückt)`, w: a * b1}, {t: `${z(a)} · ${b0} = □`, w: a * b0}, {t: `${z(a * b1 * 10)} + ${z(a * b0)} = □`, w: c}],
+          fehler: [F_(a * b1 + a * b0, "verschieben", `Das erste Teilprodukt sind Zehner: ${z(a)} · ${b1 * 10} = ${z(a * b1 * 10)}. Darum wird es eine Stelle nach links eingerückt.`)]});
+      }
+      const b = rng() < 0.6 ? ri(rng, 3, 9) : ri(rng, 11, 25), qd = pk(rng, [[ri(rng, 1, 9), 0, ri(rng, 1, 9)], [ri(rng, 1, 9), ri(rng, 1, 9), 0, ri(rng, 1, 9)], [ri(rng, 1, 9), 0, ri(rng, 1, 9), ri(rng, 1, 9)]]);
+      const q = Number(qd.join("")), a = q * b, ohne = Number(qd.filter(x => x).join(""));
+      if (a > 99999) continue;
+      const schritte = []; let rest = 0, start = true;
+      String(a).split("").forEach(ch => { const part = rest * 10 + +ch, x = Math.floor(part / b); if (start && x === 0) { rest = part; return; } start = false; schritte.push({t: `${part} : ${b} = □`, w: x}); rest = part - x * b; });
+      if (schritte.length > 5) continue;
+      schritte.push({t: "Ergebnis: □", w: q});
+      return sauber({frage: `Rechne schriftlich: ${z(a)} : ${b}`, art: "zahl", loesung: q, schritte,
+        fehler: [F_(ohne, "nullmitte", "Null im Ergebnis vergessen: Passt der Teiler nicht hinein, schreibst du eine 0 ins Ergebnis.")]});
+    }
+  }
+
+  /* ---------- IV Primfaktorzerlegung ---------- */
+  const PRIM = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47];
+  const istPrim = n => { if (n < 2) return false; for (let k = 2; k * k <= n; k++) if (n % k === 0) return false; return true; };
+  const zerlege = n => { const f = []; for (let k = 2; n > 1; k++) while (n % k === 0) { f.push(k); n /= k; } return f; };
+  function kette(n) { const f = zerlege(n), out = []; let c = n; f.forEach(p => { out.push({t: `${c} : ${p} = □`, w: c / p}); c /= p; }); return {f, schritte: out}; }
+  function genPrimfaktor(d, rng) {
+    for (;;) {
+      if (d === 1) {
+        const n = ri(rng, 12, 120); if (istPrim(n)) continue;
+        const p = zerlege(n)[0];
+        return sauber({frage: `Wie heißt der kleinste Primfaktor von ${n}?`, art: "zahl", loesung: p,
+          schritte: [{t: "Probiere die Primzahlen der Reihe nach: 2, 3, 5, 7, …"}, {t: `Kleinster Primfaktor: □`, w: p}],
+          fehler: [F_(1, "primzahl1", "1 ist keine Primzahl. Eine Primzahl hat genau zwei Teiler: 1 und sich selbst."),
+            n % 2 ? F_(2, "teilbar2", `${n} ist ungerade, also nicht durch 2 teilbar.`) : F_(n / 2, "kleinsterpf", "Gefragt ist der kleinste Primfaktor, nicht der größte Teiler.")]});
+      }
+      if (d === 2) {
+        const k = ri(rng, 3, 5), f = []; for (let i = 0; i < k; i++) f.push(pk(rng, [2, 2, 3, 3, 5, 7]));
+        const n = f.reduce((a, b) => a * b, 1), dist = new Set(f).size;
+        if (n > 800 || dist === k) continue;
+        const kt = kette(n);
+        return sauber({frage: `Zerlege ${n} in Primfaktoren. Wie viele Primfaktoren sind es (gleiche mitgezählt)?`, art: "zahl", loesung: k,
+          schritte: kt.schritte.concat([{t: `${n} = ${kt.f.join(" · ")}. Anzahl: □`, w: k}]),
+          fehler: [F_(dist, "mehrfach", "Gleiche Primfaktoren zählen mehrfach: 12 = 2 · 2 · 3 hat 3 Primfaktoren.")]});
+      }
+      const P = pk(rng, PRIM.slice(4)), s = ri(rng, 4, 30), n = s * P;
+      if (istPrim(s) || n > 999 || zerlege(s).some(x => x >= P)) continue;
+      const spf = zerlege(n)[0], kt = kette(n);
+      return sauber({frage: `Wie heißt der größte Primfaktor von ${n}?`, art: "zahl", loesung: P,
+        schritte: kt.schritte.concat([{t: `${n} = ${kt.f.join(" · ")}. Größter Primfaktor: □`, w: P}]),
+        fehler: [F_(n / spf, "keinprim", `${n / spf} ist keine Primzahl. Zerlege weiter, bis nur noch Primzahlen übrig sind.`), F_(s, "keinprim", `${s} ist keine Primzahl. Zerlege weiter, bis nur noch Primzahlen übrig sind.`)]});
+    }
+  }
+
+  /* ---------- IV Zählprinzip ---------- */
+  const STUFEN = [["T-Shirts", "Hosen", "Mützen", "Ein Outfit besteht aus einem T-Shirt, einer Hose und einer Mütze."], ["Vorspeisen", "Hauptgerichte", "Nachspeisen", "Ein Menü besteht aus Vorspeise, Hauptgericht und Nachspeise."],
+    ["Eissorten", "Becherarten", "Soßen", "Ein Eis besteht aus einer Sorte, einem Becher und einer Soße."]];
+  function genZaehlen(d, rng) {
+    if (d <= 2) {
+      const [s1, s2, s3, satz] = pk(rng, STUFEN), n = d === 1 ? 2 : 3, k = [ri(rng, 2, 6), ri(rng, 3, 6), ri(rng, 2, 5)].slice(0, n), c = k.reduce((a, b) => a * b, 1), nm = [s1, s2, s3];
+      return sauber({frage: `Es gibt ${k.map((x, i) => `${x} ${nm[i]}`).join(n === 2 ? " und " : ", ")}. ${n === 2 ? `Du wählst von beiden je eins.` : satz} Wie viele Möglichkeiten gibt es?`, art: "zahl", loesung: c,
+        schritte: k.map((x, i) => ({t: `${i + 1}. Stufe (${nm[i]}): □ Möglichkeiten`, w: x})).concat([{t: `Zu jeder Wahl passen alle der nächsten Stufe: ${k.join(" · ")} = □`, w: c}]),
+        fehler: [F_(k.reduce((a, b) => a + b, 0), "zaehladd", "Zu jeder Wahl der ersten Stufe passen alle Möglichkeiten der nächsten: multiplizieren, nicht addieren."),
+          F_(n === 3 ? k[0] * k[1] : null, "stufevergessen", "Alle Stufen zählen mit: auch die dritte Auswahl multiplizieren.")]});
+    }
+    if (rng() < 0.5) {
+      const n = ri(rng, 3, 5), c = [1, 2, 3, 4, 5].slice(0, n).reduce((a, b) => a * b, 1);
+      return sauber({frage: `Auf wie viele Arten können sich ${n} Kinder nebeneinander in eine Reihe stellen?`, art: "zahl", loesung: c,
+        schritte: [{t: `Platz 1: □ Möglichkeiten`, w: n}, {t: `Platz 2: noch □`, w: n - 1}, {t: `Zusammen: ${Array.from({length: n}, (_, i) => n - i).join(" · ")} = □`, w: c}],
+        fehler: [F_(n ** n, "wiederholung", "Wer schon steht, kann nicht noch einmal gewählt werden: Für jeden Platz gibt es einen weniger."), F_(n * (n + 1) / 2, "zaehladd", "Multiplizieren, nicht addieren: Zu jeder Wahl für Platz 1 passen alle für Platz 2.")]});
+    }
+    const k = ri(rng, 4, 6), c = k * (k - 1) * (k - 2);
+    return sauber({frage: `Wie viele dreistellige Zahlen kann man aus den Ziffern 1 bis ${k} bilden, wenn jede Ziffer höchstens einmal vorkommt?`, art: "zahl", loesung: c,
+      schritte: [{t: "Hunderter: □ Möglichkeiten", w: k}, {t: "Zehner: noch □", w: k - 1}, {t: "Einer: noch □", w: k - 2}, {t: "Zusammen: □", w: c}],
+      fehler: [F_(k * k * k, "wiederholung", "Jede Ziffer höchstens einmal: Für die nächste Stelle gibt es eine Ziffer weniger."), F_(3 * k - 3, "zaehladd", "Multiplizieren, nicht addieren.")]});
+  }
+
+  /* ---------- V Dreisatz (proportional) ---------- */
+  const DS = [{n: "Hefte", e: "€", geld: true, u: [45, 250]}, {n: "Brötchen", e: "€", geld: true, u: [25, 95]}, {n: "Liter Saft", e: "€", geld: true, u: [85, 320]},
+    {n: "Äpfel", e: "g", geld: false, u: [120, 220], g: "wiegen"}, {n: "Stunden", e: "km", geld: false, u: [40, 95], g: "fährt ein Zug in"}];
+  function genDreisatz(d, rng) {
+    for (;;) {
+      const K = pk(rng, d === 1 ? DS.filter(x => !x.geld) : DS), n1 = ri(rng, 2, d === 3 ? 12 : 6), n2 = ri(rng, 2, d === 3 ? 15 : 9);
+      if (n1 === n2) continue;
+      const u = K.geld ? ri(rng, K.u[0] / 5, K.u[1] / 5) * 5 / 100 : ri(rng, K.u[0] / 5, K.u[1] / 5) * 5, v1 = r3(n1 * u), v2 = r3(n2 * u);
+      if (!K.geld && d === 1 && u % 10) continue;
+      const f = x => K.geld ? eur(x) : z(x);
+      const frage = K.n === "Stunden" ? `In ${n1} Stunden fährt ein Zug ${f(v1)} km. Wie weit kommt er in ${n2} Stunden (gleiches Tempo)?`
+        : K.geld ? `${n1} ${K.n} kosten ${f(v1)} €. Wie viel kosten ${n2} ${K.n} (gleicher Preis je ${K.n === "Liter Saft" ? "Liter" : "Stück"})?` : `${n1} ${K.n} wiegen ${f(v1)} g. Wie viel wiegen ${n2} ${K.n} (alle gleich schwer)?`;
+      const eins = K.n === "Stunden" ? "1 Stunde" : K.n === "Liter Saft" ? "1 Liter" : K.n === "Äpfel" ? "1 Apfel" : K.n === "Hefte" ? "1 Heft" : "1 Brötchen";
+      return sauber({frage, art: "zahl", loesung: v2, einheitText: K.e,
+        schritte: [{t: `${eins}: ${f(v1)} ${K.e} : ${n1} = □ ${K.e}`, w: u}, {t: `${n2}-mal so viel: ${n2} · ${f(u)} = □ ${K.e}`, w: v2}],
+        fehler: [F_(r3(v1 * n2), "dreisatz", `Erst auf 1 schließen: ${f(v1)} ${K.e} : ${n1} = ${f(u)} ${K.e}. Dann mal ${n2}.`), F_(u, "dreisatzhalb", `Das ist der Wert für ${eins}. Jetzt noch mal ${n2}.`),
+          F_(r3(v1 + (n2 - n1)), "dreisatzadd", "Proportional heißt: doppelt so viele, doppelt so viel. Nicht die Differenz addieren, sondern über 1 rechnen.")]});
+    }
+  }
+
+  /* ---------- V Maßstab ---------- */
+  function genMassstab(d, rng) {
+    for (;;) {
+      const v = d === 1 ? "plan" : d === 2 ? pk(rng, ["karte", "plan"]) : pk(rng, ["mass", "zurueck", "karte"]);
+      if (v === "plan") {
+        const M = pk(rng, [50, 100, 200]), l = ri(rng, 2, 15), cm = l * M;
+        if (cm % 10) continue;
+        return sauber({frage: `Auf einem Plan im Maßstab 1 : ${M} ist eine Wand ${l} cm lang. Wie lang ist sie in Wirklichkeit (in m)?`, art: "zahl", loesung: r3(cm / 100), einheitText: "m",
+          schritte: [{t: `1 cm auf dem Plan sind ${M} cm in Wirklichkeit. ${l} · ${M} = □ cm`, w: cm}, {t: "In m (100 cm = 1 m): □", w: r3(cm / 100)}],
+          fehler: [F_(cm, "umrechnen", "Gefragt ist die Länge in m: 100 cm = 1 m, also durch 100 teilen."), F_(r3(cm / 1000), "faktor", "1 m = 100 cm, nicht 1000 cm.")]});
+      }
+      if (v === "karte") {
+        const M = pk(rng, [10000, 25000, 50000, 100000]), l = ri(rng, 2, 12), cm = l * M;
+        return sauber({frage: `Auf einer Karte im Maßstab 1 : ${z(M)} sind zwei Orte ${l} cm voneinander entfernt. Wie weit ist das in Wirklichkeit (in km)?`, art: "zahl", loesung: r3(cm / 100000), einheitText: "km",
+          schritte: [{t: `${l} · ${z(M)} = □ cm`, w: cm}, {t: "In km (100 000 cm = 1 km): □", w: r3(cm / 100000)}],
+          fehler: [F_(r3(cm / 1000), "faktor", "1 km = 1000 m = 100 000 cm. Von cm nach km teilst du durch 100 000."), F_(r3(cm / 100), "umrechnen", "Das sind Meter. Gefragt sind Kilometer: noch durch 1000.")]});
+      }
+      if (v === "zurueck") {
+        const M = pk(rng, [25000, 50000, 100000]), km = ri(rng, 1, 8), cm = km * 100000 / M;
+        if (!Number.isInteger(cm) || cm > 30) continue;
+        return sauber({frage: `Eine Straße ist ${km} km lang. Wie lang ist sie auf einer Karte im Maßstab 1 : ${z(M)} (in cm)?`, art: "zahl", loesung: cm, einheitText: "cm",
+          schritte: [{t: `${km} km = □ cm`, w: km * 100000}, {t: `Auf der Karte wird alles kleiner: ${z(km * 100000)} : ${z(M)} = □`, w: cm}],
+          fehler: [F_(km * M, "massstabop", `Auf der Karte wird alles kleiner: teilen durch ${z(M)}, nicht malnehmen.`), F_(r3(km * 1000 / M), "faktor", "1 km = 100 000 cm. Erst in cm umrechnen, dann teilen.")]});
+      }
+      const L = ri(rng, 2, 20), l = pk(rng, [1, 2, 4, 5]), M = L * 100 / l;
+      if (!Number.isInteger(M) || M < 20) continue;
+      return sauber({frage: `Eine ${L} m lange Wand ist auf einem Plan ${l} cm lang. Wie heißt der Maßstab 1 : □?`, art: "zahl", loesung: M,
+        schritte: [{t: `Gleiche Einheit: ${L} m = □ cm`, w: L * 100}, {t: `${L * 100} : ${l} = □`, w: M}],
+        fehler: [F_(r3(L / l), "umrechnen", `Beide Längen in derselben Einheit: ${L} m = ${L * 100} cm.`)]});
+    }
+  }
+
+  /* ---------- VI Zusammengesetzte Rechteckfiguren ---------- */
+  function genZusammen(d, rng) {
+    for (;;) {
+      const W = ri(rng, 6, 14), H = ri(rng, 4, 10), w = ri(rng, 2, W - 2), h = ri(rng, 2, H - 2);
+      if (W === H) continue;
+      const pts = [[0, 0], [W, 0], [W, H - h], [W - w, H - h], [W - w, H], [0, H]], lab = [W, H - h, w, h, W - w, H].map(x => `${x} cm`);
+      const bild = {typ: "figur", punkte: pts, labels: lab}, A = W * H - w * h, U = 2 * (W + H);
+      if (d === 1) return sauber({frage: "Berechne den Flächeninhalt der Figur.", art: "zahl", loesung: A, einheitText: "cm²", bild,
+        schritte: [{t: `Großes Rechteck: ${W} · ${H} = □`, w: W * H}, {t: `Ausgeschnittene Ecke: ${w} · ${h} = □`, w: w * h}, {t: "Fläche: □", w: A}],
+        fehler: [F_(W * H, "ausschnitt", "Die ausgeschnittene Ecke gehört nicht dazu: großes Rechteck minus Ausschnitt."), F_(W * H + w * h, "ausschnitt", "Den Ausschnitt abziehen, nicht addieren.")]});
+      if (d === 2) return sauber({frage: "Berechne den Flächeninhalt der Figur. Zerlege sie in zwei Rechtecke.", art: "zahl", loesung: A, einheitText: "cm²", bild,
+        schritte: [{t: `Unteres Rechteck: ${W} · ${H - h} = □`, w: W * (H - h)}, {t: `Oberes Rechteck: ${W - w} · ${h} = □`, w: (W - w) * h}, {t: "Zusammen: □", w: A}],
+        fehler: [F_(W * (H - h) + (W - w) * H, "doppelt", "Beim Zerlegen darf kein Stück doppelt gezählt werden. Die Rechtecke dürfen sich nicht überlappen."),
+          F_(W * H, "ausschnitt", "Die fehlende Ecke gehört nicht zur Figur.")]});
+      return sauber({frage: "Berechne den Umfang der Figur.", art: "zahl", loesung: U, einheitText: "cm", bild,
+        schritte: [{t: `Alle 6 Seiten: ${[W, H - h, w, h, W - w, H].join(" + ")} = □`, w: U}],
+        fehler: [F_(U - w - h, "umfangecke", "Alle 6 Seiten zählen: Die Kanten an der ausgeschnittenen Ecke gehören auch zum Rand."), F_(U - w, "seiten", "Zähl alle 6 Seiten der Figur."), F_(A, "flaeche_umfang", T_FU)]});
+    }
+  }
+
+  /* ---------- VI Oberflächeninhalt des Quaders ---------- */
+  function genQuader(d, rng) {
+    for (;;) {
+      if (d === 1) {
+        const a = ri(rng, 2, 10), O = 6 * a * a;
+        return sauber({frage: `Ein Würfel hat die Kantenlänge ${a} cm. Wie groß ist sein Oberflächeninhalt?`, art: "zahl", loesung: O, einheitText: "cm²", bild: {typ: "quader", a, b: a, c: a, la: `${a} cm`, lb: `${a} cm`, lc: `${a} cm`},
+          schritte: [{t: `Eine Seitenfläche: ${a} · ${a} = □`, w: a * a}, {t: `6 gleiche Flächen: 6 · ${a * a} = □`, w: O}],
+          fehler: [F_(4 * a * a, "doppelt", "Ein Würfel hat 6 gleiche Seitenflächen, nicht 4."), F_(6 * a, "flaecheseite", `Eine Seitenfläche ist ${a} · ${a} groß.`), F_(a * a * a, "volumen", "Das ist das Volumen. Für die Oberfläche addierst du die Flächen aller 6 Seiten.")]});
+      }
+      const a = ri(rng, 2, 12), b = ri(rng, 2, 12), c = ri(rng, 2, 12);
+      if (new Set([a, b, c]).size < 3) continue;
+      const dm = d === 3, A = dm ? 10 * a : a, O = 2 * (A * b + A * c + b * c);
+      return sauber({frage: `Ein Quader ist ${a} ${dm ? "dm" : "cm"} lang, ${b} cm breit und ${c} cm hoch. Berechne den Oberflächeninhalt in cm².`, art: "zahl", loesung: O, einheitText: "cm²",
+        bild: {typ: "quader", a: A, b, c, la: `${a} ${dm ? "dm" : "cm"}`, lb: `${b} cm`, lc: `${c} cm`},
+        schritte: (dm ? [{t: `Gleiche Einheiten: ${a} dm = □ cm`, w: A}] : []).concat([{t: `Grundfläche: ${A} · ${b} = □`, w: A * b}, {t: `Vorderfläche: ${A} · ${c} = □`, w: A * c},
+          {t: `Seitenfläche: ${b} · ${c} = □`, w: b * c}, {t: `Jede Fläche zweimal: O = 2 · (${A * b} + ${A * c} + ${b * c}) = □`, w: O}]),
+        fehler: [F_(A * b + A * c + b * c, "doppelt", "Jede Seitenfläche gibt es zweimal: oben und unten, vorne und hinten, links und rechts."), F_(A * b * c, "volumen", "Das ist das Volumen. Für die Oberfläche addierst du die Flächen aller 6 Seiten."),
+          F_(dm ? 2 * (a * b + a * c + b * c) : null, "umrechnen", "Erst gleiche Einheiten: 1 dm = 10 cm.")]});
+    }
+  }
+
+  /* ---------- Kapitel und Kompetenzen (Reihenfolge anpassbar je Profil) ----------
+     v14.1: Kapitel I–VI in der Folge des Schulbuchs der Klasse (nur Themenbezeichnungen). Kapitel-ids kap1–kap6 sind neu, damit
+     Pläne von v14.0 (k1–k6, andere Bedeutung) eindeutig erkennbar bleiben (ALT_KAP, plan). Kompetenz-ids bleiben unverändert;
+     ihr Präfix ist nur ein Name (k5_winkelart gehört jetzt zu Kapitel III). Neue Kompetenzen: m1_…–m6_….
+     frei: freiwillige Kompetenz (nicht im Boss-Tor, Neues nur mit Profil-Schalter „Freiwillige Teile üben“). */
   const KAPITEL = [
-    {id: "k1", titel: "Natürliche Zahlen", kurz: "K1"},
-    {id: "k2", titel: "Ganze Zahlen", kurz: "K2"},
-    {id: "k3", titel: "Rechnen, Rechengesetze, Potenzen", kurz: "K3"},
-    {id: "k4", titel: "Größen und Einheiten", kurz: "K4"},
-    {id: "k5", titel: "Geometrie-Grundbegriffe", kurz: "K5"},
-    {id: "k6", titel: "Umfang und Flächeninhalt", kurz: "K6"}
+    {id: "kap1", titel: "Natürliche und ganze Zahlen", kurz: "I", boss: "Zahlen-Zwerg"},
+    {id: "kap2", titel: "Addition und Subtraktion ganzer Zahlen", kurz: "II", boss: "Minus-Monster"},
+    {id: "kap3", titel: "Geometrische Figuren und Lagebeziehungen", kurz: "III", boss: "Winkel-Wurm"},
+    {id: "kap4", titel: "Multiplikation und Division ganzer Zahlen", kurz: "IV", boss: "Klammer-Krake"},
+    {id: "kap5", titel: "Größen", kurz: "V", boss: "Einheiten-Yeti"},
+    {id: "kap6", titel: "Flächen", kurz: "VI", boss: "Flächen-Fresser"}
   ];
+  /* v14.0-Kapitel -> neues Kapitel (Schwerpunkt der alten Kapitel: Natürliche Zahlen, Ganze Zahlen, Rechnen, Größen, Geometrie, Flächen) */
+  const ALT_KAP = {k1: "kap1", k2: "kap2", k3: "kap4", k4: "kap5", k5: "kap3", k6: "kap6"};
+  const ALT_FOLGE = ["k1", "k2", "k3", "k4", "k5", "k6"];
+  const ALT_TITEL = {k1: "Natürliche Zahlen", k2: "Ganze Zahlen", k3: "Rechnen, Rechengesetze, Potenzen", k4: "Größen und Einheiten", k5: "Geometrie-Grundbegriffe", k6: "Umfang und Flächeninhalt"};
   /* rahmen: erlaubte Zahlen (für den Testlauf): neg = negative Zahlen, dez = Nachkommastellen, max = größter Betrag */
   const KOMP = [
-    ["k1_stelle", "k1", "Stellenwert", genStelle, {max: 1e12}],
-    ["k1_runden", "k1", "Runden", genRunden, {max: 1e10}],
-    ["k1_gross", "k1", "Große Zahlen lesen und schreiben", genGross, {max: 1e12}],
-    ["k1_strahl", "k1", "Zahlenstrahl", genStrahl, {max: 1e7}],
-    ["k2_ordnen", "k2", "Ganze Zahlen ordnen", genOrdnen, {neg: true, max: 1000}],
-    ["k2_betrag", "k2", "Betrag und Gegenzahl", genBetrag, {neg: true, max: 10000}],
-    ["k2_add", "k2", "Addieren mit negativen Zahlen", genAdd, {neg: true, max: 2000}],
-    ["k2_sub", "k2", "Subtrahieren mit negativen Zahlen", genSub, {neg: true, max: 2000}],
-    ["k2_sach", "k2", "Temperatur, Kontostand, Höhe", genSach2, {neg: true, max: 1000}],
-    ["k3_mult", "k3", "Multiplizieren (mit Vorzeichen)", genMult, {neg: true, max: 1e5}],
-    ["k3_div", "k3", "Dividieren (mit Vorzeichen)", genDiv, {neg: true, max: 1e5}],
-    ["k3_potenz", "k3", "Potenzen", genPotenz, {max: 1e13}],
-    ["k3_reihenfolge", "k3", "Rechenreihenfolge und Terme", genReihenfolge, {neg: true, max: 1e5}],
-    ["k3_geschickt", "k3", "Geschickt rechnen (Distributivgesetz)", genGeschickt, {max: 1e5}],
-    ["k4_laenge", "k4", "Längen umrechnen", genLaenge, {dez: 3, max: 1e5}],
-    ["k4_masse", "k4", "Massen umrechnen", genMasse, {dez: 3, max: 1e5}],
-    ["k4_zeit", "k4", "Zeit umrechnen", genZeit, {max: 1e5}],
-    ["k4_geld", "k4", "Geld umrechnen", genGeld, {dez: 2, max: 1e5}],
-    ["k4_sach", "k4", "Sachaufgaben mit Größen", genSach4, {dez: 3, max: 1e5}],
-    ["k5_winkelart", "k5", "Winkel benennen", genWinkelart, {max: 360}],
-    ["k5_schaetzen", "k5", "Winkel schätzen", genSchaetzen, {max: 360}],
-    ["k5_koord", "k5", "Koordinaten ablesen", genKoord, {neg: true, max: 12}],
-    ["k5_spiegeln", "k5", "Achsensymmetrie: Punkte spiegeln", genSpiegeln, {max: 24}],
-    ["k6_umfang", "k6", "Umfang von Rechteck und Quadrat", genUmfang, {max: 1e4}],
-    ["k6_flaeche", "k6", "Flächeninhalt von Rechteck und Quadrat", genFlaeche, {max: 1e4}],
-    ["k6_einheiten", "k6", "Flächeneinheiten umrechnen", genFlaecheneinheit, {dez: 3, max: 1e6}],
-    ["k6_rueckwaerts", "k6", "Seitenlänge aus Umfang oder Fläche", genRueckwaerts, {max: 1e4}]
-  ].map(([id, kap, titel, gen, rahmen]) => ({id, kap, titel, gen, rahmen}));
+    // I Natürliche und ganze Zahlen
+    ["k1_stelle", "kap1", "Stellenwert", genStelle, {max: 1e12}],
+    ["k1_gross", "kap1", "Große Zahlen lesen und schreiben", genGross, {max: 1e12}],
+    ["k1_strahl", "kap1", "Zahlenstrahl", genStrahl, {max: 1e7}],
+    ["m1_teilbar", "kap1", "Teiler, Vielfache, Teilbarkeitsregeln", genTeilbar, {max: 1e5}],
+    ["m1_mengen", "kap1", "Zahlenmengen ℕ und ℤ", genMengen, {neg: true, dez: 1, max: 100}],
+    ["k1_runden", "kap1", "Runden", genRunden, {max: 1e10}],
+    ["k2_ordnen", "kap1", "Ganze Zahlen ordnen", genOrdnen, {neg: true, max: 1000}],
+    ["k2_betrag", "kap1", "Betrag und Gegenzahl", genBetrag, {neg: true, max: 10000}],
+    // II Addition und Subtraktion ganzer Zahlen
+    ["m2_schriftlich", "kap2", "Schriftlich addieren und subtrahieren", genSchriftlich, {max: 3e5}],
+    ["m2_terme", "kap2", "Terme mit + und −, Klammern", genTermePM, {max: 1000}],
+    ["k2_add", "kap2", "Addieren mit negativen Zahlen", genAdd, {neg: true, max: 2000}],
+    ["k2_sub", "kap2", "Subtrahieren mit negativen Zahlen", genSub, {neg: true, max: 2000}],
+    ["k2_sach", "kap2", "Temperatur, Kontostand, Höhe", genSach2, {neg: true, max: 1000}],
+    ["m2_geschickt", "kap2", "Geschickt rechnen (Vertauschen, Zusammenfassen)", genGeschicktPlus, {neg: true, max: 2000}],
+    // III Geometrische Figuren und Lagebeziehungen
+    ["m3_lage", "kap3", "Parallel und senkrecht", genLage, {max: 10}],
+    ["m3_abstand", "kap3", "Abstand Punkt–Gerade, Lot", genAbstand, {max: 12}],
+    ["m3_kreis", "kap3", "Kreis: Radius und Durchmesser", genKreis, {dez: 1, max: 200}],
+    ["k5_winkelart", "kap3", "Winkel benennen", genWinkelart, {max: 360}],
+    ["k5_schaetzen", "kap3", "Winkel schätzen", genSchaetzen, {max: 360}],
+    ["m3_winkel", "kap3", "Winkel einstellen", genWinkelStellen, {max: 360}],
+    ["m3_vierecke", "kap3", "Vierecke und ihre Eigenschaften", genVierecke, {max: 10}],
+    ["m3_ecke", "kap3", "Fehlende Ecke eines Vierecks", genEcke, {max: 10}],
+    ["k5_koord", "kap3", "Koordinaten ablesen", genKoord, {neg: true, max: 12}, true],
+    ["k5_spiegeln", "kap3", "Achsensymmetrie: Punkte spiegeln", genSpiegeln, {max: 24}, true],
+    // IV Multiplikation und Division ganzer Zahlen
+    ["m4_schriftlich", "kap4", "Schriftlich multiplizieren und dividieren", genSchriftMalGeteilt, {max: 1e6}],
+    ["k3_reihenfolge", "kap4", "Punkt vor Strich, Klammern", genReihenfolge, {neg: true, max: 1e5}],
+    ["k3_geschickt", "kap4", "Geschickt rechnen (Distributivgesetz)", genGeschickt, {max: 1e5}],
+    ["k3_potenz", "kap4", "Potenzen", genPotenz, {max: 1e13}],
+    ["m4_primfaktor", "kap4", "Primfaktorzerlegung", genPrimfaktor, {max: 1000}],
+    ["m4_zaehlen", "kap4", "Zählprinzip", genZaehlen, {max: 1000}],
+    ["k3_mult", "kap4", "Multiplizieren (mit Vorzeichen)", genMult, {neg: true, max: 1e5}],
+    ["k3_div", "kap4", "Dividieren (mit Vorzeichen)", genDiv, {neg: true, max: 1e5}],
+    // V Größen
+    ["k4_laenge", "kap5", "Längen umrechnen", genLaenge, {dez: 3, max: 1e5}],
+    ["k4_geld", "kap5", "Geld umrechnen", genGeld, {dez: 2, max: 1e5}],
+    ["k4_sach", "kap5", "Sachaufgaben mit Größen", genSach4, {dez: 3, max: 1e5}],
+    ["m5_dreisatz", "kap5", "Dreisatz", genDreisatz, {dez: 2, max: 1e5}],
+    ["m5_massstab", "kap5", "Maßstab", genMassstab, {dez: 2, max: 1e7}],
+    ["k4_masse", "kap5", "Massen umrechnen", genMasse, {dez: 3, max: 1e5}],
+    ["k4_zeit", "kap5", "Zeit umrechnen", genZeit, {max: 1e5}],
+    // VI Flächen
+    ["k6_einheiten", "kap6", "Flächeneinheiten umrechnen", genFlaecheneinheit, {dez: 3, max: 1e6}],
+    ["k6_umfang", "kap6", "Umfang von Rechteck und Quadrat", genUmfang, {max: 1e4}],
+    ["k6_flaeche", "kap6", "Flächeninhalt von Rechteck und Quadrat", genFlaeche, {max: 1e4}],
+    ["k6_rueckwaerts", "kap6", "Seitenlänge aus Umfang oder Fläche", genRueckwaerts, {max: 1e4}],
+    ["m6_zusammen", "kap6", "Zusammengesetzte Figuren", genZusammen, {max: 1000}],
+    ["m6_quader", "kap6", "Oberflächeninhalt des Quaders", genQuader, {max: 1e5}]
+  ].map(([id, kap, titel, gen, rahmen, frei]) => ({id, kap, titel, gen, rahmen, frei: !!frei}));
   const KOMP_BY = {}; KOMP.forEach(k => { KOMP_BY[k.id] = k; });
-  KAPITEL.forEach(k => { k.komp = KOMP.filter(x => x.kap === k.id).map(x => x.id); });
+  KAPITEL.forEach(k => { k.komp = KOMP.filter(x => x.kap === k.id).map(x => x.id); k.pflicht = KOMP.filter(x => x.kap === k.id && !x.frei).map(x => x.id); });
   const KAP_BY = {}; KAPITEL.forEach((k, i) => { k.i = i; KAP_BY[k.id] = k; });
+  /* Kapitel-id (neu oder v14.0) -> neue id, unbekannt -> null */
+  const kapId = x => typeof x === "string" ? (KAP_BY[x] ? x : ALT_KAP[x] || null) : null;
   const FEHLERNAME = {stelle: "Stelle verrutscht", stellenwert: "Ziffer statt Stellenwert", runden: "falsch auf-/abgerundet", rundstelle: "auf falsche Stelle gerundet",
     nullen: "Nullen vergessen", schritt: "Schrittweite am Zahlenstrahl", zaehlen: "Striche verzählt", anordnung: "Anordnung negativer Zahlen", betrag: "Betrag negativ geschrieben",
     gegenzahl: "Gegenzahl", abstand: "Abstand über die 0", vorzeichen: "Vorzeichen(regel)", betraege: "Beträge addiert statt subtrahiert (oder umgekehrt)",
@@ -2908,12 +3586,28 @@ const MK = (function () {
     faktor: "falscher Umrechnungsfaktor", faktor10: "Flächen: Faktor 10 statt 100", zeit100: "Zeit mit 100 statt 60", anzahl: "Anzahl überlesen", umrechnen: "Einheiten nicht angeglichen",
     uhrzeit: "Uhrzeit über 60 Minuten", winkelart: "Winkelart verwechselt", schaetzen: "Winkel falsch eingeschätzt", vertauscht: "x und y vertauscht", koordvorzeichen: "Vorzeichen bei Koordinaten",
     achse: "Spiegelpunkt auf der Achse", spiegelkoord: "falsche Koordinate gespiegelt", flaeche_umfang: "Umfang und Fläche verwechselt", seiten: "nicht alle Seiten gezählt",
-    einheit_qm: "Flächeneinheit fehlt (cm statt cm²)", operation: "falsche Rechenart", halbieren: "durch 2 vergessen", quadrat: "Quadrat-Seitenlänge"};
+    einheit_qm: "Flächeneinheit fehlt (cm statt cm²)", operation: "falsche Rechenart", halbieren: "durch 2 vergessen", quadrat: "Quadrat-Seitenlänge",
+    // v14.1
+    endziffer2: "Teilbarkeit durch 2 falsch geprüft", endziffer3: "Endziffer statt Quersumme (3)", quersumme5: "Quersumme statt Endziffer (5)", endziffer10: "Endziffer 5 bei 10",
+    teiler1n: "1 oder die Zahl selbst als Teiler vergessen", teilerquadrat: "mittlerer Teiler doppelt gezählt", vielfach: "falsches Vielfaches", mengeN: "ℕ liegt in ℤ übersehen",
+    mengeZ: "negative Zahl zu ℕ gezählt", mengeKomma: "Kommazahl als ganze Zahl", grenzen: "Randzahlen mitgezählt", nullvergessen: "die 0 vergessen",
+    uebertrag: "Übertrag vergessen", ziffertausch: "kleinere von größerer Ziffer", linksrechts: "nicht von links nach rechts", minusklammer: "Minus vor der Klammer",
+    termtext: "Term aus dem Text falsch aufgestellt", gegenzahl0: "Zahl + Gegenzahl ≠ 0", parsenk: "parallel und senkrecht verwechselt", fastparallel: "fast parallel für parallel gehalten",
+    fastsenkrecht: "fast senkrecht für senkrecht gehalten", lotsenkrecht: "Lot nicht senkrecht zur Geraden", abstandkoord: "Koordinate statt Abstand", linien: "Gitterlinien statt Kästchen gezählt",
+    lotspiegel: "Lotfußpunkt nicht auf der Geraden", rd: "Radius und Durchmesser verwechselt", durchmesser: "mit dem Durchmesser statt dem Radius verglichen",
+    gegenwinkel: "falsche Skala (180° − α)", vollwinkel: "Winkel auf der anderen Seite (360° − α)", viereckgenau: "nicht den genauesten Namen gewählt",
+    viereckseiten: "Seitenlängen nicht beachtet", viereckwinkel: "rechte Winkel nicht beachtet", viereckparallel: "parallele Seiten falsch gezählt", eigenschaft: "Eigenschaft falsch zugeordnet",
+    p1vergessen: "„mindestens 1 Paar“ vergessen", ecke: "Reihenfolge der Ecken", verschieben: "Teilprodukt nicht eingerückt", primzahl1: "1 als Primzahl",
+    teilbar2: "ungerade Zahl durch 2 geteilt", kleinsterpf: "größter statt kleinster Teiler", mehrfach: "gleiche Primfaktoren nur einmal gezählt", keinprim: "Faktor ist keine Primzahl",
+    zaehladd: "addiert statt multipliziert", stufevergessen: "eine Stufe vergessen", wiederholung: "mit Wiederholung gezählt", dreisatz: "nicht auf 1 geschlossen",
+    dreisatzhalb: "Wert für 1 statt für alle", dreisatzadd: "Differenz addiert statt proportional", massstabop: "mal und geteilt verwechselt (Maßstab)", ausschnitt: "Ausschnitt nicht abgezogen",
+    doppelt: "Flächen nicht doppelt gezählt / Überlappung", umfangecke: "Kanten an der Ecke vergessen", flaecheseite: "Seitenfläche falsch", volumen: "Volumen statt Oberfläche"};
 
   /* eine Aufgabe; Stufe 1 bringt zusätzlich ein Lösungsbeispiel (andere Zahlen, gleiche Struktur) mit */
   function aufgabe(id, stufe, d, rng) {
     const K = KOMP_BY[id]; if (!K) return null;
     const t = K.gen(d, rng); t.komp = id; t.stufe = stufe; t.d = d;
+    if (t.art === "winkel") t.tol = TOLW[stufe] || t.tol;   // v14.1: Toleranz beim Winkeleinstellen nach Stufe (±10°/±5°/±3°)
     if (stufe === 1) { let b, n = 0; do { b = K.gen(d, rng); } while (b.frage === t.frage && n++ < 20); t.beispiel = b; }
     return t;
   }
@@ -2922,12 +3616,27 @@ const MK = (function () {
     if (t.art === "paar") return t.labels && t.labels[0] === "Uhr" ? `${v[0]}:${pad2(v[1])} Uhr` : t.labels && t.labels[0] === "h" ? `${z(v[0])} h ${z(v[1])} min` : `(${z(v[0])} | ${z(v[1])})`;
     if (t.art === "einheit") return `${z(v.wert)} ${v.einheit || ""}`.trim();
     if (t.art === "wahl") { const o = (t.wahl || []).find(x => x.k === v); return o ? o.t : String(v); }
+    if (t.art === "winkel") return z(v) + "°";
+    if (t.art === "menge") return Array.isArray(v) && v.length ? (t.eigenschaften || []).filter(x => v.includes(x.k)).map(x => x.t).join("; ") : "keine davon";
     return z(v) + (t.einheitText ? (t.einheitText === "°" ? "°" : " " + t.einheitText) : "");
   }
   /* Auswahl für Stufe 1 und Schätzaufgaben: Lösung, erkannte Fehler, nahe Werte; 4 verschiedene */
   function optionen(t, rng) {
     if (t.art === "wahl") return t.wahl.map(x => x.k);
     if (t.optionen) return t.optionen.slice();
+    if (t.art === "winkel") {   // nur für Testlauf/Notfall: Winkel weit genug auseinander, außerhalb der Toleranz
+      const L = t.loesung, out = [L], abst = 2 * (t.tol || 3) + 4;
+      t.fehler.map(f => f.w).concat(mix(rng, [L + 30, L - 30, L + 60, L - 60, L + 90, L - 90])).forEach(v => { v = ((v % 360) + 360) % 360;
+        if (v > 0 && out.length < 4 && out.every(o => Math.abs(o - v) > abst)) out.push(v); });
+      return mix(rng, out);
+    }
+    if (t.art === "menge") {
+      const L = t.loesung.slice().sort(), out = [L], key = a => a.slice().sort().join("|");
+      const add = v => { v = v.slice().sort(); if (out.length < 4 && !out.some(o => key(o) === key(v))) out.push(v); };
+      mix(rng, t.fehler).forEach(f => add(f.w));
+      mix(rng, t.eigenschaften).forEach(e => add(L.includes(e.k) ? L.filter(x => x !== e.k) : L.concat([e.k])));
+      return mix(rng, out);
+    }
     const L = t.loesung, out = [L];
     const add = v => { if (v == null || out.length >= 4) return; if (t.art === "zahl" && (!isFinite(v) || (v < 0 && L >= 0 && !t.fehler.some(f => f.w === v)))) return;
       if (!out.some(o => t.art === "einheit" ? o.wert === v.wert && o.einheit === v.einheit : gleich(t.art, o, v))) out.push(v); };
@@ -2965,22 +3674,39 @@ const MK = (function () {
     return "gelb";
   }
   /* Plan eines Profils säubern: {fach, folge: [Kapitel-ids], bis, aktuell?} */
+  /* v14.1: Plan von v14.0 (Kapitel-ids k1–k6) auf die neuen Kapitel abbilden.
+     Folge: war es die alte Standardfolge (oder leer), gilt die neue Standardfolge I–VI; eine eigene Folge wird kapitelweise übersetzt.
+     „Behandelt bis“: das längste Anfangsstück der neuen Folge, dessen Kapitel alle schon behandelt waren (nichts Unbehandeltes kommt dazu).
+     aktuell: übersetzt (plan() setzt es auf „bis“, wenn es danach liegt). Unbekannte ids fallen weg (Standard). */
+  function altPlan(p) {
+    const istAlt = x => typeof x === "string" && Object.prototype.hasOwnProperty.call(ALT_KAP, x);
+    const f0 = Array.isArray(p.folge) ? p.folge : [];
+    if (f0.some(x => typeof x === "string" && KAP_BY[x]) || !(f0.some(istAlt) || istAlt(p.bis) || istAlt(p.aktuell))) return p;
+    const af = f0.filter((x, i, a) => istAlt(x) && a.indexOf(x) === i); ALT_FOLGE.forEach(x => { if (!af.includes(x)) af.push(x); });
+    const folge = af.join() === ALT_FOLGE.join() ? KAPITEL.map(k => k.id) : af.map(x => ALT_KAP[x]).filter((x, i, a) => a.indexOf(x) === i);
+    const altBis = istAlt(p.bis) ? p.bis : af[0], beh = new Set(af.slice(0, af.indexOf(altBis) + 1).map(x => ALT_KAP[x]));
+    let n = 0; while (n < folge.length && beh.has(folge[n])) n++;
+    return Object.assign({}, p, {folge, bis: folge[Math.max(0, n - 1)], aktuell: istAlt(p.aktuell) ? ALT_KAP[p.aktuell] : p.aktuell});
+  }
   function plan(p) {
-    p = p || {};
+    p = altPlan(p || {});
     const ids = KAPITEL.map(k => k.id);
     let folge = Array.isArray(p.folge) ? p.folge.filter((x, i, a) => ids.includes(x) && a.indexOf(x) === i) : [];
     ids.forEach(x => { if (!folge.includes(x)) folge.push(x); });
     const bis = folge.includes(p.bis) ? p.bis : folge[0];
     const beh = folge.slice(0, folge.indexOf(bis) + 1);
-    return {fach: "m5", folge, bis, beh, aktuell: beh.includes(p.aktuell) ? p.aktuell : bis};
+    return {fach: "m5", folge, bis, beh, aktuell: beh.includes(p.aktuell) ? p.aktuell : bis, frei: !!p.frei};
   }
+  /* Kompetenzen eines Kapitels für Neues/Auffüllen: Pflicht, mit Schalter „freiwillige Teile“ auch die freiwilligen */
+  const kompVon = (kap, frei) => frei ? KAP_BY[kap].komp : KAP_BY[kap].pflicht;
   /* Session: zuerst fällige Wiederholungen (gemischt über die behandelten Kapitel), dann Neues aus dem aktuellen Kapitel als Block.
      st = {komp: {id: Zustand}}; nie Kompetenzen aus Kapiteln nach „behandelt bis“. Liefert [{komp, rolle: wdh|neu|extra, stufe, d}] */
   function session(st, pl, tag, rng, n) {
     n = n || 10; pl = plan(pl); st = st || {komp: {}};
-    const S = id => st.komp[id], behKomp = pl.beh.reduce((a, k) => a.concat(KAP_BY[k].komp), []);
-    const neuKand = KAP_BY[pl.aktuell].komp.filter(id => !sitzt(S(id)));
-    const faellig = mix(rng, behKomp.filter(id => S(id) && S(id).z && S(id).z.due <= tag && !neuKand.includes(id))).sort((a, b) => S(a).z.due < S(b).z.due ? -1 : S(a).z.due > S(b).z.due ? 1 : 0);
+    const S = id => st.komp[id], behAlle = pl.beh.reduce((a, k) => a.concat(KAP_BY[k].komp), []), behKomp = pl.beh.reduce((a, k) => a.concat(kompVon(k, pl.frei)), []);
+    const neuKand = kompVon(pl.aktuell, pl.frei).filter(id => !sitzt(S(id)));
+    // Wiederholung: alle behandelten Kompetenzen mit Stand, auch freiwillige, die schon geübt wurden
+    const faellig = mix(rng, behAlle.filter(id => S(id) && S(id).z && S(id).z.due <= tag && !neuKand.includes(id))).sort((a, b) => S(a).z.due < S(b).z.due ? -1 : S(a).z.due > S(b).z.due ? 1 : 0);
     const wdh = faellig.slice(0, neuKand.length ? Math.min(6, n - 3) : n);
     // verschränken: möglichst nie zweimal hintereinander dasselbe Kapitel
     const gemischt = [], rest = wdh.slice();
@@ -3002,25 +3728,28 @@ const MK = (function () {
   }
   /* Kapitelstand: Anteil Kompetenzen mindestens einmal geschafft (Boss-Tor bei 100 %), Anteil sitzt */
   function kapStand(st, kap) {
-    const ids = KAP_BY[kap].komp, S = id => st && st.komp && st.komp[id];
+    const ids = KAP_BY[kap].pflicht, S = id => st && st.komp && st.komp[id];
     const geschafft = ids.filter(id => S(id) && S(id).tage.length >= 1).length, fest = ids.filter(id => sitzt(S(id))).length;
     return {n: ids.length, geschafft, sitzt: fest, prozent: Math.round(100 * geschafft / ids.length), voll: fest === ids.length};
   }
   /* Bosskampf: 14 freie Aufgaben (Stufe 3) aus dem Kapitel, gemischt */
   function bossAufgaben(kap, rng, n) {
-    n = n || 14; const ids = KAP_BY[kap].komp, out = [];
+    n = n || 14; const ids = KAP_BY[kap].pflicht, out = [];
     for (let i = 0; i < n; i++) { const id = ids[i % ids.length]; out.push(aufgabe(id, 3, rng() < 0.5 ? 2 : 3, rng)); }
     return mix(rng, out);
   }
-  return {FAELLIG, KAPITEL, KAP_BY, KOMP, KOMP_BY, FEHLERNAME, z, zk, eur, parseZahl, pruefe, gleich, aufgabe, optionen, antwortText,
-          tagVon, plusTage, sitzt, schwierigkeit, nachAntwort, ampel, plan, session, kapStand, bossAufgaben, winkelArt};
+  return {FAELLIG, KAPITEL, KAP_BY, KOMP, KOMP_BY, FEHLERNAME, ALT_KAP, ALT_TITEL, TOLW, kapId, z, zk, eur, parseZahl, pruefe, gleich, aufgabe, optionen, antwortText,
+          tagVon, plusTage, sitzt, schwierigkeit, nachAntwort, ampel, plan, session, kapStand, bossAufgaben, winkelArt, geo};
 })();
 </script>
 <script id="matheui">
 /* ---------- v14: Mathe 5 – Oberfläche (nutzt MK, LK.Lernstand und die Helfer des Hauptskripts erst zur Laufzeit) ----------
    Fach als Pseudo-Buch „m5“: Wochenzähler in kk.v1.<pid>.m5 (wie ein Buch, wandert mit „Lernstand sichern“),
    Kompetenzstand in kk.v1.mathe.<pid> (Kind.mathe), Plan im Profil (profil.mathe = {fach, folge, bis}).
-   Eigener Home-Bildschirm (scrMathe), die Session nutzt scrSession/scrEnd mit S.mathe = true. */
+   Eigener Home-Bildschirm (scrMathe), die Session nutzt scrSession/scrEnd mit S.mathe = true.
+   v14.1: Kapitel I–VI, alte Kapitel-ids (k1–k6) werden beim Lesen abgebildet (MK.plan, MK.kapId); freiwillige Kompetenzen
+   folgen dem Profil-Schalter „Freiwillige Teile üben“ (pr.fak). Geometrie zum Anfassen: Winkel-Schenkel ziehen, Punkt im Gitter
+   antippen, Geraden antippen, Eigenschaften abhaken (Prüflogik in MK.geo / MK.pruefe). */
 const M5 = (function () {
   const BUCH = "m5", TITEL = "Mathe 5 · Gymnasium Bayern";
   const STUFE = {1: "Beispiel", 2: "Schritte", 3: "frei"};
@@ -3035,12 +3764,19 @@ const M5 = (function () {
     let p = store.get(packKey(pid, BUCH));
     if (!p || typeof p !== "object" || !p.boxes) p = {einheit: null, station: null, boxes: {}, week: isoWeek(new Date()), sessions: 0, points: 0};
     const pl = MK.plan(pr && pr.mathe);
+    if (MK.kapId(p.einheit)) p.einheit = MK.kapId(p.einheit);   // v14.1: altes Kapitel (k1–k6) -> neues
     if (!pl.beh.includes(p.einheit)) p.einheit = pl.bis;
     zaehlerLaden(p);
     return p;
   }
-  const planVon = pr => MK.plan(Object.assign({}, pr && pr.mathe, {aktuell: fortschritt(pr.id, pr).einheit}));
-  const kapTitel = id => { const k = MK.KAP_BY[id]; return k ? k.kurz + " " + k.titel : id; };
+  const planVon = pr => MK.plan(Object.assign({}, pr && pr.mathe, {aktuell: fortschritt(pr.id, pr).einheit, frei: !!(pr && pr.fak)}));
+  const kapTitel = id => { const k = MK.KAP_BY[id]; return k ? k.kurz + " " + k.titel : MK.ALT_TITEL[id] || id; };   // alte Trophäen behalten ihren Namen
+  const kapKurz = id => "Kapitel " + MK.KAP_BY[id].kurz;
+  // v14.1: Profil mit Kapitelplan von v14.0 (k1–k6) -> einmal auf der Mathe-Startseite bitten, „behandelt bis“ zu prüfen (weg, sobald das Profil gespeichert ist)
+  const altPlanDa = pr => { const m = pr && pr.mathe, alt = x => typeof x === "string" && Object.prototype.hasOwnProperty.call(MK.ALT_KAP, x);
+    return !!m && (alt(m.bis) || alt(m.aktuell) || (Array.isArray(m.folge) && m.folge.some(alt))); };
+  document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#mAltEdit") && CUR) openEdit(CUR.pr.id); });
+  const kompTitel = id => MK.KOMP_BY[id].titel + (MK.KOMP_BY[id].frei ? " (freiwillig)" : "");
 
   /* ---------- Profilkarte ---------- */
   function pickHtml(pr) {
@@ -3077,10 +3813,11 @@ const M5 = (function () {
     const ks = MK.kapStand(st, pl.aktuell), look = bossLookM(pl.aktuell), e = erfolgeVon(pr.id), tro = e.boss[look.key], offen = ks.prozent >= 100;
     const n = ticketsVon(pr.id), h = new Date().getHours();
     const zeile = id => { const k = st.komp[id], a = MK.ampel(k, t), K = MK.KOMP_BY[id];
-      return `<div class="mkomp"><span class="mampel a-${a}" title="${AMPEL[a]}" aria-label="${AMPEL[a]}"></span><span class="uname">${esc(K.titel)}</span>
+      return `<div class="mkomp"><span class="mampel a-${a}" title="${AMPEL[a]}" aria-label="${AMPEL[a]}"></span><span class="uname">${esc(kompTitel(K.id))}</span>
         <span class="ucount">${k ? Math.min(3, k.tage.length) + "/3 Tage" : "neu"}${k && k.z ? " · " + STUFE[k.z.stufe] : ""}</span></div>`; };
     $("mHome").innerHTML = `<div><p class="eyebrow">${esc(TITEL)} · ${esc(kapTitel(pl.aktuell))}</p>
       <h1>${h < 11 ? "Moin! Kurz ein paar Aufgaben?" : h < 18 ? "Hi! Rechnen wir ein bisschen?" : "Abends noch eine Runde Mathe?"}</h1></div>
+      ${altPlanDa(pr) ? `<p class="stil-tipp" id="mAltHinweis">Die Kapitel wurden ans Schulbuch angepasst (I–VI). Bitte im Profil „Im Unterricht behandelt bis“ prüfen. <button type="button" class="link" id="mAltEdit">Profil öffnen</button></p>` : ""}
       <div class="home-grid"><div class="stack-col">
         <section class="card"><div class="goal">
           <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Wochenziel ${P.sessions} von ${GOAL}"><circle class="bg" cx="60" cy="60" r="50" fill="none" stroke-width="12"></circle>
@@ -3090,15 +3827,15 @@ const M5 = (function () {
             <p>${P.sessions >= GOAL ? "Ziel geschafft. Alles ab jetzt ist Bonus." : P.sessions === 0 ? "Diese Woche noch keine Mathe-Session. Fang einfach an." : `Noch ${GOAL - P.sessions} bis zum Wochenziel.`}</p>
             <p class="note">Ein Vorschlag, kein Muss. Montag startet die Zählung neu.</p></div></div></section>
         <button type="button" class="btn btn-primary mgo" id="mStart">🧮 Los geht's · 10 Aufgaben</button>
-        <p class="note">${faellig ? `Zuerst ${Math.min(faellig, 6)} fällige Wiederholung${Math.min(faellig, 6) === 1 ? "" : "en"} gemischt, dann Neues aus ${esc(MK.KAP_BY[pl.aktuell].kurz)} am Stück.` : `Heute ist nichts fällig: Neues aus ${esc(kapTitel(pl.aktuell))} am Stück.`} Eine Kompetenz sitzt, wenn du sie an 3 verschiedenen Tagen geschafft hast.</p>
+        <p class="note">${faellig ? `Zuerst ${Math.min(faellig, 6)} fällige Wiederholung${Math.min(faellig, 6) === 1 ? "" : "en"} gemischt, dann Neues aus ${esc(kapKurz(pl.aktuell))} am Stück.` : `Heute ist nichts fällig: Neues aus ${esc(kapTitel(pl.aktuell))} am Stück.`} Eine Kompetenz sitzt, wenn du sie an 3 verschiedenen Tagen geschafft hast.</p>
         <section class="card bonus"><div class="row" style="justify-content:space-between"><h3>Bonus-Spiele</h3><span class="pill">🎟 ${n} ${n === 1 ? "Ticket" : "Tickets"}</span></div>
           <p class="note">${n ? "Löse ein Ticket ein: Flipper, Ballon-Jagd oder Emoji-Memory." : "Tickets gibt es für einen besiegten Boss (2), ein Kapitel, in dem alles sitzt (2), und eine perfekte Session (1, einmal am Tag)."}</p>
           <button type="button" class="btn btn-ghost" id="mBonus"${n ? "" : " disabled"}>🎮 Bonus-Spiel aussuchen</button></section>
       </div><div class="stack-col">
-        <section class="card boss"><div class="row" style="justify-content:space-between"><h3>Bosskampf ${esc(MK.KAP_BY[pl.aktuell].kurz)}</h3><span class="pill">${ks.prozent} %</span></div>
+        <section class="card boss"><div class="row" style="justify-content:space-between"><h3>Bosskampf ${esc(kapKurz(pl.aktuell))}</h3><span class="pill">${ks.prozent} %</span></div>
           <div class="boss-top"><div class="boss-fig${offen ? "" : " schlaf"}" aria-hidden="true">${bossSvg(look, offen ? (tro ? "besiegt" : "kampf") : "schlaf")}</div>
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding-top:14px"><div class="meter" aria-hidden="true"><span style="width:${ks.prozent}%"></span></div>
-          <p class="muted">${!offen ? `Das Boss-Tor öffnet, wenn du jede Kompetenz aus ${esc(MK.KAP_BY[pl.aktuell].kurz)} einmal ohne Beispiel geschafft hast (${ks.geschafft}/${ks.n}). ${esc(look.name)} schläft noch.`
+          <p class="muted">${!offen ? `Das Boss-Tor öffnet, wenn du jede Kompetenz aus ${esc(kapKurz(pl.aktuell))} einmal ohne Beispiel geschafft hast (${ks.geschafft}/${ks.n}${MK.KAP_BY[pl.aktuell].pflicht.length < MK.KAP_BY[pl.aktuell].komp.length ? ", freiwillige zählen nicht" : ""}). ${esc(look.name)} schläft noch.`
             : tro ? `Besiegt am ${new Date(tro.zeit).toLocaleDateString("de-DE")} mit ${tro.herzen} von ${LK.BOSS_HERZEN} Herzen. Du kannst jederzeit wieder antreten.` : `Das Boss-Tor ist offen! ${esc(look.name)} wartet. Jede richtige Antwort ist ein Treffer, du hast ${LK.BOSS_HERZEN} Herzen. Keine Eile.`}</p></div></div>
           ${offen ? `<button type="button" class="btn btn-primary boss-go" id="mBoss">⚔️ Bosskampf starten</button>` : ""}
           <div class="shelf">${Object.keys(e.boss).filter(k => k.startsWith(BUCH + "|")).map(k => `<span class="trophy-pill">🏆 ${esc(kapTitel(k.slice(3)))}</span>`).concat(Object.keys(e.voll).filter(k => k.startsWith(BUCH + "|")).map(k => `<span class="trophy-pill">💯 ${esc(kapTitel(k.slice(3)))}</span>`)).join("")}</div></section>
@@ -3126,7 +3863,7 @@ const M5 = (function () {
     const ok28 = neu.filter(e => e.ergebnis === "ok").length;
     const zeilen = pl.beh.map(k => `<tr><th colspan="3" style="text-align:left;padding-top:8px">${esc(kapTitel(k))}</th></tr>` + MK.KAP_BY[k].komp.map(id => {
       const s = st.komp[id], a = MK.ampel(s, t);
-      return `<tr><td><span class="mampel a-${a}"></span> ${AMPEL[a]}</td><td>${esc(MK.KOMP_BY[id].titel)}</td><td class="muted">${s ? `${s.tage.length} Tag${s.tage.length === 1 ? "" : "e"} richtig${s.z && s.z.due ? ", fällig " + s.z.due.split("-").reverse().join(".") : ""}` : "–"}</td></tr>`;
+      return `<tr><td><span class="mampel a-${a}"></span> ${AMPEL[a]}</td><td>${esc(kompTitel(id))}</td><td class="muted">${s ? `${s.tage.length} Tag${s.tage.length === 1 ? "" : "e"} richtig${s.z && s.z.due ? ", fällig " + s.z.due.split("-").reverse().join(".") : ""}` : "–"}</td></tr>`;
     }).join("")).join("");
     $("mBericht").innerHTML = `<p class="note">Nur aus den Daten dieses Geräts (und geholten Lernständen). Grün = an 3 verschiedenen Tagen richtig, Gelb = in Arbeit oder länger nicht wiederholt, Rot = zuletzt falsch.</p>
       <div class="stats"><div class="stat"><b>${min} min</b>Mathe diese Woche</div><div class="stat"><b>${wo.length}</b>Aufgaben diese Woche</div><div class="stat"><b>${neu.length ? Math.round(100 * ok28 / neu.length) : 0} %</b>richtig (28 Tage)</div></div>
@@ -3160,7 +3897,7 @@ const M5 = (function () {
   }
   function bossLookM(kap) {
     const i = (MK.KAP_BY[kap] || {i: 0}).i;
-    return {key: BUCH + "|" + kap, hue: (40 + i * 67) % 360, form: i % 4, name: ["Zahlen-Zwerg", "Minus-Monster", "Klammer-Krake", "Einheiten-Yeti", "Winkel-Wurm", "Flächen-Fresser"][i % 6]};
+    return {key: BUCH + "|" + kap, hue: (40 + i * 67) % 360, form: i % 4, name: (MK.KAP_BY[kap] || {}).boss || "Zahlen-Zwerg"};
   }
 
   /* Eingabe: Felder (Ziffernblock), aktives Feld, Einheit */
@@ -3207,15 +3944,25 @@ const M5 = (function () {
       return `<svg viewBox="0 0 ${W + 10} 92" role="img" aria-label="Zahlenstrahl mit Pfeil">${s}</svg>`;
     }
     if (b.typ === "koord") {
-      const n = b.max - b.min, c = Math.min(34, 380 / n), o = 26, X = v => o + (v - b.min) * c, Y = v => o + (b.max - v) * c, W = o * 2 + n * c;
+      const G = MK.geo.koordGeo(b), n = G.n, X = G.X, Y = G.Y, W = G.W;
       let s = "";
       for (let v = b.min; v <= b.max; v++) { s += `<line x1="${X(v)}" y1="${Y(b.min)}" x2="${X(v)}" y2="${Y(b.max)}" stroke="var(--line)" stroke-width="1"/><line x1="${X(b.min)}" y1="${Y(v)}" x2="${X(b.max)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/>`; }
+      if (b.polygon) s += `<polygon points="${b.polygon.map(p => X(p[0]) + "," + Y(p[1])).join(" ")}" fill="var(--accent)" fill-opacity=".28" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>`;
+      if (b.linie) s += `<polyline points="${b.linie.map(p => X(p[0]) + "," + Y(p[1])).join(" ")}" fill="none" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>`;
+      (b.geraden || []).forEach((q, i) => {
+        const L = Math.hypot(q.x2 - q.x1, q.y2 - q.y1) || 1, ux = (q.x2 - q.x1) / L, uy = (q.y2 - q.y1) / L, lx = q.x2 - 0.7 * ux - 0.45 * uy, ly = q.y2 - 0.7 * uy + 0.45 * ux;
+        s += `<line data-gerade="${i}" x1="${X(q.x1)}" y1="${Y(q.y1)}" x2="${X(q.x2)}" y2="${Y(q.y2)}" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`
+          + `<text x="${X(lx)}" y="${Y(ly) + 6}" text-anchor="middle" font-size="18" font-weight="800" font-style="italic" fill="${ink}" stroke="var(--card)" stroke-width="4" paint-order="stroke">${esc(q.n)}</text>`; });
+      if (b.ohneAchsen) {
+        b.punkte.forEach(p => { s += `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5.5" fill="var(--accent)" stroke="${ink}" stroke-width="1.5"/><text x="${X(p.x) + 8}" y="${Y(p.y) - 8}" font-size="15" font-weight="800" fill="${ink}">${esc(p.n)}</text>`; });
+        return `<svg viewBox="0 0 ${W + 20} ${W}" role="img" aria-label="Gitter">${s}</svg>`;
+      }
       const x0 = Math.max(b.min, Math.min(b.max, 0)), y0 = x0;
       s += `<line x1="${X(b.min)}" y1="${Y(y0)}" x2="${X(b.max) + 10}" y2="${Y(y0)}" stroke="${ink}" stroke-width="2"/><line x1="${X(x0)}" y1="${Y(b.min)}" x2="${X(x0)}" y2="${Y(b.max) - 10}" stroke="${ink}" stroke-width="2"/>`;
       s += `<text x="${X(b.max) + 12}" y="${Y(y0) + 5}" font-size="13" fill="${mut}">x</text><text x="${X(x0) + 6}" y="${Y(b.max) - 10}" font-size="13" fill="${mut}">y</text>`;
       const sch = n > 12 ? 2 : 1;
-      for (let v = b.min; v <= b.max; v++) if (v !== 0 && v % sch === 0) s += `<text x="${X(v)}" y="${Y(y0) + 15}" font-size="11" text-anchor="middle" fill="${mut}">${MK.z(v)}</text><text x="${X(x0) - 5}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="${mut}">${MK.z(v)}</text>`;
-      s += `<text x="${X(x0) - 5}" y="${Y(y0) + 15}" font-size="11" text-anchor="end" fill="${mut}">0</text>`;
+      for (let v = b.min; v <= b.max; v++) if (v !== 0 && v % sch === 0) s += `<text x="${X(v)}" y="${Y(y0) + 19}" font-size="17" text-anchor="middle" fill="${mut}">${MK.z(v)}</text><text x="${X(x0) - 5}" y="${Y(v) + 6}" font-size="17" text-anchor="end" fill="${mut}">${MK.z(v)}</text>`;
+      s += `<text x="${X(x0) - 5}" y="${Y(y0) + 19}" font-size="17" text-anchor="end" fill="${mut}">0</text>`;
       if (b.achse) s += b.achse.x != null ? `<line x1="${X(b.achse.x)}" y1="${Y(b.min)}" x2="${X(b.achse.x)}" y2="${Y(b.max)}" stroke="var(--bad)" stroke-width="3"/>` : `<line x1="${X(b.min)}" y1="${Y(b.achse.y)}" x2="${X(b.max)}" y2="${Y(b.achse.y)}" stroke="var(--bad)" stroke-width="3"/>`;
       b.punkte.forEach(p => { s += `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5.5" fill="var(--accent)" stroke="${ink}" stroke-width="1.5"/><text x="${X(p.x) + 8}" y="${Y(p.y) - 8}" font-size="15" font-weight="800" fill="${ink}">${esc(p.n)}</text>`; });
       return `<svg viewBox="0 0 ${W + 20} ${W}" role="img" aria-label="Koordinatensystem">${s}</svg>`;
@@ -3229,6 +3976,51 @@ const M5 = (function () {
       return `<svg viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="Winkel" style="max-width:${Math.round(vw * 1.25)}px"><path d="M${u1} ${v1}A34 34 0 ${b.w > 180 ? 1 : 0} 0 ${u2} ${v2}" fill="none" stroke="var(--accent)" stroke-width="4"/>
         <line x1="${cx}" y1="${cy}" x2="${x1}" y2="${y1}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="4" fill="${ink}"/></svg>`;
     }
+    // v14.1: Winkel einstellen, Kreis, schriftliche Rechnung, zusammengesetzte Figur, Quader
+    if (b.typ === "winkelzeiger") return winkelSvg(b, b.wert == null ? b.start || 0 : b.wert, b.soll);
+    if (b.typ === "kreis") {
+      const n = b.reihe || 1, R = n > 1 ? 46 : 70, ext = b.p ? Math.max(1.15, b.p + 0.25) : 1.15, cy = 16 + R * ext, W = 2 * 16 + (n - 1) * 2 * R + 2 * R * ext, H = cy + R * ext + 16;
+      const cx = i => 16 + R * ext + i * 2 * R;
+      let s = "";
+      for (let i = 0; i < n; i++) s += `<circle cx="${cx(i)}" cy="${cy}" r="${R}" fill="var(--paper)" stroke="${ink}" stroke-width="2.5"/><circle cx="${cx(i)}" cy="${cy}" r="3.5" fill="${ink}"/>`;
+      s += `<text x="${cx(0) - 6}" y="${cy + 18}" font-size="14" font-weight="800" text-anchor="end" fill="${ink}">M</text>`;
+      s += b.zeige === "d" ? `<line x1="${cx(0) - R}" y1="${cy}" x2="${cx(0) + R}" y2="${cy}" stroke="var(--bad)" stroke-width="3"/>` : `<line x1="${cx(0)}" y1="${cy}" x2="${cx(0) + R}" y2="${cy}" stroke="var(--bad)" stroke-width="3"/>`;
+      s += `<text x="${b.zeige === "d" ? cx(0) : cx(0) + R / 2}" y="${cy - 8}" text-anchor="middle" font-size="14" font-weight="800" fill="${ink}" stroke="var(--paper)" stroke-width="4" paint-order="stroke">${esc(b.label)}</text>`;
+      if (b.p) { const [px, py] = MK.geo.punktBei(cx(0), cy, b.pw || 45, R * b.p);
+        s += `<line x1="${cx(0)}" y1="${cy}" x2="${px}" y2="${py}" stroke="${mut}" stroke-width="2" stroke-dasharray="5 5"/><circle cx="${px}" cy="${py}" r="5.5" fill="var(--accent)" stroke="${ink}" stroke-width="1.5"/><text x="${px + 9}" y="${py - 7}" font-size="15" font-weight="800" fill="${ink}">P</text>`; }
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kreis" style="max-width:${Math.round(W * 1.3)}px">${s}</svg>`;
+    }
+    if (b.typ === "stellen") {
+      const cw = 26, zeilen = b.op === "·" ? [`${b.zeilen[0]}·${b.zeilen[1]}`] : b.zeilen.map(String), cols = Math.max(...zeilen.map(x => x.length)) + (b.op === "·" ? 0 : 1);
+      let s = "";
+      zeilen.forEach((t, r) => { const y = 34 + r * 36;
+        t.split("").forEach((ch, i) => { s += `<text x="${14 + (cols - t.length + i + 0.5) * cw}" y="${y}" text-anchor="middle" font-size="26" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="${ink}">${esc(ch)}</text>`; });
+        if (b.op !== "·" && r === zeilen.length - 1) s += `<text x="${14 + 0.5 * cw}" y="${y}" text-anchor="middle" font-size="26" font-weight="700" fill="${ink}">${esc(b.op)}</text>`; });
+      const yl = 44 + (zeilen.length - 1) * 36;
+      s += `<line x1="10" y1="${yl}" x2="${18 + cols * cw}" y2="${yl}" stroke="${ink}" stroke-width="2.5"/>`;
+      return `<svg viewBox="0 0 ${28 + cols * cw} ${yl + 40}" role="img" aria-label="Schriftliche Rechnung" style="max-width:${Math.round((28 + cols * cw) * 1.2)}px">${s}</svg>`;
+    }
+    if (b.typ === "figur") {
+      const Pk = b.punkte, Wd = Math.max(...Pk.map(p => p[0])), Hd = Math.max(...Pk.map(p => p[1])), sc = Math.min(240 / Wd, 160 / Hd), o = 60;
+      const X = x => o + x * sc, Y = y => 24 + (Hd - y) * sc;
+      let s = `<polygon points="${Pk.map(p => X(p[0]) + "," + Y(p[1])).join(" ")}" fill="var(--accent)" fill-opacity=".25" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>`;
+      Pk.forEach((p, i) => { const q = Pk[(i + 1) % Pk.length], lab = b.labels[i]; if (!lab) return;
+        const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy), nx = dy / L, ny = -dx / L;   // nach außen (Ecken gegen den Uhrzeigersinn)
+        const mx = X((p[0] + q[0]) / 2) + nx * 8, my = Y((p[1] + q[1]) / 2) - ny * 8 + (Math.abs(ny) > 0.5 ? (ny < 0 ? 14 : -2) : 5);
+        s += `<text x="${mx}" y="${my}" text-anchor="${Math.abs(nx) > 0.5 ? (nx > 0 ? "start" : "end") : "middle"}" font-size="14" font-weight="700" fill="${ink}">${esc(lab)}</text>`; });
+      return `<svg viewBox="0 0 ${2 * o + Wd * sc} ${48 + Hd * sc}" role="img" aria-label="Figur" style="max-width:440px">${s}</svg>`;
+    }
+    if (b.typ === "quader") {
+      const m = Math.min(200 / (b.a + 0.36 * b.b), 140 / (b.c + 0.36 * b.b)), a = b.a * m, c = b.c * m, t = 0.36 * b.b * m, x0 = 56, y0 = 16 + t;
+      const pf = p => `${p[0]},${p[1]}`, F = [[x0, y0], [x0 + a, y0], [x0 + a, y0 + c], [x0, y0 + c]];
+      let s = `<polygon points="${[F[0], [x0 + t, y0 - t], [x0 + a + t, y0 - t], F[1]].map(pf).join(" ")}" fill="var(--accent)" fill-opacity=".18" stroke="${ink}" stroke-width="2"/>`;
+      s += `<polygon points="${[F[1], [x0 + a + t, y0 - t], [x0 + a + t, y0 + c - t], F[2]].map(pf).join(" ")}" fill="var(--accent)" fill-opacity=".34" stroke="${ink}" stroke-width="2"/>`;
+      s += `<polyline points="${pf([x0, y0 + c])} ${pf([x0 + t, y0 + c - t])} ${pf([x0 + a + t, y0 + c - t])}" fill="none" stroke="${mut}" stroke-width="1.5" stroke-dasharray="5 4"/><line x1="${x0 + t}" y1="${y0 - t}" x2="${x0 + t}" y2="${y0 + c - t}" stroke="${mut}" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+      s += `<polygon points="${F.map(pf).join(" ")}" fill="var(--paper)" fill-opacity=".85" stroke="${ink}" stroke-width="2.5"/>`;
+      s += `<text x="${x0 + a / 2}" y="${y0 + c + 20}" text-anchor="middle" font-size="14" font-weight="700" fill="${ink}">${esc(b.la)}</text><text x="${x0 - 6}" y="${y0 + c / 2 + 5}" text-anchor="end" font-size="14" font-weight="700" fill="${ink}">${esc(b.lc)}</text>`
+        + `<text x="${x0 + a + t / 2 + 8}" y="${y0 + c - t / 2 + 12}" font-size="14" font-weight="700" fill="${ink}">${esc(b.lb)}</text>`;
+      return `<svg viewBox="0 0 ${x0 + a + t + 70} ${y0 + c + 30}" role="img" aria-label="Quader" style="max-width:400px">${s}</svg>`;
+    }
     if (b.typ === "rechteck") {
       const m = Math.max(b.a, b.b), w = 40 + 220 * b.a / m, h = 30 + 120 * b.b / m;
       return `<svg viewBox="0 0 ${w + 110} ${h + 60}" role="img" aria-label="Rechteck ${esc(b.la)} mal ${esc(b.lb)}" style="max-width:360px"><rect x="20" y="16" width="${w}" height="${h}" fill="var(--paper)" stroke="${ink}" stroke-width="2.5"/>
@@ -3236,12 +4028,43 @@ const M5 = (function () {
     }
     return "";
   }
+  /* v14.1 Winkel einstellen: Skala wie am Geodreieck (außen ab dem ersten Schenkel, innen rückwärts), erster Schenkel fest, zweiter ziehbar */
+  const WZ = {cx: 180, cy: 180, R: 140};
+  function zeigerTeil(b, w) {
+    const P = (g, r) => MK.geo.punktBei(WZ.cx, WZ.cy, b.dreh + g, r), [x, y] = P(w, WZ.R + 40), [hx, hy] = P(w, WZ.R + 40);   // v14.1: Griff außerhalb der Skala, verdeckt keine Zahl
+    let s = "";
+    if (w > 0) { const [a1, b1] = P(0, 40), [a2, b2] = P(w, 40); s += `<path d="M${a1} ${b1}A40 40 0 ${w > 180 ? 1 : 0} 0 ${a2} ${b2}" fill="none" stroke="var(--accent)" stroke-width="5"/>`; }
+    return s + `<line x1="${WZ.cx}" y1="${WZ.cy}" x2="${x}" y2="${y}" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/><circle cx="${hx}" cy="${hy}" r="20" fill="var(--accent)" fill-opacity=".45" stroke="var(--accent)" stroke-width="3"/>`;
+  }
+  function sollTeil(b, w) {
+    const [x, y] = MK.geo.punktBei(WZ.cx, WZ.cy, b.dreh + w, WZ.R + 10), [tx, ty] = MK.geo.punktBei(WZ.cx, WZ.cy, b.dreh + w, WZ.R - 70);
+    return `<line x1="${WZ.cx}" y1="${WZ.cy}" x2="${x}" y2="${y}" stroke="var(--good)" stroke-width="5" stroke-dasharray="10 6" stroke-linecap="round"/><text x="${tx}" y="${ty + 5}" text-anchor="middle" font-size="17" font-weight="800" fill="var(--ink)" stroke="var(--card)" stroke-width="4" paint-order="stroke">${w}°</text>`;
+  }
+  function winkelSvg(b, w, soll) {
+    const ink = "var(--ink)", mut = "var(--muted)", P = (g, r) => MK.geo.punktBei(WZ.cx, WZ.cy, b.dreh + g, r), bis = b.voll ? 355 : 180, R = WZ.R;
+    let s;
+    if (b.voll) s = `<circle cx="${WZ.cx}" cy="${WZ.cy}" r="${R}" fill="var(--paper)" stroke="${mut}" stroke-width="1.5"/>`;
+    else { const [a1, b1] = P(0, R), [a2, b2] = P(180, R); s = `<path d="M${a1} ${b1}A${R} ${R} 0 0 0 ${a2} ${b2}Z" fill="var(--paper)" stroke="${mut}" stroke-width="1.5"/>`; }
+    for (let g = 0; g <= bis; g += 5) { const [x1, y1] = P(g, R - (g % 10 ? 7 : 13)), [x2, y2] = P(g, R); s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${mut}" stroke-width="${g % 10 ? 1 : 1.6}"/>`; }
+    for (let g = 0; g <= bis; g += b.voll ? 30 : 10) { const [x, y] = P(g, R + 16), [u, v] = P(g, R - 25), innen = b.voll ? (360 - g) % 360 : 180 - g;
+      s += `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="${ink}">${g}</text><text x="${u}" y="${v + 4}" text-anchor="middle" font-size="12" fill="${mut}">${innen}</text>`; }
+    const [x0, y0] = P(0, R + 10);
+    s += `<line x1="${WZ.cx}" y1="${WZ.cy}" x2="${x0}" y2="${y0}" stroke="${ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${WZ.cx}" cy="${WZ.cy}" r="5" fill="${ink}"/>`;
+    // Halbkreis: nur den belegten Teil zeigen (sonst bleibt die halbe Fläche leer und die Skala wird klein)
+    let vb = "0 0 360 360";
+    if (!b.voll) { const pk = [[WZ.cx, WZ.cy]]; for (let g = 0; g <= 180; g += 5) pk.push(P(g, R + 62)); pk.push(P(-15, 24), P(195, 24));
+      const xs = pk.map(q => q[0]), ys = pk.map(q => q[1]), x0 = Math.max(0, Math.min(...xs) - 6), y0 = Math.max(0, Math.min(...ys) - 6), x1 = Math.min(360, Math.max(...xs) + 6), y1 = Math.min(360, Math.max(...ys) + 6);
+      vb = `${Math.round(x0)} ${Math.round(y0)} ${Math.round(x1 - x0)} ${Math.round(y1 - y0)}`; }
+    return `<svg viewBox="${vb}" role="img" aria-label="Winkel einstellen">${s}<g class="msoll">${soll != null ? sollTeil(b, soll) : ""}</g><g class="mzeiger">${zeigerTeil(b, w)}</g></svg>`;
+  }
+  const svgPunkt = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return {x: NaN, y: NaN}; const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(m.inverse()); };
   const schrittTxt = (s, wert) => esc(s.t).replace("□", wert != null ? `<b>${esc(MK.z(wert))}</b>` : "□");
   const loesungsweg = t => `<ol class="mweg">${t.schritte.map(s => `<li>${schrittTxt(s, s.w)}</li>`).join("")}<li><b>Lösung: ${esc(MK.antwortText(t, t.loesung))}</b></li></ol>`;
 
   function zeige() {
     mutWeg();
     const q = S.queue[S.i], pid = CUR.pr.id;
+    S.winkel = null;
     if (!q.t) { const k = stand(pid).komp[q.komp]; q.stufe = k && k.z ? k.z.stufe : 1; q.d = MK.schwierigkeit(q.stufe, k); q.t = MK.aufgabe(q.komp, q.stufe, q.d, Math.random); }
     const t = q.t; S.cur = q; q.stufeEff = q.stufeEff || (S.boss ? 3 : q.stufe); S.t0 = Date.now(); S.locked = false; S.eingabe = null; S.onCheck = null; S.lz = null;
     $("fbWrap").innerHTML = "";
@@ -3249,9 +4072,19 @@ const M5 = (function () {
     $("progBar").style.width = (100 * S.i / tot) + "%"; $("progText").textContent = `${n}/${tot}`;
     if (S.boss) { const k = S.boss.kampf; $("progBar").style.width = (100 * (1 - k.hp / k.max)) + "%"; $("progText").textContent = `Zug ${k.zuege + 1}`; }
     const K = MK.KOMP_BY[q.komp];
-    const meta = `<div class="task-meta"><span class="pill">${esc(MK.KAP_BY[K.kap].kurz)}</span><span class="pill ${q.rolle === "wdh" ? "rev" : "u1"}">${ROLLE[q.rolle]}</span><span class="pill">${esc(K.titel)}</span>${S.boss ? "" : `<span class="pill dir">${STUFE[q.stufeEff]}</span>`}</div>`;
-    const kopf = `<div class="prompt mfrage">${esc(t.frage)}</div>${t.bild ? `<div class="mbild">${bildSvg(t.bild)}</div>` : ""}`;
+    const meta = `<div class="task-meta"><span class="pill">Kap. ${esc(MK.KAP_BY[K.kap].kurz)}</span><span class="pill ${q.rolle === "wdh" ? "rev" : "u1"}">${ROLLE[q.rolle]}</span><span class="pill">${esc(K.titel)}</span>${S.boss ? "" : `<span class="pill dir">${STUFE[q.stufeEff]}</span>`}</div>`;
+    const kopf = `<div class="prompt mfrage">${esc(t.frage)}</div>${t.bild && t.art !== "winkel" ? `<div class="mbild">${bildSvg(t.bild)}</div>` : ""}`;
     const el = $("task");
+    // v14.1: Geometrie zum Anfassen (Winkel ziehen, Eigenschaften abhaken, Geraden antippen)
+    if (t.art === "winkel") {
+      if (q.stufeEff === 1) { const bs = t.beispiel;
+        el.innerHTML = meta + `<div class="mbsp"><p class="eyebrow">So geht's</p><p class="mfrage-k">${esc(bs.frage)}</p><div class="mbild klein">${bildSvg(Object.assign({}, bs.bild, {wert: bs.loesung}))}</div>${loesungsweg(bs)}</div><p class="eyebrow">Jetzt du</p>` + kopf;
+        return zeigeWinkel(el, "", t, false, true); }
+      if (q.stufeEff === 2) return zeigeSchritte(el, meta, kopf, t);
+      return zeigeWinkel(el, meta + kopf, t, true);
+    }
+    if (t.art === "menge") return zeigeMenge(el, meta + kopf, t);
+    if (t.tippGeraden && q.stufeEff >= 2) return zeigeGeraden(el, meta + kopf, t);
     // Auswahl: Stufe 1, Schätzaufgaben, Benennen (wahl)
     if (t.art === "wahl" || t.schaetzen || q.stufeEff === 1) {
       const bsp = q.stufeEff === 1 && t.beispiel ? `<div class="mbsp"><p class="eyebrow">So geht's</p><p class="mfrage-k">${esc(t.beispiel.frage)}</p>${t.beispiel.bild ? `<div class="mbild klein">${bildSvg(t.beispiel.bild)}</div>` : ""}${loesungsweg(t.beispiel)}</div><p class="eyebrow">Jetzt du</p>` : "";
@@ -3275,10 +4108,12 @@ const M5 = (function () {
     const felder = t.art === "paar" ? `<div class="mfelder">${feldHtml(0, t.labels[0])}<span class="msep">${t.labels[0] === "Uhr" ? ":" : t.labels[0] === "h" ? "" : "|"}</span>${feldHtml(1, t.labels[1])}</div>`
       : `<div class="mfelder">${feldHtml(0, "")}${t.einheitText ? `<span class="meinheit">${esc(t.einheitText)}</span>` : ""}</div>`;
     const einh = t.art === "einheit" ? `<div class="einh" role="group" aria-label="Einheit wählen">${t.einheiten.map(e => `<button type="button" class="btn btn-ghost btn-small" data-einh="${esc(e)}">${esc(e)}</button>`).join("")}</div>` : "";
-    const html = `<div class="mantwort">${felder}${einh}<p class="hint" id="mHint"></p>${padHtml(minus, komma)}${hilfe ? `<button type="button" class="link" id="mHilfe">Ich brauch die Schritte</button>` : ""}</div>`;
+    const tipp = t.art === "paar" && t.bild && t.bild.tippen ? `<p class="note">Tippe den Punkt im Gitter an oder gib die Koordinaten ein.</p>` : "";
+    const html = `<div class="mantwort">${tipp}${felder}${einh}<p class="hint" id="mHint"></p>${padHtml(minus, komma)}${hilfe ? `<button type="button" class="link" id="mHilfe">Ich brauch die Schritte</button>` : ""}</div>`;
     if (anhaengen) el.insertAdjacentHTML("beforeend", html); else el.innerHTML = oben + html;
     const host = el.querySelector(".mantwort") || el;
     felderVerdrahten(host, t.art === "paar" ? 2 : 1);
+    if (t.art === "paar" && t.bild && t.bild.tippen) gitterTippen(el.querySelector(".mbild svg"), t, q => { S.eingabe.felder.forEach((f, i) => { f.wert = String(q[i]); f.el.classList.remove("schlecht"); feldSetzen(f); }); });
     host.querySelectorAll("[data-einh]").forEach(b => b.onclick = () => { S.eingabe.einheit = b.dataset.einh; host.querySelectorAll("[data-einh]").forEach(x => x.classList.toggle("btn-primary", x === b)); });
     if ($("mHilfe")) $("mHilfe").onclick = () => { S.cur.stufeEff = 2; S.cur.hilfe = true; zeigeSchritte(el, el.querySelector(".task-meta").outerHTML, `<div class="prompt mfrage">${esc(t.frage)}</div>${t.bild ? `<div class="mbild">${bildSvg(t.bild)}</div>` : ""}`, t); };
     padVerdrahten(host, () => {
@@ -3289,6 +4124,7 @@ const M5 = (function () {
         if (t.art === "einheit") { if (!E.einheit) { h.textContent = "Wähle noch die Einheit."; return; } v = {wert: x, einheit: E.einheit}; } else v = x; }
       const r = MK.pruefe(t, v);
       E.felder.forEach(f => f.el && f.el.classList.add(r.res === "ok" ? "gut" : "schlecht"));
+      if (t.art === "paar" && t.bild && t.bild.tippen) zeigePunktLoesung(el.querySelector(".mbild svg"), t);
       const lzFehler = S.lz ? S.lz.fehler : 0;
       fertig(r.res === "ok" && !lzFehler ? "ok" : "bad", {art: r.art, tipp: r.tipp, eingabe: MK.antwortText(t, v), zwischen: lzFehler && r.res === "ok"});
     });
@@ -3310,10 +4146,10 @@ const M5 = (function () {
       felder.forEach(x => x.classList.remove("aktiv"));
       if (finalIstLuecke) return fertig(lz.fehler ? "bad" : "ok", {art: lz.finalArt, tipp: lz.finalTipp, eingabe: lz.eingabe});
       el.querySelector(".mantwort").remove();
-      zeigeFrei(el, "", t, false, true);
+      (t.art === "winkel" ? zeigeWinkel : zeigeFrei)(el, "", t, false, true);
     };
     aktiv(0);
-    if (!slots.length) { el.querySelector(".mantwort").remove(); zeigeFrei(el, "", t, false, true); return; }
+    if (!slots.length) { el.querySelector(".mantwort").remove(); (t.art === "winkel" ? zeigeWinkel : zeigeFrei)(el, "", t, false, true); return; }
     padVerdrahten(el, () => {
       if (S.locked) return;
       const f = S.eingabe.felder[lz.k], v = zahlAus(f), s = slots[lz.k], h = $("mHint");
@@ -3327,6 +4163,90 @@ const M5 = (function () {
       f.wert = String(s.w).replace(".", ","); feldSetzen(f); h.textContent = `Hier gehört ${MK.z(s.w)} hin. Weiter geht's.`;
       setTimeout(weiter, 900);
     });
+  }
+
+  /* ---------- v14.1: Eingaben zum Anfassen ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  /* Punkt im Gitter antippen: rastet auf den Gitterpunkt ein (MK.geo.gitterPunkt) und meldet ihn */
+  function gitterTippen(svg, t, onPunkt) {
+    if (!svg) return;
+    const box = svg.parentNode; if (box) box.classList.add("mtippen");
+    const mk = document.createElementNS(NS, "circle"); mk.setAttribute("r", "9"); mk.setAttribute("class", "mtipp-punkt"); mk.style.display = "none"; svg.appendChild(mk);
+    svg.addEventListener("pointerup", e => {
+      if (!S || S.locked) return;
+      const p = svgPunkt(svg, e), q = MK.geo.gitterPunkt(t.bild, p.x, p.y); if (!q) return;
+      const g = MK.geo.koordGeo(t.bild); mk.setAttribute("cx", g.X(q[0])); mk.setAttribute("cy", g.Y(q[1])); mk.style.display = "";
+      onPunkt(q);
+    });
+  }
+  function zeigePunktLoesung(svg, t) {
+    if (!svg) return;
+    const g = MK.geo.koordGeo(t.bild), c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", g.X(t.loesung[0])); c.setAttribute("cy", g.Y(t.loesung[1])); c.setAttribute("r", "14"); c.setAttribute("class", "mloes-punkt"); svg.appendChild(c);
+  }
+  /* Winkel einstellen: Schenkel ziehen (Pointer-Events: Finger, Stift, Maus), Pfeiltasten ±1° (Umschalt ±5°) */
+  function zeigeWinkel(el, oben, t, hilfe, anhaengen) {
+    const b = Object.assign({}, t.bild), W = {wert: b.start || 0};
+    const html = `<div class="mantwort mwinkel"><div class="mbild mzieh">${winkelSvg(b, W.wert)}</div>
+      <p class="note">Zieh den farbigen Schenkel um den Scheitel (am Computer auch mit ← und →).</p><p class="hint" id="mHint"></p>
+      <div class="row"><button type="button" class="btn btn-primary mcheck" id="mCheck">Prüfen</button>${hilfe ? `<button type="button" class="link" id="mHilfe">Ich brauch die Schritte</button>` : ""}</div></div>`;
+    if (anhaengen) el.insertAdjacentHTML("beforeend", html); else el.innerHTML = oben + html;
+    const host = el.querySelector(".mwinkel"), svg = host.querySelector("svg"), zg = () => svg.querySelector(".mzeiger");
+    const setze = a => { if (a == null || S.locked) return; W.wert = a; zg().innerHTML = zeigerTeil(b, a); $("mHint").textContent = ""; };
+    S.winkel = {drehe: dlt => setze(((W.wert + dlt) % 360 + 360) % 360)};
+    let zieh = false;
+    const ausZeiger = e => { const p = svgPunkt(svg, e); return MK.geo.winkelAus(WZ.cx, WZ.cy, p.x, p.y, b.dreh); };
+    svg.addEventListener("pointerdown", e => { if (S.locked) return; zieh = true; try { svg.setPointerCapture(e.pointerId); } catch (x) {} setze(ausZeiger(e)); e.preventDefault(); });
+    svg.addEventListener("pointermove", e => { if (zieh) { setze(ausZeiger(e)); e.preventDefault(); } });
+    const los = () => { zieh = false; }; svg.addEventListener("pointerup", los); svg.addEventListener("pointercancel", los);
+    if ($("mHilfe")) $("mHilfe").onclick = () => { S.cur.stufeEff = 2; S.cur.hilfe = true; S.winkel = null; zeigeSchritte(el, el.querySelector(".task-meta").outerHTML, `<div class="prompt mfrage">${esc(t.frage)}</div>`, t); };
+    const check = () => {
+      if (S.locked) return;
+      if (!W.wert) { $("mHint").textContent = "Zieh zuerst den farbigen Schenkel."; return; }
+      const r = MK.pruefe(t, W.wert), lzFehler = S.lz ? S.lz.fehler : 0;
+      svg.querySelector(".msoll").innerHTML = sollTeil(b, t.loesung);
+      fertig(r.res === "ok" && !lzFehler ? "ok" : "bad", {art: r.art, tipp: r.tipp, eingabe: MK.antwortText(t, W.wert), zwischen: lzFehler && r.res === "ok"});
+    };
+    $("mCheck").onclick = check; S.onCheck = check;
+  }
+  /* Eigenschaften abhaken (mehrere richtig) */
+  function zeigeMenge(el, oben, t) {
+    const an = new Set();
+    el.innerHTML = oben + `<div class="mantwort"><div class="meig" role="group" aria-label="Eigenschaften">${t.eigenschaften.map(x => `<button type="button" class="btn btn-ghost" data-eig="${esc(x.k)}" aria-pressed="false"><span class="mhaken">☐</span>${esc(x.t)}</button>`).join("")}</div>
+      <p class="hint" id="mHint"></p><button type="button" class="btn btn-primary mcheck" id="mCheck">Prüfen</button></div>`;
+    el.querySelectorAll("[data-eig]").forEach(bt => bt.onclick = () => { if (S.locked) return; const k = bt.dataset.eig; if (an.has(k)) an.delete(k); else an.add(k);
+      const on = an.has(k); bt.classList.toggle("is-on", on); bt.setAttribute("aria-pressed", on ? "true" : "false"); bt.querySelector(".mhaken").textContent = on ? "☑" : "☐"; });
+    const check = () => {
+      if (S.locked) return;
+      const v = Array.from(an).sort(), r = MK.pruefe(t, v);
+      el.querySelectorAll("[data-eig]").forEach(bt => { bt.disabled = true; if (t.loesung.includes(bt.dataset.eig)) bt.classList.add("is-good"); else if (an.has(bt.dataset.eig)) bt.classList.add("is-bad"); });
+      fertig(r.res, {art: r.art, tipp: r.tipp, eingabe: MK.antwortText(t, v)});
+    };
+    $("mCheck").onclick = check; S.onCheck = check;
+  }
+  /* Zwei Geraden antippen (auf der Zeichnung, MK.geo.naechsteGerade, oder über die Namen-Knöpfe) */
+  function zeigeGeraden(el, oben, t) {
+    const G = t.bild.geraden, sel = [];
+    el.innerHTML = oben + `<div class="mantwort"><p class="note">Tippe zwei Geraden an, auf der Zeichnung oder hier:</p>
+      <div class="mgwahl" role="group" aria-label="Geraden">${G.map((g, i) => `<button type="button" class="btn btn-ghost" data-g="${i}" aria-pressed="false">${esc(g.n)}</button>`).join("")}</div>
+      <p class="hint" id="mHint"></p><button type="button" class="btn btn-primary mcheck" id="mCheck">Prüfen</button></div>`;
+    const svg = el.querySelector(".mbild svg");
+    const malen = () => {
+      el.querySelectorAll("[data-g]").forEach(bt => { const on = sel.includes(+bt.dataset.g); bt.classList.toggle("is-on", on); bt.setAttribute("aria-pressed", on ? "true" : "false"); });
+      if (svg) svg.querySelectorAll("[data-gerade]").forEach(l => { const on = sel.includes(+l.dataset.gerade); l.setAttribute("stroke", on ? "var(--accent)" : "var(--ink)"); l.setAttribute("stroke-width", on ? "7" : "3.5"); });
+    };
+    const waehle = i => { if (S.locked || i < 0) return; const j = sel.indexOf(i); if (j >= 0) sel.splice(j, 1); else { if (sel.length >= 2) sel.shift(); sel.push(i); } $("mHint").textContent = ""; malen(); };
+    el.querySelectorAll("[data-g]").forEach(bt => bt.onclick = () => waehle(+bt.dataset.g));
+    if (svg) { svg.parentNode.classList.add("mtippen");
+      svg.addEventListener("pointerup", e => { const p = svgPunkt(svg, e), g = MK.geo.koordGeo(t.bild), x = t.bild.min + (p.x - g.o) / g.c, y = t.bild.max - (p.y - g.o) / g.c; waehle(MK.geo.naechsteGerade(G, x, y, 0.7)); }); }
+    const check = () => {
+      if (S.locked) return;
+      if (sel.length < 2) { $("mHint").textContent = "Wähle zwei Geraden."; return; }
+      const k = sel.slice().sort((a, b) => a - b).join("-"), r = MK.pruefe(t, k);
+      if (svg) t.loesung.split("-").forEach(i => { const l = svg.querySelector(`[data-gerade="${i}"]`); if (l) { l.setAttribute("stroke", "var(--good)"); l.setAttribute("stroke-width", "7"); } });
+      fertig(r.res, {art: r.art, tipp: r.tipp, eingabe: MK.antwortText(t, k)});
+    };
+    $("mCheck").onclick = check; S.onCheck = check;
   }
 
   const LOB = ["Richtig!", "Stark gerechnet.", "Genau so.", "Sauber.", "Treffer.", "Läuft."];
@@ -3432,6 +4352,7 @@ const M5 = (function () {
   /* Tastatur am Computer: Ziffern, Minus, Komma, Rücktaste, Enter */
   document.addEventListener("keydown", e => {
     if (!S || !S.mathe || $("scrSession").hidden) return;
+    if (S.winkel && !S.locked && /^Arrow(Left|Right|Up|Down)$/.test(e.key)) { e.preventDefault(); S.winkel.drehe((/Right|Up/.test(e.key) ? 1 : -1) * (e.shiftKey ? 5 : 1)); return; }
     if (e.key === "Enter") { e.preventDefault(); const nb = $("btnNext"); if (nb && Date.now() - S.fbAt > 250) return naechste(); if (!S.locked && S.onCheck) S.onCheck(); return; }
     const m = e.key === "-" ? "−" : e.key === "," || e.key === "." ? "," : e.key === "Backspace" ? "⌫" : /^\d$/.test(e.key) ? e.key : null;
     if (m && S.eingabe && !e.metaKey && !e.ctrlKey) { e.preventDefault(); tippen(m); }
@@ -3449,7 +4370,7 @@ const M5 = (function () {
     if (!hat(p)) { host.hidden = true; host.innerHTML = ""; return; }
     const pl = MK.plan(p.mathe); p.mathe.folge = pl.folge; p.mathe.bis = pl.bis;
     host.hidden = false;
-    host.innerHTML = `<h2>Mathe: Kapitel und Stand</h2><p class="note">Reihenfolge wie im Unterricht (mit den Pfeilen verschieben) und bis wohin die Klasse gekommen ist. Spätere Kapitel kommen nie dran. Die Aufgaben sind selbst erzeugt, keine Schulbuchtexte.</p>
+    host.innerHTML = `<h2>Mathe: Kapitel und Stand</h2><p class="note">Reihenfolge wie im Unterricht (mit den Pfeilen verschieben) und bis wohin die Klasse gekommen ist. Spätere Kapitel kommen nie dran. Die Aufgaben sind selbst erzeugt, keine Schulbuchtexte. Freiwillige Kompetenzen (Koordinaten, Spiegeln) kommen als Neues nur mit „Freiwillige Teile üben“.</p>
       <ol class="mfolge">${pl.folge.map((k, i) => `<li><span>${esc(kapTitel(k))}</span><span class="row"><button type="button" class="btn btn-ghost btn-small" data-hoch="${i}" aria-label="nach oben"${i ? "" : " disabled"}>↑</button><button type="button" class="btn btn-ghost btn-small" data-runter="${i}" aria-label="nach unten"${i < pl.folge.length - 1 ? "" : " disabled"}>↓</button></span></li>`).join("")}</ol>
       <div class="field"><label for="edMBis">Im Unterricht behandelt bis</label><select id="edMBis">${pl.folge.map(k => `<option value="${k}"${k === pl.bis ? " selected" : ""}>${esc(kapTitel(k))}</option>`).join("")}</select></div>`;
     const tausch = (i, j) => { const f = p.mathe.folge; [f[i], f[j]] = [f[j], f[i]]; editPlan(); };
@@ -3459,7 +4380,7 @@ const M5 = (function () {
   }
   function editVerdrahten() {
     const s = $("edMathe"); if (!s) return;
-    s.onchange = () => { const p = EDIT.p; EDIT.matheKopie = true; if (s.value) p.mathe = p.mathe && p.mathe.fach === BUCH ? p.mathe : {fach: BUCH, folge: MK.KAPITEL.map(k => k.id), bis: "k1"}; else delete p.mathe; editPlan(); };
+    s.onchange = () => { const p = EDIT.p; EDIT.matheKopie = true; if (s.value) p.mathe = p.mathe && p.mathe.fach === BUCH ? p.mathe : {fach: BUCH, folge: MK.KAPITEL.map(k => k.id), bis: MK.KAPITEL[0].id}; else delete p.mathe; editPlan(); };
     editPlan();
   }
 
@@ -3498,7 +4419,22 @@ const M5 = (function () {
 .mkomp .uname{flex:1;min-width:0}
 .mtab{width:100%;border-collapse:collapse;font-size:.95rem}.mtab td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 .mfolge{display:flex;flex-direction:column;gap:6px;padding-left:1.4em;margin:0}.mfolge li{display:flex;justify-content:space-between;align-items:center;gap:8px}
-#mEltern summary{cursor:pointer}`;
+#mEltern summary{cursor:pointer}
+.mzieh{align-self:stretch;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.mzieh svg{max-width:440px;max-height:380px}
+.mzieh svg:focus{outline:3px solid var(--accent);outline-offset:2px;border-radius:12px}
+.mtippen{touch-action:manipulation;cursor:crosshair;-webkit-tap-highlight-color:transparent}
+.mtipp-punkt{fill:var(--accent);stroke:var(--ink);stroke-width:2.5}
+.mloes-punkt{fill:none;stroke:var(--good);stroke-width:4}
+.mgwahl{display:flex;gap:10px;flex-wrap:wrap}
+.mgwahl button{min-width:64px;min-height:56px;font-size:1.35rem;font-weight:800;font-style:italic}
+.mgwahl button.is-on,.meig button.is-on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.meig{display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px}
+.meig button{min-height:54px;text-align:left;justify-content:flex-start;white-space:normal;font-size:1.05rem}
+.meig button .mhaken{display:inline-block;width:1.6em;font-weight:800}
+.meig button.is-good{border-color:var(--good);background:var(--good-bg)}
+.meig button.is-bad{border-color:var(--bad);background:var(--bad-bg)}
+.mcheck{min-height:56px;min-width:140px;font-size:1.15rem}`;
     document.head.appendChild(css);
   } catch (e) {}
 
@@ -3761,7 +4697,7 @@ function openSettings(from) {
 function renderSettingsKids() {
   const host = $("setKids"); if (!host) return;
   host.innerHTML = PROFILES.map(p => `<div class="set-kid"><span class="top-ava" aria-hidden="true">${avatarInner(p)}</span>
-      <span class="who-t"><b>${esc(p.name)}</b><span>${p.jgst ? "Jgst. " + esc(p.jgst) + " · " : ""}${esc([p.en, p.fr].filter(Boolean).map(buchTitel).join(", ") || "noch kein Buch")}</span></span>
+      <span class="who-t"><b>${esc(p.name)}</b><span>${p.jgst ? "Jgst. " + esc(p.jgst) + " · " : ""}${esc([p.en, p.fr].filter(Boolean).map(buchTitel).concat(p.mathe && p.mathe.fach ? ["Mathe 5"] : []).join(", ") || "noch kein Buch")}</span></span>
       <button type="button" class="btn btn-ghost btn-small" data-edit="${esc(p.id)}">Bearbeiten</button></div>`).join("")
     + `<button type="button" class="btn btn-ghost btn-small" id="setAdd" style="align-self:flex-start">＋ Kind hinzufügen</button>`;
   host.querySelectorAll("[data-edit]").forEach(b => { b.onclick = () => openEdit(b.dataset.edit); });

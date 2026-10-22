@@ -1,5 +1,5 @@
 /* Lern! Service Worker (früher „Karteikasten“; Cache-Namen bleiben). Bei jeder neuen Version VERSION hochzählen. */
-const VERSION = "13";
+const VERSION = "14";
 const CACHE = "karteikasten-v" + VERSION;
 const FONT_CACHE = "karteikasten-fonts";
 // Nur App-Hülle; keine Lernpakete oder Lernstände (die liegen in IndexedDB/localStorage).

@@ -88,3 +88,10 @@ Beide Einstellungen wandern mit „Lernstand sichern/holen“ mit (die neuere Pr
 - Kommazahlen nur bei Größen und Geld; Brüche fehlen (Stoff der 6. Klasse).
 - Kapitelplan nach LehrplanPLUS M5, nicht mit dem Inhaltsverzeichnis des Schulbuchs abgeglichen.
 - Ausrollen: `index.html` und `sw.js` (VERSION 13) hochladen.
+
+## Mathe 5: Kapitel I–VI und Geometrie zum Anfassen (ab v14.1)
+- **Kapitel** wie im Unterricht: I Natürliche und ganze Zahlen · II Addition und Subtraktion ganzer Zahlen · III Geometrische Figuren und Lagebeziehungen · IV Multiplikation und Division ganzer Zahlen · V Größen · VI Flächen (Standardfolge I→VI, Kapitel-ids `kap1`–`kap6`). 45 Kompetenzen: die 27 bisherigen behalten ihre ids, 18 neue (Teilbarkeit, Zahlenmengen, schriftliches Rechnen, Terme mit + und −, geschickt addieren, parallel/senkrecht, Abstand/Lot, Kreis, Winkel einstellen, Vierecke, fehlende Ecke, Primfaktoren, Zählprinzip, Dreisatz, Maßstab, zusammengesetzte Figuren, Quader-Oberfläche). Koordinaten und Spiegeln sind freiwillig (kommen als Neues nur mit „Freiwillige Teile üben“, zählen nicht fürs Boss-Tor).
+- **Geometrie zum Anfassen:** Winkel einstellen durch Ziehen des Schenkels (Finger, Stift, Maus; Pfeiltasten), Skala innen und außen wie am Geodreieck, Toleranz ±10°/±5°/±3° je Stufe, Fehler „falsche Skala“ (180° − α) wird erkannt; Punkt im Gitter antippen (rastet ein); Geraden antippen; Kreis; Vierecke benennen und Eigenschaften abhaken. Prüflogik als reine Funktionen in `MK.geo`.
+- **Alte Lernstände (v14.0):** Kompetenzstände bleiben unverändert. Gespeicherte Kapitelfolge und „behandelt bis“ werden auf die neuen Kapitel abgebildet; „behandelt bis“ nur so weit, wie alle Kapitel davor schon behandelt waren (bitte im Profil prüfen). Erster Bosssieg in einem neuen Kapitel gibt erneut Tickets.
+- **Grenzen:** Konstruieren mit Zirkel und Geodreieck bleibt auf Papier.
+- Ausrollen: `index.html` und `sw.js` (VERSION 14) hochladen.
